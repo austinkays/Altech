@@ -166,6 +166,21 @@ Object.assign(App, {
         })();
         const fullAddress = `<Address>${addrInner}${phoneEmailInsideAddress}</Address>`;
 
+        // ── Optional PersonalInfo extras ───────────────────────
+        // EZLynx Import Applicant accepts these as direct children of
+        // <PersonalInfo>. Tested by user's first import: occupation/job
+        // didn't populate without these. Emit only when source data has
+        // a value — EZLynx ignores empty optional tags but rejects on
+        // some malformed schemas, so be conservative.
+        const personalExtras = [
+            tagIf('Prefix', data.prefix),
+            tagIf('Suffix', data.suffix),
+            tagIf('SSN', data.ssn),
+            tagIf('Industry', data.industry),
+            tagIf('Occupation', data.occupation),
+            tagIf('Education', data.education),
+        ].filter(Boolean).join('');
+
         // ── <Applicant> primary ────────────────────────────────
         const primaryApplicant = [
             '<Applicant>',
@@ -180,6 +195,7 @@ Object.assign(App, {
             tag('Gender', expandGender(data.gender)),
             tag('MaritalStatus', passThrough(data.maritalStatus)),
             tag('Relation', 'Insured'),
+            personalExtras,
             '</PersonalInfo>',
             fullAddress,
             '</Applicant>',
@@ -256,6 +272,15 @@ Object.assign(App, {
                 const violations = (Array.isArray(d.violationList) ? d.violationList : [])
                     .map(v => `<Violation>${tagIf('Date', isoDate(v.date))}${tagIf('Description', v.description)}</Violation>`)
                     .join('');
+                // Primary driver inherits Industry/Occupation/Education
+                // from App.data when not set on the driver record itself.
+                // EZLynx's drivers page collects these per-driver, so emit
+                // them inside <Driver> too — Import Applicant uses them
+                // to populate the driver-N-occupationIndustry / Title /
+                // Education fields after the import.
+                const dIndustry   = d.industry   || (i === 0 ? data.industry   : '');
+                const dOccupation = d.occupation || (i === 0 ? data.occupation : '');
+                const dEducation  = d.education  || (i === 0 ? data.education  : '');
                 return [
                     `<Driver id="${id}">`,
                     '<Name>',
@@ -267,10 +292,21 @@ Object.assign(App, {
                     tag('DOB', isoDate(d.dob)),
                     tagIf('DLNumber', d.dlNum),
                     tagIf('DLState', d.dlState),
+                    tagIf('DLStatus', d.dlStatus),
+                    tagIf('AgeLicensed', d.ageLicensed),
                     tagIf('MaritalStatus', d.maritalStatus),
                     i === 0 ? tag('Relation', 'Insured') : tagIf('Relation', d.relationship),
+                    tagIf('Industry', dIndustry),
+                    tagIf('Occupation', dOccupation),
+                    tagIf('Education', dEducation),
                     tagIf('GoodStudent', d.goodStudent || 'No'),
+                    tagIf('GoodDriver', d.goodDriver),
                     tagIf('MATDriver', d.matureDriver || 'No'),
+                    tagIf('LicenseSuspended', d.licenseSusRev),
+                    tagIf('SR22Required', d.sr22),
+                    tagIf('FR44Required', d.fr44),
+                    tagIf('DriverEducation', d.driverEducation),
+                    tagIf('StudentGPA', d.studentGPA),
                     tagIf('Rated', d.ratedDriver || 'Rated'),
                     violations,
                     '</Driver>',
@@ -319,6 +355,7 @@ Object.assign(App, {
                 tagIf('PD', data.pdLimit),
                 tagIf('UM', data.umLimits),
                 tagIf('UIM', data.uimLimits),
+                tagIf('MedPay', data.medPayments),
                 vehicles.length > 1 ? '<Multicar>Yes</Multicar>' : '',
                 '</GeneralCoverage>',
             ].join('');

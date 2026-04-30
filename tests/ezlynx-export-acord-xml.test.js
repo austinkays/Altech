@@ -220,6 +220,75 @@ describe('App.buildEZLynxXML — ACORD XML emitter', () => {
         expect(content).toContain('<Email>a&amp;b@example.com</Email>');
     });
 
+    test('emits PersonalInfo extras (Industry / Occupation / Education / Prefix / Suffix / SSN)', () => {
+        // First import test showed Occupation/job didn't populate without these.
+        App.data = {
+            firstName: 'A', lastName: 'B',
+            prefix: 'Mr.', suffix: 'Jr.',
+            ssn: '123-45-6789',
+            industry: 'Insurance',
+            occupation: 'Agent/Broker',
+            education: 'Bachelors',
+        };
+        App.drivers = [];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<Prefix>Mr.</Prefix>');
+        expect(content).toContain('<Suffix>Jr.</Suffix>');
+        expect(content).toContain('<SSN>123-45-6789</SSN>');
+        expect(content).toContain('<Industry>Insurance</Industry>');
+        expect(content).toContain('<Occupation>Agent/Broker</Occupation>');
+        expect(content).toContain('<Education>Bachelors</Education>');
+    });
+
+    test('omits PersonalInfo extras when source data is missing', () => {
+        App.data = { firstName: 'A', lastName: 'B' };
+        App.drivers = [];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        // Don't emit empty optional tags — EZLynx prefers absence
+        expect(content).not.toContain('<Industry>');
+        expect(content).not.toContain('<Occupation>');
+        expect(content).not.toContain('<Prefix>');
+    });
+
+    test('emits per-driver Industry/Occupation/Education + driving-history flags', () => {
+        // Driver 0 inherits from App.data when not set on driver record.
+        App.data = {
+            firstName: 'A', lastName: 'B',
+            industry: 'Insurance', occupation: 'Agent/Broker', education: 'Bachelors',
+        };
+        App.drivers = [{
+            firstName: 'A', lastName: 'B', dlNum: 'X', dlState: 'WA',
+            ageLicensed: '18', goodDriver: 'Yes', matureDriver: 'No',
+            licenseSusRev: 'No', sr22: 'No', fr44: 'No',
+            driverEducation: 'Yes', studentGPA: '3.7',
+        }];
+        App.vehicles = [];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<AgeLicensed>18</AgeLicensed>');
+        expect(content).toContain('<Industry>Insurance</Industry>');
+        expect(content).toContain('<Occupation>Agent/Broker</Occupation>');
+        expect(content).toContain('<Education>Bachelors</Education>');
+        expect(content).toContain('<GoodDriver>Yes</GoodDriver>');
+        expect(content).toContain('<LicenseSuspended>No</LicenseSuspended>');
+        expect(content).toContain('<SR22Required>No</SR22Required>');
+        expect(content).toContain('<FR44Required>No</FR44Required>');
+        expect(content).toContain('<DriverEducation>Yes</DriverEducation>');
+        expect(content).toContain('<StudentGPA>3.7</StudentGPA>');
+    });
+
+    test('emits MedPay in GeneralCoverage when set', () => {
+        App.data = {
+            firstName: 'A', lastName: 'B',
+            liabilityLimits: '100/300', medPayments: '5000',
+        };
+        App.drivers = [];
+        App.vehicles = [{ vin: 'V1' }];
+        const { content } = App.buildEZLynxXML();
+        expect(content).toContain('<MedPay>5000</MedPay>');
+    });
+
     test('round-trips through DOMParser without errors', () => {
         // Parse the emitted XML to confirm it's actually well-formed.
         // jsdom provides DOMParser globally.
