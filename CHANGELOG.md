@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(css): make <select> dropdown options readable in dark mode** (May 1, 2026):
+  - Native `<option>` elements don't reliably inherit `background`/`color` from the parent `<select>`, so in dark mode the options popup was rendering with the browser's default light background. Where the parent select also matched `select:invalid` (e.g. a required dropdown still on its placeholder), the `rgba(255, 59, 48, 0.08)` red wash bled into the popup, leaving near-white option text on a pinkish-white background — effectively unreadable (visible on the Home Risk Factors → Swimming Pool dropdown in step 5).
+  - Added a global `select option, select optgroup` rule in `css/components-inputs.css` that forces `background: var(--bg-card); color: var(--text)` in light mode and `#1C1C1E` / `#FFFFFF` under `body.dark-mode`. Disabled options fall back to `var(--text-tertiary)` so placeholder/help options remain visually distinct.
+  - Effect: every `<select>` dropdown across the app — intake form, commercial quoter, plugins — now shows high-contrast options in both themes regardless of validation state.
+
 ### Changed
 - **fix(compliance): silently auto-acknowledge bond renewals** (April 30, 2026):
   - When a bond's expiration date moved forward (i.e. renewed in HawkSoft), `checkForRenewals()` in `js/compliance-dashboard.js` was setting `needsStateUpdate = true` and wiping any prior `hawksoftUpdated` ack — pinning the bond to the top of the list with a "⚠️ Renewed" badge until the user clicked "🦅 HawkSoft Updated" again.
