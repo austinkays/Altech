@@ -237,9 +237,13 @@ Object.assign(App, {
         })();
 
         // ── Prior policy info ──────────────────────────────────
-        // Optional — only emit when there's a prior carrier on file.
+        // Optional — only emit when any prior-policy field is on file.
+        // Gate previously checked only carrier/years/exp; if a producer
+        // had set priorPolicyTerm alone (e.g. from a partial scan), the
+        // entire block was suppressed and that value vanished. Now any
+        // prior-policy field is enough to surface the block.
         const priorPolicy = (() => {
-            if (!data.priorCarrier && !data.priorYears && !data.priorExp) return '';
+            if (!data.priorCarrier && !data.priorYears && !data.priorExp && !data.priorPolicyTerm) return '';
             const yrs = data.priorYears
                 ? `<YearsWithPriorCarrier><Years>${xesc(data.priorYears)}</Years></YearsWithPriorCarrier>`
                 : '';

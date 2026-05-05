@@ -121,15 +121,13 @@ const EZLYNX_REQUIRED_TO_FILLER_KEY = {
     homePriorYears:    'HomePriorYears',
     homePriorExp:      'HomePriorExp',
     creditCheckAuth:   'CreditCheckAuth',
+    purchaseDate:      'PurchaseDate',
 };
 
 // Fields that ARE marked ezlynxRequired in fields.js but intentionally
-// skip the filler — usually because they're date-only inputs that
-// EZLynx doesn't have a single counterpart for, or they need a
-// pre-export conversion the producer applies manually.
-const UNWIRED_INTENTIONAL = {
-    purchaseDate: 'EZLynx tracks property purchase via mortgage info, not a standalone field.',
-};
+// skip the filler — currently empty. If a future field cannot be wired,
+// add it here with a one-line reason.
+const UNWIRED_INTENTIONAL = {};
 
 describe('ezlynxRequired wire-format coverage', () => {
     let App;

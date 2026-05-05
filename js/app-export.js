@@ -225,6 +225,7 @@ Object.assign(App, {
             HomePriorLiability:      d.homePriorLiability || '',
             IncreasedReplacementCost: d.increasedReplacementCost || '',
             Mortgagee:               d.mortgagee || '',
+            PurchaseDate:            toMDY(d.purchaseDate),
 
             // ── Co-Applicant ──────────────────────────────────────
             // Populated for couples/spouses imported from HawkSoft. The
