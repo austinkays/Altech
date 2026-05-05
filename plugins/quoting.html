@@ -2498,20 +2498,15 @@
                         <span class="hero-export-label">Auto-fill EZLynx</span>
                         <span class="hero-export-hint">Desktop · launches Chromium</span>
                     </button>
-                    <button class="hero-export-option" onclick="App.exportEZLynxXML()">
-                        <span class="hero-export-icon">📄</span>
-                        <span class="hero-export-label">EZLynx XML</span>
-                        <span class="hero-export-hint">Drop in Import Applicant</span>
+                    <button class="hero-export-option" onclick="App.openExportPicker()">
+                        <span class="hero-export-icon">📦</span>
+                        <span class="hero-export-label">Export Files…</span>
+                        <span class="hero-export-hint">Pick PDF, EZLynx XML, HawkSoft, Text</span>
                     </button>
                     <button class="hero-export-option" onclick="App.navigateTo('hawksoft')">
                         <span class="hero-export-icon">📤</span>
-                        <span class="hero-export-label">HawkSoft</span>
-                        <span class="hero-export-hint">Download .CMSMTF file</span>
-                    </button>
-                    <button class="hero-export-option" onclick="App.exportPDF()">
-                        <span class="hero-export-icon">📄</span>
-                        <span class="hero-export-label">PDF</span>
-                        <span class="hero-export-hint">Client summary</span>
+                        <span class="hero-export-label">HawkSoft Tool</span>
+                        <span class="hero-export-hint">Browse + edit before send</span>
                     </button>
                 </div>
                 <button class="btn btn-secondary" onclick="App.startNewClient()" style="width:100%;margin-top:16px;">✨ Start New Client</button>
