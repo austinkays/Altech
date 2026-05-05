@@ -352,8 +352,8 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             'HomePriorYears', 'IncreasedReplacementCost', 'MedicalPayments',
             'Mortgagee', 'NumOccupants', 'NumStories', 'OccupancyType',
             'OtherStructures', 'PersonalLiability', 'PlumbingYear',
-            'Pool', 'ProtectionClass', 'RoofShape', 'RoofType', 'RoofYear',
-            'SquareFootage', 'WindDeductible', 'YearBuilt',
+            'Pool', 'ProtectionClass', 'PurchaseDate', 'RoofShape', 'RoofType',
+            'RoofYear', 'SquareFootage', 'WindDeductible', 'YearBuilt',
         ].sort());
     });
 
