@@ -1705,12 +1705,29 @@ This is trusted, complete agency data — extract every field you can find.
     _applyEZLynxData(xmlDoc) {
         let fieldCount = 0;
         const set = (id, val) => {
-            if (!val) return;
+            if (val === undefined || val === null || val === '') return;
             this.data[id] = val;
             const el = document.getElementById(id);
             if (el) el.value = val;
             fieldCount++;
         };
+
+        // ── Detect schema (EZAUTO vs EZHOME) ────────────────────
+        const root = xmlDoc.documentElement;
+        const rootName = root ? (root.localName || root.tagName || '') : '';
+        const isHome = rootName === 'EZHOME';
+        const isAuto = rootName === 'EZAUTO';
+
+        const mapGender = (g) => {
+            if (!g) return '';
+            const lc = g.toLowerCase();
+            if (lc === 'female') return 'F';
+            if (lc === 'male') return 'M';
+            return g;
+        };
+
+        // Strip commas from coverage/cost values: "387,660" → "387660"
+        const stripCommas = (v) => (v == null ? '' : String(v).replace(/,/g, ''));
 
         // ── Applicants ────────────────────────────────
         const applicants = this._ezAll(xmlDoc, 'Applicant');
@@ -1722,21 +1739,13 @@ This is trusted, complete agency data — extract every field you can find.
             else if (type === 'CoApplicant') coApp = app;
         }
 
-        // Map gender: Female→F, Male→M
-        const mapGender = (g) => {
-            if (!g) return '';
-            const lc = g.toLowerCase();
-            if (lc === 'female') return 'F';
-            if (lc === 'male') return 'M';
-            return g;
-        };
-
         // Primary applicant
         if (primary) {
             const info = this._ezAll(primary, 'PersonalInfo')[0];
             const name = info ? this._ezAll(info, 'Name')[0] : null;
             if (name) {
                 set('firstName', this._ezTag(name, 'FirstName'));
+                set('middleName', this._ezTag(name, 'MiddleName'));
                 set('lastName', this._ezTag(name, 'LastName'));
             }
             if (info) {
@@ -1749,15 +1758,28 @@ This is trusted, complete agency data — extract every field you can find.
                 set('email', this._ezTag(addr, 'Email'));
                 const phones = this._ezAll(addr, 'Phone');
                 if (phones.length) set('phone', this._ezTag(phones[0], 'PhoneNumber'));
+                // Fallback address (used by EZHOME — no GarageLocation block)
+                const addr1 = this._ezAll(addr, 'Addr1')[0];
+                if (addr1) {
+                    const num = this._ezTag(addr1, 'StreetNumber');
+                    const nm = this._ezTag(addr1, 'StreetName');
+                    const street = [num, nm].filter(Boolean).join(' ');
+                    if (street && !this.data.addrStreet) set('addrStreet', street);
+                }
+                if (!this.data.addrCity)  set('addrCity',  this._ezTag(addr, 'City'));
+                if (!this.data.addrState) set('addrState', this._ezTag(addr, 'StateCode'));
+                if (!this.data.addrZip)   set('addrZip',   this._ezTag(addr, 'Zip5'));
+                if (!this.data.county)    set('county',    this._ezTag(addr, 'County'));
             }
         }
 
-        // Co-applicant
+        // Co-applicant — read whatever's in the block (often partial from HawkSoft)
         if (coApp) {
             const info = this._ezAll(coApp, 'PersonalInfo')[0];
             const name = info ? this._ezAll(info, 'Name')[0] : null;
             if (name) {
                 set('coFirstName', this._ezTag(name, 'FirstName'));
+                set('coMiddleName', this._ezTag(name, 'MiddleName'));
                 set('coLastName', this._ezTag(name, 'LastName'));
             }
             if (info) {
@@ -1793,16 +1815,60 @@ This is trusted, complete agency data — extract every field you can find.
             set('county', this._ezTag(gAddr, 'County'));
         }
 
+        // ── Address (from AltDwelling — EZHOME's location block) ──
+        const altDwelling = this._ezAll(xmlDoc, 'AltDwelling')[0];
+        if (altDwelling) {
+            const aAddr = this._ezAll(altDwelling, 'Address')[0] || altDwelling;
+            const addr1 = this._ezAll(aAddr, 'Addr1')[0];
+            if (addr1 && !this.data.addrStreet) {
+                const num = this._ezTag(addr1, 'StreetNumber');
+                const name = this._ezTag(addr1, 'StreetName');
+                const street = [num, name].filter(Boolean).join(' ');
+                if (street) set('addrStreet', street);
+            }
+            if (!this.data.addrCity)  set('addrCity',  this._ezTag(aAddr, 'City'));
+            if (!this.data.addrState) set('addrState', this._ezTag(aAddr, 'StateCode'));
+            if (!this.data.addrZip)   set('addrZip',   this._ezTag(aAddr, 'Zip5'));
+            if (!this.data.county)    set('county',    this._ezTag(aAddr, 'County'));
+        }
+
         // ── Prior Policy ──────────────────────────────
         const prior = this._ezAll(xmlDoc, 'PriorPolicyInfo')[0];
         if (prior) {
-            set('priorCarrier', this._ezTag(prior, 'PriorCarrier'));
-            set('priorPolicyTerm', this._ezTag(prior, 'PriorPolicyTerm'));
-            const yrs = this._ezAll(prior, 'YearsWithPriorCarrier')[0];
-            if (yrs) set('priorYears', this._ezTag(yrs, 'Years'));
+            const carrier = this._ezTag(prior, 'PriorCarrier');
+            const term    = this._ezTag(prior, 'PriorPolicyTerm');
+            const exp     = this._ezTag(prior, 'Expiration');
+            const yrs     = this._ezAll(prior, 'YearsWithPriorCarrier')[0];
+            const yrsVal  = yrs ? this._ezTag(yrs, 'Years') : '';
+            // Route to home-prefixed fields when EZHOME, auto fields when EZAUTO
+            if (isHome) {
+                set('homePriorCarrier', carrier);
+                set('homePriorPolicyTerm', term);
+                set('homePriorExp', exp);
+                set('homePriorYears', yrsVal);
+            } else {
+                set('priorCarrier', carrier);
+                set('priorPolicyTerm', term);
+                set('priorExp', exp);
+                set('priorYears', yrsVal);
+            }
         }
 
-        // ── Coverages ─────────────────────────────────
+        // ── PolicyInfo (effective date, term for new policy) ──
+        const policyInfo = this._ezAll(xmlDoc, 'PolicyInfo')[0];
+        if (policyInfo) {
+            const term = this._ezTag(policyInfo, 'PolicyTerm');
+            const eff  = this._ezTag(policyInfo, 'Effective');
+            if (isHome) {
+                set('homePolicyTerm', term);
+                set('homeEffectiveDate', eff);
+            } else {
+                set('policyTerm', term);
+                set('effectiveDate', eff);
+            }
+        }
+
+        // ── Auto Coverages ─────────────────────────────────
         const gen = this._ezAll(xmlDoc, 'GeneralCoverage')[0];
         if (gen) {
             set('liabilityLimits', this._ezTag(gen, 'BI'));
@@ -1810,6 +1876,8 @@ This is trusted, complete agency data — extract every field you can find.
             set('medPayments', this._ezTag(gen, 'MP'));
             set('umLimits', this._ezTag(gen, 'UM'));
             set('uimLimits', this._ezTag(gen, 'UIM'));
+            const multi = this._ezTag(gen, 'Multicar');
+            if (multi) set('multiPolicy', /yes/i.test(multi) ? 'yes' : 'no');
         }
         // Per-vehicle coverages — use first vehicle's values for global fields
         const vehCovs = this._ezAll(xmlDoc, 'VehicleCoverage');
@@ -1824,6 +1892,9 @@ This is trusted, complete agency data — extract every field you can find.
         const waCov = this._ezAll(xmlDoc, 'WA-Coverages')[0];
         if (waCov) {
             set('umpdLimit', this._ezTag(waCov, 'WA-UMPD'));
+            const pip = this._ezTag(waCov, 'WA-PIP');
+            // WA-PIP "No Coverage" is meaningful; map to medPayments-style field
+            if (pip) this.data.waPip = pip;
         }
 
         // ── Drivers ───────────────────────────────────
@@ -1837,22 +1908,59 @@ This is trusted, complete agency data — extract every field you can find.
 
             const nameEl = this._ezAll(d, 'Name')[0];
             const rel = this._ezTag(d, 'Relation');
+
+            // Violations: structured list (used by exporter) + summary string
+            const violationEls = this._ezAll(d, 'Violation');
+            const violationList = violationEls.map(v => ({
+                date: this._ezTag(v, 'Date'),
+                description: this._ezTag(v, 'Description'),
+            })).filter(v => v.date || v.description);
+            const violationsSummary = violationList
+                .map(v => [v.date, v.description].filter(Boolean).join(' '))
+                .filter(Boolean)
+                .join('; ');
+
+            // Accidents: same shape, free-text summary only (App stores as string)
+            const accidentEls = this._ezAll(d, 'Accident');
+            const accidentList = accidentEls.map(a => ({
+                date: this._ezTag(a, 'Date'),
+                description: this._ezTag(a, 'Description'),
+                bi: this._ezTag(a, 'BI'),
+                pd: this._ezTag(a, 'PD'),
+            })).filter(a => a.date || a.description);
+            const accidentsSummary = accidentList
+                .map(a => [a.date, a.description].filter(Boolean).join(' '))
+                .filter(Boolean)
+                .join('; ');
+
             newDrivers.push({
                 id,
                 firstName: nameEl ? this._ezTag(nameEl, 'FirstName') : '',
+                middleName: nameEl ? this._ezTag(nameEl, 'MiddleName') : '',
                 lastName: nameEl ? this._ezTag(nameEl, 'LastName') : '',
                 dob: this._ezTag(d, 'DOB'),
                 dlNum: this._ezTag(d, 'DLNumber'),
                 dlState: this._ezTag(d, 'DLState') || 'WA',
-                relationship: rel === 'Insured' ? 'Self' : (rel || 'Other'),
+                relationship: rel === 'Insured' ? 'Self' : (rel || ''),
                 isCoApplicant: rel === 'Spouse',
                 isPrimaryApplicant: i === 0,
-                accidents: '',
-                violations: '',
+                accidents: accidentsSummary,
+                accidentList,
+                violations: violationsSummary,
+                violationList,
                 studentGPA: '',
                 gender: mapGender(this._ezTag(d, 'Gender')),
                 maritalStatus: this._ezTag(d, 'MaritalStatus'),
+                principalVehicle: this._ezTag(d, 'PrincipalVehicle'),
+                _xmlId: xmlId,
             });
+        });
+
+        // Backfill default 'Other' relationship for non-primary drivers that
+        // have no Relation tag — preserves the old default while leaving the
+        // gap visible to the review modal (see _hasImportGaps below).
+        newDrivers.forEach((drv, i) => {
+            if (i > 0 && !drv.relationship) drv.relationship = 'Other';
         });
 
         // ── Vehicles ──────────────────────────────────
@@ -1866,24 +1974,38 @@ This is trusted, complete agency data — extract every field you can find.
 
             // Find matching VehicleUse
             let use = 'Pleasure';
+            let annualMiles = '';
+            let oneWayMiles = '';
             for (const vu of xmlVehicleUses) {
                 if (vu.getAttribute('id') === xmlId) {
                     use = this._ezTag(vu, 'Useage') || this._ezTag(vu, 'Usage') || 'Pleasure';
+                    annualMiles = this._ezTag(vu, 'AnnualMiles');
+                    oneWayMiles = this._ezTag(vu, 'OneWayMiles');
                     break;
                 }
             }
 
-            // Find assigned driver
+            // Find assigned driver — VehicleAssignment may have empty
+            // <DriverAssignment/> (HawkSoft commonly emits this). When that
+            // happens we leave primaryDriver blank and surface it in the
+            // review modal.
             let primaryDriver = '';
             for (const va of xmlAssignments) {
                 if (va.getAttribute('id') === xmlId) {
                     const da = this._ezAll(va, 'DriverAssignment')[0];
                     if (da) {
                         const driverXmlId = da.getAttribute('id');
-                        primaryDriver = driverIdMap[driverXmlId] || '';
+                        if (driverXmlId) primaryDriver = driverIdMap[driverXmlId] || '';
                     }
                     break;
                 }
+            }
+            // Fallback: if a Driver had <PrincipalVehicle> matching this vehicle,
+            // use that driver as the primary (HawkSoft sometimes emits the
+            // assignment from the driver side instead).
+            if (!primaryDriver && xmlId) {
+                const match = newDrivers.find(d => d.principalVehicle === xmlId);
+                if (match) primaryDriver = match.id;
             }
 
             newVehicles.push({
@@ -1893,25 +2015,124 @@ This is trusted, complete agency data — extract every field you can find.
                 make: this._ezTag(v, 'Make'),
                 model: this._ezTag(v, 'Model'),
                 use,
-                miles: '12000',
+                miles: annualMiles || '12000',
+                oneWayMiles,
+                antiTheft: this._ezTag(v, 'Anti-Theft'),
+                passiveRestraints: this._ezTag(v, 'PassiveRestraints'),
                 primaryDriver,
+                _xmlId: xmlId,
             });
         });
 
-        // ── Apply drivers & vehicles ──────────────────
-        if (newDrivers.length) {
-            this.drivers = newDrivers;
-        }
-        if (newVehicles.length) {
-            this.vehicles = newVehicles;
+        // ── EZHOME RatingInfo / ReplacementCost / Endorsements ──
+        if (isHome) {
+            const ratingInfo = this._ezAll(xmlDoc, 'RatingInfo')[0];
+            if (ratingInfo) {
+                set('yrBuilt',           this._ezTag(ratingInfo, 'YearBuilt'));
+                set('dwellingType',      this._ezTag(ratingInfo, 'Dwelling'));
+                set('dwellingUsage',     this._ezTag(ratingInfo, 'DwellingUse'));
+                set('protectionClass',   this._ezTag(ratingInfo, 'ProtectionClassType'));
+                set('numStories',        this._ezTag(ratingInfo, 'NumberOfStories'));
+                set('constructionStyle', this._ezTag(ratingInfo, 'Construction'));
+                set('roofType',          this._ezTag(ratingInfo, 'Roof'));
+                set('heatingType',       this._ezTag(ratingInfo, 'HeatingType'));
+                set('sqFt',              this._ezTag(ratingInfo, 'SquareFootage'));
+                const pool = this._ezTag(ratingInfo, 'SwimmingPool');
+                if (pool) set('pool', /yes/i.test(pool) ? 'Yes' : 'No');
+                // DistanceToFireHydrant: HawkSoft emits range like "601-1000".
+                // Field stores raw feet; use the upper bound as a best-guess.
+                const fhRange = this._ezTag(ratingInfo, 'DistanceToFireHydrant');
+                if (fhRange) {
+                    const m = fhRange.match(/(\d+)\D+(\d+)/);
+                    if (m) set('fireHydrantFeet', m[2]);
+                    else if (/^\d+\+?$/.test(fhRange)) set('fireHydrantFeet', fhRange.replace('+', ''));
+                }
+            }
+
+            const replacementCost = this._ezAll(xmlDoc, 'ReplacementCost')[0];
+            if (replacementCost) {
+                set('dwellingCoverage',     stripCommas(this._ezTag(replacementCost, 'Dwelling')));
+                set('otherStructures',      stripCommas(this._ezTag(replacementCost, 'OtherStructures')));
+                set('homePersonalProperty', stripCommas(this._ezTag(replacementCost, 'PersonalProperty')));
+                set('homeLossOfUse',        stripCommas(this._ezTag(replacementCost, 'LossOfUse')));
+            }
+
+            const endorsements = this._ezAll(xmlDoc, 'Endorsements')[0];
+            if (endorsements) {
+                const eq = this._ezAll(endorsements, 'Earthquake')[0];
+                if (eq) {
+                    const eqVal = this._ezTag(eq, 'Earthquake');
+                    if (eqVal) set('earthquakeCoverage', /yes/i.test(eqVal) ? 'Yes' : 'No');
+                }
+                const rcDwelling = this._ezAll(endorsements, 'ReplacementCostDwelling')[0];
+                if (rcDwelling) {
+                    const v = this._ezTag(rcDwelling, 'ReplacementCostDwelling');
+                    if (v) set('increasedReplacementCost', v);
+                }
+            }
         }
 
-        // ── Set qType to auto ────────────────────────
-        const autoRadio = document.querySelector('input[name="qType"][value="auto"]');
-        if (autoRadio) {
-            autoRadio.checked = true;
-            this.handleType();
+        // ── Cross-reference reconciliation ──────────────────────
+        // HawkSoft frequently leaves the CoApplicant block half-filled (just
+        // FirstName/LastName) but emits a Driver block with the full DOB /
+        // gender / DL. Match by first name (most reliable since spouses
+        // sometimes carry maiden last names in the driver list) and backfill.
+        if (this.data.coFirstName && newDrivers.length) {
+            const coFirst = String(this.data.coFirstName).trim().toLowerCase();
+            const coDob = this.data.coDob;
+            const matchedDriver = newDrivers.find((drv, i) => {
+                if (i === 0) return false; // never match primary
+                if (!drv.firstName) return false;
+                if (drv.firstName.trim().toLowerCase() !== coFirst) return false;
+                // If we already have coDob, prefer DOB-equal match
+                if (coDob && drv.dob) return drv.dob === coDob;
+                return true;
+            });
+            if (matchedDriver) {
+                if (!this.data.coDob && matchedDriver.dob) set('coDob', matchedDriver.dob);
+                if (!this.data.coGender && matchedDriver.gender) set('coGender', matchedDriver.gender);
+                if (!this.data.coMaritalStatus && matchedDriver.maritalStatus) {
+                    set('coMaritalStatus', matchedDriver.maritalStatus);
+                }
+                // Tag this driver as the co-applicant so render shows the
+                // correct "Co-App" badge and the export pipeline can link them.
+                matchedDriver.isCoApplicant = true;
+                if (!matchedDriver.relationship || matchedDriver.relationship === 'Other') {
+                    matchedDriver.relationship = this.data.coRelationship === 'Domestic Partner'
+                        ? 'Spouse'  // driver-relationship dropdown doesn't include "Domestic Partner"
+                        : 'Spouse';
+                }
+            }
         }
+
+        // ── Apply drivers & vehicles ──────────────────
+        if (newDrivers.length) this.drivers = newDrivers;
+        if (newVehicles.length) this.vehicles = newVehicles;
+
+        // ── qType detection ─────────────────────────────────────
+        // Detect from root element + existing data so importing EZAUTO then
+        // EZHOME (or vice versa) into the same client merges to qType=both.
+        const hasAutoData = (this.drivers && this.drivers.length) || (this.vehicles && this.vehicles.length)
+            || this.data.liabilityLimits || this.data.priorCarrier;
+        const hasHomeData = this.data.yrBuilt || this.data.dwellingCoverage || this.data.dwellingType;
+        let nextQType = this.data.qType || '';
+        if (isHome && hasAutoData) nextQType = 'both';
+        else if (isAuto && hasHomeData) nextQType = 'both';
+        else if (isHome) nextQType = 'home';
+        else if (isAuto) nextQType = 'auto';
+        if (nextQType) {
+            const radio = document.querySelector(`input[name="qType"][value="${nextQType}"]`);
+            if (radio) {
+                radio.checked = true;
+                if (typeof this.handleType === 'function') this.handleType();
+            } else {
+                // No DOM (test env) — set directly.
+                this.data.qType = nextQType;
+            }
+        }
+
+        // ── Build import-gap manifest ──────────────────────────
+        const gaps = this._buildImportGaps({ isAuto, isHome });
 
         // ── Persist ───────────────────────────────────
         this.save();
@@ -1921,6 +2142,333 @@ This is trusted, complete agency data — extract every field you can find.
             if (typeof this.renderVehicles === 'function') this.renderVehicles();
         }
 
-        this.toast(`✅ Imported ${fieldCount} fields + ${newDrivers.length} driver(s) + ${newVehicles.length} vehicle(s) from EZLynx XML`);
+        const driverWord = `${newDrivers.length} driver${newDrivers.length === 1 ? '' : 's'}`;
+        const vehicleWord = `${newVehicles.length} vehicle${newVehicles.length === 1 ? '' : 's'}`;
+        this.toast(`✅ Imported ${fieldCount} fields + ${driverWord} + ${vehicleWord} from EZLynx XML`);
+
+        // ── Open review modal if anything needs confirmation ──
+        if (this._hasImportGaps(gaps) && typeof document !== 'undefined' && document.body) {
+            this._showImportReviewModal(gaps);
+        } else if (typeof document !== 'undefined' && document.body) {
+            this._markEzlynxRequiredGaps();
+        }
+    },
+
+    // Build a manifest of post-import items that need user confirmation.
+    // Driven by what HawkSoft *consistently* leaves out — relationships,
+    // vehicle assignments, and a marital sanity check when applicant is
+    // marked Single but a CoApplicant is present.
+    _buildImportGaps({ isAuto, isHome }) {
+        const gaps = {
+            relationships: [],
+            maritalSanity: false,
+            vehicleAssignments: [],
+            vehicleFacts: [],
+            ezlynxRequired: [],
+        };
+
+        // Driver relationships: every non-primary driver that's still 'Other'
+        // (i.e. Relation tag was missing in the XML and we couldn't match by
+        // co-applicant name) goes in the list.
+        (this.drivers || []).forEach((drv, i) => {
+            if (i === 0) return; // primary is always Self
+            if (!drv.relationship || drv.relationship === 'Other') {
+                gaps.relationships.push({ id: drv.id, name: `${drv.firstName || ''} ${drv.lastName || ''}`.trim(), suggested: this._suggestDriverRelationship(drv, i) });
+            }
+        });
+
+        // Marital sanity: Applicant marked Single but a CoApplicant exists
+        if (this.data.coFirstName && (this.data.maritalStatus === 'Single' || !this.data.maritalStatus)) {
+            gaps.maritalSanity = true;
+        }
+
+        // Vehicle assignments: any vehicle without primaryDriver set
+        (this.vehicles || []).forEach(v => {
+            if (!v.primaryDriver) gaps.vehicleAssignments.push({ id: v.id, label: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim() });
+        });
+
+        // Vehicle facts: only flag when *no* annual miles were imported (the
+        // 12000 default is intentional but worth confirming).
+        (this.vehicles || []).forEach(v => {
+            const importedMiles = v.miles && v.miles !== '12000';
+            if (!importedMiles) {
+                gaps.vehicleFacts.push({
+                    id: v.id,
+                    label: `${v.year || ''} ${v.make || ''} ${v.model || ''}`.trim(),
+                    miles: v.miles || '12000',
+                    use: v.use || 'Pleasure',
+                });
+            }
+        });
+
+        // EZLynx-required field gaps — purely informational, surfaced as a
+        // checklist in the modal (and as inline badges on the form).
+        const FIELDS = (typeof window !== 'undefined' && window.FIELDS) || [];
+        FIELDS.filter(f => f.ezlynxRequired).forEach(f => {
+            if (!this.data[f.storageKey]) {
+                gaps.ezlynxRequired.push({ id: f.id, label: f.label, section: f.section });
+            }
+        });
+
+        return gaps;
+    },
+
+    _hasImportGaps(gaps) {
+        return (
+            (gaps.relationships && gaps.relationships.length) ||
+            gaps.maritalSanity ||
+            (gaps.vehicleAssignments && gaps.vehicleAssignments.length) ||
+            (gaps.vehicleFacts && gaps.vehicleFacts.length)
+        );
+    },
+
+    // Heuristic: name shared with applicant → Spouse if older, Child if much
+    // younger. Otherwise Other. Conservative — we only auto-suggest, never
+    // auto-apply. Producer confirms in the modal.
+    _suggestDriverRelationship(drv, idx) {
+        const appLast = (this.data.lastName || '').trim().toLowerCase();
+        const drvLast = (drv.lastName || '').trim().toLowerCase();
+        const sharesLast = appLast && drvLast && appLast === drvLast;
+        const appDob = this.data.dob;
+        const drvDob = drv.dob;
+        if (appDob && drvDob) {
+            const ageDelta = (new Date(appDob) - new Date(drvDob)) / (1000 * 60 * 60 * 24 * 365.25);
+            if (sharesLast && ageDelta > 15) return 'Child';
+            if (sharesLast && ageDelta < -15) return 'Parent';
+            if (sharesLast && Math.abs(ageDelta) <= 15) return 'Spouse';
+        }
+        return 'Other';
+    },
+
+    // ── Post-import review modal ────────────────────────────
+    // One pass to fill in what HawkSoft consistently omits. Sectioned, not
+    // a wizard — producer can skip ('Looks good') if everything's right.
+    _showImportReviewModal(gaps) {
+        const escAttr = (window.Utils && Utils.escapeAttr) || (s => String(s == null ? '' : s).replace(/"/g, '&quot;'));
+        const escHtml = (window.Utils && Utils.escapeHTML) || (s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
+
+        const sections = [];
+
+        // Section: relationships
+        if (gaps.relationships.length) {
+            const rows = gaps.relationships.map(r => `
+                <div class="ez-review-row" data-driver-id="${escAttr(r.id)}">
+                    <div class="ez-review-label">${escHtml(r.name) || '(unnamed driver)'}</div>
+                    <select class="ez-review-rel" data-driver-id="${escAttr(r.id)}">
+                        <option value="Spouse" ${r.suggested === 'Spouse' ? 'selected' : ''}>Spouse / Partner</option>
+                        <option value="Child" ${r.suggested === 'Child' ? 'selected' : ''}>Child</option>
+                        <option value="Parent" ${r.suggested === 'Parent' ? 'selected' : ''}>Parent</option>
+                        <option value="Other" ${r.suggested === 'Other' ? 'selected' : ''}>Other Household Member</option>
+                    </select>
+                </div>`).join('');
+            sections.push(`
+                <section class="ez-review-section">
+                    <h3>Household roles</h3>
+                    <p class="ez-review-hint">HawkSoft doesn't include relationships for additional drivers. Confirm who's who:</p>
+                    ${rows}
+                </section>`);
+        }
+
+        // Section: marital sanity
+        if (gaps.maritalSanity) {
+            sections.push(`
+                <section class="ez-review-section">
+                    <h3>Marital status</h3>
+                    <p class="ez-review-hint">Applicant is marked <strong>Single</strong> but a co-applicant is on file. EZLynx pairs spouses by marital status.</p>
+                    <label class="ez-review-toggle">
+                        <input type="checkbox" id="ezReviewMarital" checked>
+                        Update both to <strong>Married</strong>
+                    </label>
+                </section>`);
+        }
+
+        // Section: vehicle assignments
+        if (gaps.vehicleAssignments.length) {
+            const driverOpts = (this.drivers || []).map((d, i) => {
+                const label = `${d.firstName || ''} ${d.lastName || ''}`.trim() || `Driver ${i + 1}`;
+                return `<option value="${escAttr(d.id)}">${escHtml(label)}</option>`;
+            }).join('');
+            const rows = gaps.vehicleAssignments.map(v => `
+                <div class="ez-review-row" data-vehicle-id="${escAttr(v.id)}">
+                    <div class="ez-review-label">${escHtml(v.label) || 'Vehicle'}</div>
+                    <select class="ez-review-veh-driver" data-vehicle-id="${escAttr(v.id)}">
+                        <option value="">— Pick driver —</option>
+                        ${driverOpts}
+                    </select>
+                </div>`).join('');
+            sections.push(`
+                <section class="ez-review-section">
+                    <h3>Vehicle assignments</h3>
+                    <p class="ez-review-hint">HawkSoft sends empty driver assignments. Pick the primary driver for each vehicle:</p>
+                    ${rows}
+                </section>`);
+        }
+
+        // Section: vehicle facts
+        if (gaps.vehicleFacts.length) {
+            const useOpts = ['Pleasure', 'Commute', 'Business', 'Farm'].map(u => `<option value="${u}">${u}</option>`).join('');
+            const rows = gaps.vehicleFacts.map(v => `
+                <div class="ez-review-row ez-review-row-facts" data-vehicle-id="${escAttr(v.id)}">
+                    <div class="ez-review-label">${escHtml(v.label) || 'Vehicle'}</div>
+                    <div class="ez-review-veh-facts">
+                        <input type="number" class="ez-review-miles" data-vehicle-id="${escAttr(v.id)}" value="${escAttr(v.miles)}" min="0" step="500" placeholder="Annual miles">
+                        <select class="ez-review-use" data-vehicle-id="${escAttr(v.id)}">${useOpts.replace(`value="${v.use}"`, `value="${v.use}" selected`)}</select>
+                    </div>
+                </div>`).join('');
+            sections.push(`
+                <section class="ez-review-section">
+                    <h3>Annual mileage &amp; use</h3>
+                    <p class="ez-review-hint">Confirm or adjust — defaults to 12,000 / Pleasure.</p>
+                    ${rows}
+                </section>`);
+        }
+
+        // Section: EZLynx-required gaps (informational, no inputs — just a checklist)
+        if (gaps.ezlynxRequired.length) {
+            const items = gaps.ezlynxRequired.slice(0, 12).map(g => `
+                <li><span class="ez-review-gap-label">${escHtml(g.label)}</span> <span class="ez-review-gap-section">${escHtml(g.section)}</span></li>`).join('');
+            const more = gaps.ezlynxRequired.length > 12 ? `<li class="ez-review-gap-more">…and ${gaps.ezlynxRequired.length - 12} more</li>` : '';
+            sections.push(`
+                <section class="ez-review-section">
+                    <h3>Still needed for EZLynx</h3>
+                    <p class="ez-review-hint">These required fields are blank — fill them in the intake steps before exporting.</p>
+                    <ul class="ez-review-gap-list">${items}${more}</ul>
+                </section>`);
+        }
+
+        if (!sections.length) return; // nothing to show
+
+        const modalHTML = `
+            <div class="modal-overlay ez-review-overlay" id="ezImportReviewModal">
+                <div class="modal-content ez-review-content">
+                    <div class="modal-header">
+                        <h2>📋 Complete the picture</h2>
+                        <button class="modal-close" type="button" onclick="App._closeImportReviewModal()">✕</button>
+                    </div>
+                    <div class="modal-body ez-review-body">
+                        <p class="ez-review-intro">HawkSoft sent us most of the data. A few things need your eyes before this client is EZLynx-ready.</p>
+                        ${sections.join('')}
+                    </div>
+                    <div class="modal-footer ez-review-footer">
+                        <button class="btn-secondary" type="button" onclick="App._closeImportReviewModal()">Skip — I'll fix later</button>
+                        <button class="btn-primary" type="button" onclick="App._applyImportReviewModal()">✅ Apply &amp; continue</button>
+                    </div>
+                </div>
+            </div>`;
+
+        const existing = document.getElementById('ezImportReviewModal');
+        if (existing) existing.remove();
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        setTimeout(() => {
+            const m = document.getElementById('ezImportReviewModal');
+            if (m) m.classList.add('active');
+        }, 10);
+    },
+
+    _closeImportReviewModal() {
+        const m = document.getElementById('ezImportReviewModal');
+        if (m) m.remove();
+        if (typeof this._markEzlynxRequiredGaps === 'function') this._markEzlynxRequiredGaps();
+    },
+
+    _applyImportReviewModal() {
+        const modal = document.getElementById('ezImportReviewModal');
+        if (!modal) return;
+
+        // Apply driver relationships
+        modal.querySelectorAll('.ez-review-rel').forEach(sel => {
+            const drvId = sel.getAttribute('data-driver-id');
+            const drv = (this.drivers || []).find(d => d.id === drvId);
+            if (drv) {
+                drv.relationship = sel.value;
+                if (sel.value === 'Spouse') drv.isCoApplicant = true;
+            }
+        });
+
+        // Apply marital sanity check
+        const maritalCb = modal.querySelector('#ezReviewMarital');
+        if (maritalCb && maritalCb.checked) {
+            this.data.maritalStatus = 'Married';
+            const ms = document.getElementById('maritalStatus');
+            if (ms) ms.value = 'Married';
+            if (this.data.coFirstName) {
+                this.data.coMaritalStatus = 'Married';
+                const coMs = document.getElementById('coMaritalStatus');
+                if (coMs) coMs.value = 'Married';
+            }
+        }
+
+        // Apply vehicle assignments
+        modal.querySelectorAll('.ez-review-veh-driver').forEach(sel => {
+            const vehId = sel.getAttribute('data-vehicle-id');
+            const veh = (this.vehicles || []).find(v => v.id === vehId);
+            if (veh && sel.value) veh.primaryDriver = sel.value;
+        });
+
+        // Apply vehicle facts (miles + use)
+        modal.querySelectorAll('.ez-review-miles').forEach(inp => {
+            const vehId = inp.getAttribute('data-vehicle-id');
+            const veh = (this.vehicles || []).find(v => v.id === vehId);
+            if (veh && inp.value) veh.miles = String(inp.value).trim();
+        });
+        modal.querySelectorAll('.ez-review-use').forEach(sel => {
+            const vehId = sel.getAttribute('data-vehicle-id');
+            const veh = (this.vehicles || []).find(v => v.id === vehId);
+            if (veh && sel.value) veh.use = sel.value;
+        });
+
+        // Persist + re-render
+        if (typeof this.save === 'function') this.save();
+        if (typeof this.saveDriversVehicles === 'function') this.saveDriversVehicles();
+        if (typeof this.renderDrivers === 'function') this.renderDrivers();
+        if (typeof this.renderVehicles === 'function') this.renderVehicles();
+
+        modal.remove();
+        if (typeof this.toast === 'function') this.toast('✅ Updated from review');
+        if (typeof this._markEzlynxRequiredGaps === 'function') this._markEzlynxRequiredGaps();
+    },
+
+    // Inline "needs review" badges on intake form labels for ezlynxRequired
+    // fields that the import didn't fill. Stamped once per import; idempotent.
+    //
+    // quoting.html labels mostly omit `for=` attributes — fields are visually
+    // associated by DOM nesting rather than id reference. Mirror the
+    // parent-walk used by _stampEzlynxLabels (js/app-navigation.js) so badges
+    // actually attach to the right label, including the .label-with-hint and
+    // double-wrapper variants.
+    _markEzlynxRequiredGaps() {
+        if (typeof document === 'undefined' || !document.body) return;
+        // Clear any prior badges
+        document.querySelectorAll('.ez-needs-review-badge').forEach(b => b.remove());
+        const FIELDS = (typeof window !== 'undefined' && window.FIELDS) || [];
+        FIELDS.filter(f => f.ezlynxRequired).forEach(f => {
+            if (this.data[f.storageKey]) return;
+            const el = document.getElementById(f.id);
+            if (!el) return;
+            const label = this._findFieldLabel(el);
+            if (!label || label.querySelector('.ez-needs-review-badge')) return;
+            const badge = document.createElement('span');
+            badge.className = 'ez-needs-review-badge';
+            badge.textContent = 'needs review';
+            badge.title = 'EZLynx requires this field — please fill it in';
+            label.appendChild(badge);
+        });
+    },
+
+    // Find the visible <label.label> for an input, walking parents the same
+    // way _stampEzlynxLabels does. Returns the label element or null.
+    _findFieldLabel(el) {
+        if (!el) return null;
+        // Direct association first (the few fields that do use `for=`)
+        if (el.id) {
+            const direct = document.querySelector(`label[for="${el.id}"]`);
+            if (direct) return direct;
+        }
+        const p = el.parentElement;
+        return p?.querySelector(':scope > label.label')
+            || p?.querySelector(':scope > .label-with-hint > label.label')
+            || p?.parentElement?.querySelector(':scope > label.label')
+            || p?.parentElement?.querySelector(':scope > .label-with-hint > label.label')
+            || null;
     },
 });

@@ -43,6 +43,7 @@ window.STORAGE_KEYS = Object.freeze({
     EZLYNX_FILLER_LAST_RUN: 'altech_ezlynx_filler_last_run', // desktop Playwright filler last-run audit (ts, outcome, fill counts)
     EZLYNX_XML_LAST_EXPORT:  'altech_ezlynx_xml_last_export',  // ACORD XML export audit (ts, filename, bytes) — Build B safety-net path
     EXPORT_HISTORY:         'altech_export_history',
+    EXPORT_PICKER_LAST:     'altech_export_picker_last',  // last-checked formats in the unified Export Files picker
     CALL_LOGGER:            'altech_call_logger',
     RETURNED_MAIL:          'altech_returned_mail',
     BSB_API_KEY:            'altech_bsb_apikey',

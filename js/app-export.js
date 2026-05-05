@@ -148,11 +148,152 @@ Object.assign(App, {
             BodilyInjury:            d.liabilityLimits || '',
             PropertyDamage:          d.pdLimit || '',
             MedPaymentsAuto:         d.medPayments || '',
+            UM:                      d.umLimits || '',
+            UIM:                     d.uimLimits || '',
             UMPD:                    d.umpdLimit || '',
             Comprehensive:           d.compDeductible || '',
             Collision:               d.autoDeductible || '',
+            Towing:                  d.towingDeductible || '',
+            RentalReimbursement:     d.rentalDeductible || '',
             StudentGPA:              d.studentGPA || '',
+
+            // ── Auto Tenure / Continuous Coverage ─────────────────
+            PriorAutoExpiration:     toMDY(d.priorExp),
+            ContinuousMonths:        d.continuousMonths || '',
+            PriorMonths:             d.priorMonths || '',
+            PriorLiabilityLimits:    d.priorLiabilityLimits || '',
+            PriorPolicyStatus:       d.priorPolicyStatus || '',
+
+            // ── Quote-type / Bundle ───────────────────────────────
+            // multiPolicy is auto-set by handleType() to 'yes' when both
+            // auto and home are quoted. Filler uses this for the EZLynx
+            // package-discount checkbox.
+            QuoteType:    d.qType || '',
+            MultiPolicy:  d.multiPolicy || '',
+
+            // ── Home / Dwelling ───────────────────────────────────
+            // EZLynx home rating pages need this block. The filler
+            // skips empties (so it's safe to send for auto-only quotes)
+            // but when a full HawkSoft-imported client is being exported
+            // back to EZLynx, every one of these flows into a labeled
+            // field on /rating/home/.
+            YearBuilt:           d.yrBuilt || '',
+            SquareFootage:       d.sqFt || '',
+            DwellingType:        d.dwellingType || '',
+            DwellingUsage:       d.dwellingUsage || '',
+            OccupancyType:       d.occupancyType || '',
+            NumStories:          d.numStories || '',
+            NumOccupants:        d.numOccupants || '',
+            Bedrooms:            d.bedrooms || '',
+            FullBaths:           d.fullBaths || '',
+            HalfBaths:           d.halfBaths || '',
+            ConstructionStyle:   d.constructionStyle || '',
+            ExteriorWalls:       d.exteriorWalls || '',
+            Foundation:          d.foundation || '',
+            GarageType:          d.garageType || '',
+            GarageSpaces:        d.garageSpaces || '',
+            RoofType:            d.roofType || '',
+            RoofShape:           d.roofShape || '',
+            RoofYear:            d.roofYr || '',
+            HeatingType:         d.heatingType || '',
+            HeatingYear:         d.heatYr || '',
+            PlumbingYear:        d.plumbYr || '',
+            ElectricalYear:      d.elecYr || '',
+            Cooling:             d.cooling || '',
+            ProtectionClass:     d.protectionClass || '',
+            FireHydrantFeet:     d.fireHydrantFeet || '',
+            FireStationDist:     d.fireStationDist || '',
+            Pool:                d.pool || '',
+            DwellingCoverage:        d.dwellingCoverage || '',
+            OtherStructures:         d.otherStructures || '',
+            HomePersonalProperty:    d.homePersonalProperty || '',
+            HomeLossOfUse:           d.homeLossOfUse || '',
+            PersonalLiability:       d.personalLiability || '',
+            MedicalPayments:         d.medicalPayments || '',
+            HomeDeductible:          d.homeDeductible || '',
+            WindDeductible:          d.windDeductible || '',
+            EarthquakeCoverage:      d.earthquakeCoverage || '',
+            EarthquakeDeductible:    d.earthquakeDeductible || '',
+            FloodCoverage:           d.floodCoverage || '',
+            HomePolicyType:          d.homePolicyType || '',
+            HomeEffectiveDate:       toMDY(d.homeEffectiveDate),
+            HomePolicyTerm:          d.homePolicyTerm || '',
+            HomePriorCarrier:        d.homePriorCarrier || '',
+            HomePriorPolicyTerm:     d.homePriorPolicyTerm || '',
+            HomePriorYears:          d.homePriorYears || '',
+            HomePriorExp:            toMDY(d.homePriorExp),
+            HomePriorLiability:      d.homePriorLiability || '',
+            IncreasedReplacementCost: d.increasedReplacementCost || '',
+            Mortgagee:               d.mortgagee || '',
+            PurchaseDate:            toMDY(d.purchaseDate),
+
+            // ── Co-Applicant ──────────────────────────────────────
+            // Populated for couples/spouses imported from HawkSoft. The
+            // filler maps these to EZLynx's CoApplicant page; absent
+            // values mean the page stays untouched.
+            CoFirstName:        d.coFirstName || '',
+            CoMiddleName:       d.coMiddleName || '',
+            CoLastName:         d.coLastName || '',
+            CoPrefix:           d.coPrefix || '',
+            CoSuffix:           d.coSuffix || '',
+            CoDOB:              toMDY(d.coDob),
+            CoGender:           d.coGender || '',
+            CoMaritalStatus:    d.coMaritalStatus || '',
+            CoRelationship:     d.coRelationship || '',
+            CoEmail:            d.coEmail || '',
+            CoPhone:            d.coPhone || '',
+            CoEducation:        d.coEducation || '',
+            CoOccupation:       d.coOccupation || '',
+            CoIndustry:         d.coIndustry || '',
         };
+
+        // ── Drivers array — all drivers, not just driver0 ─────────
+        // The filler iterates this when EZLynx's Drivers page accepts
+        // multi-driver entries. Driver0 fields above remain for back-
+        // compat with the Phase-1 single-driver filler.
+        out.Drivers = drivers.map(drv => ({
+            FirstName:        drv.firstName || '',
+            MiddleName:       drv.middleName || '',
+            LastName:         drv.lastName || '',
+            DOB:              toMDY(drv.dob),
+            Gender:           drv.gender || '',
+            MaritalStatus:    drv.maritalStatus || '',
+            Relationship:     drv.relationship || '',
+            Occupation:       drv.occupation || '',
+            Education:        drv.education || '',
+            Industry:         drv.industry || '',
+            LicenseNumber:    drv.dlNum || '',
+            DLState:          drv.dlState || '',
+            DLStatus:         drv.dlStatus || '',
+            AgeLicensed:      drv.ageLicensed || '',
+            GoodDriver:       drv.goodDriver || '',
+            MatureDriver:     drv.matureDriver || '',
+            DriverEducation:  drv.driverEducation || '',
+            LicenseSuspended: drv.licenseSusRev || '',
+            SR22Required:     drv.sr22 || '',
+            FR44Required:     drv.fr44 || '',
+            StudentGPA:       drv.studentGPA || '',
+            Accidents:        drv.accidents || '',
+            Violations:       drv.violations || '',
+            IsCoApplicant:    !!drv.isCoApplicant,
+            IsPrimaryApplicant: !!drv.isPrimaryApplicant,
+        }));
+
+        // ── Vehicles array — all vehicles with use + assignment ───
+        const vehicles = Array.isArray(this.vehicles) ? this.vehicles : [];
+        out.Vehicles = vehicles.map(v => ({
+            VIN:              v.vin || '',
+            Year:             v.year || '',
+            Make:             v.make || '',
+            Model:            v.model || '',
+            Use:              v.use || '',
+            AnnualMiles:      v.miles || v.annualMiles || '',
+            OneWayMiles:      v.oneWayMiles || '',
+            Ownership:        v.ownershipType || '',
+            AntiTheft:        v.antiTheft || '',
+            PassiveRestraints: v.passiveRestraints || '',
+            PrimaryDriver:    v.primaryDriver || '',
+        }));
 
         return out;
     },

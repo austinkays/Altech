@@ -181,6 +181,7 @@ window.FIELDS = [
 
     // ── Policy / Prior Insurance ───────────────────────────────────────────
     { id: 'qType',                label: 'Quote Type',          type: 'logic',  section: 'prior-insurance' }, // logic-only — drives workflow, not directly exported
+    { id: 'multiPolicy',          label: 'Multi-Policy',        type: 'logic',  section: 'prior-insurance' }, // hidden input — auto-set 'yes'/'no' by handleType() when qType==='both'; read by PDF, HawkSoft FSC, EZLynx desktop filler
     { id: 'policyTerm',           label: 'Policy Term',         type: 'select', section: 'prior-insurance', ezlynxRequired: true },
     { id: 'effectiveDate',        label: 'Effective Date',      type: 'date',   section: 'prior-insurance', ezlynxRequired: true },
     { id: 'priorCarrier',         label: 'Prior Auto Carrier',  type: 'text',   section: 'prior-insurance', ezlynxRequired: true },
