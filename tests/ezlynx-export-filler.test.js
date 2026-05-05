@@ -233,10 +233,12 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
             relationship:     'Self',
         }];
 
-        // toEqual with a literal object — deliberate, so any new key in
-        // the export shows up here as a failure that demands a contract
-        // update + a test entry for the new field.
-        expect(App.exportClientJsonForFiller()).toEqual({
+        // toMatchObject: this test asserts the Phase-1 applicant page
+        // contract — every field below MUST equal the listed value. Extra
+        // keys (the home/co-app/Drivers[]/Vehicles[] additions) are
+        // covered by the "exact key set" test below, which is the
+        // single source of truth for the full key list.
+        expect(App.exportClientJsonForFiller()).toMatchObject({
             FirstName:       'Jane',
             LastName:        'Doe',
             MiddleName:      'Q',
@@ -294,31 +296,65 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
     test('every wired field defaults to empty string when source is missing', () => {
         App.data = {};
         App.drivers = [];
+        App.vehicles = [];
         // No undefined values — keeps the wire format predictable for the
-        // Python `if not value: continue` gate.
+        // Python `if not value: continue` gate. Drivers[] and Vehicles[]
+        // arrays are empty arrays (not strings) when nothing's loaded.
         const out = App.exportClientJsonForFiller();
-        Object.values(out).forEach(v => expect(v).toBe(''));
+        Object.entries(out).forEach(([k, v]) => {
+            if (k === 'Drivers' || k === 'Vehicles') {
+                expect(Array.isArray(v)).toBe(true);
+                expect(v).toHaveLength(0);
+            } else {
+                expect(v).toBe('');
+            }
+        });
     });
 
     test('exact key set — no extra, no missing', () => {
         App.data = {};
         App.drivers = [];
+        App.vehicles = [];
         expect(Object.keys(App.exportClientJsonForFiller()).sort()).toEqual([
+            // ── Phase 1 (driver0 + applicant + auto) ──
             'Address', 'AgeLicensed', 'AutoPolicyType', 'BodilyInjury',
-            'City', 'Collision', 'Comprehensive', 'County',
-            'CreditCheckAuth', 'DLState', 'DLStatus', 'DOB',
-            'DriverEducation', 'Education', 'EffectiveDate', 'Email',
-            'FR44Required', 'FirstName', 'Gender', 'GoodDriver',
+            'City', 'Collision', 'Comprehensive', 'ContinuousMonths',
+            'County', 'CreditCheckAuth', 'DLState', 'DLStatus', 'DOB',
+            'DriverEducation', 'Drivers', 'Education', 'EffectiveDate',
+            'Email', 'FR44Required', 'FirstName', 'Gender', 'GoodDriver',
             'Industry', 'LastName', 'LicenseNumber', 'LicenseSuspended',
             'MaritalStatus', 'MatureDriver', 'MedPaymentsAuto',
-            'MiddleName', 'MonthsAtAddress', 'Occupation', 'Phone',
-            'PolicyTerm', 'Prefix', 'PreviousAddress', 'PreviousCity',
-            'PreviousState', 'PreviousZip', 'PriorCarrier',
-            'PriorPolicyTerm', 'PriorYearsWithCarrier', 'PropertyDamage',
-            'Relationship', 'ResidenceIs', 'SR22Required', 'State',
-            'StudentGPA', 'Suffix', 'UMPD', 'YearsAtAddress',
+            'MiddleName', 'MonthsAtAddress', 'MultiPolicy', 'Occupation',
+            'Phone', 'PolicyTerm', 'Prefix', 'PreviousAddress',
+            'PreviousCity', 'PreviousState', 'PreviousZip',
+            'PriorAutoExpiration', 'PriorCarrier', 'PriorLiabilityLimits',
+            'PriorMonths', 'PriorPolicyStatus', 'PriorPolicyTerm',
+            'PriorYearsWithCarrier', 'PropertyDamage', 'QuoteType',
+            'Relationship', 'RentalReimbursement', 'ResidenceIs',
+            'SR22Required', 'State', 'StudentGPA', 'Suffix', 'Towing',
+            'UIM', 'UM', 'UMPD', 'Vehicles', 'YearsAtAddress',
             'YearsContinuousCoverage', 'Zip',
-        ]);
+            // ── Co-applicant block ──
+            'CoDOB', 'CoEducation', 'CoEmail', 'CoFirstName',
+            'CoGender', 'CoIndustry', 'CoLastName', 'CoMaritalStatus',
+            'CoMiddleName', 'CoOccupation', 'CoPhone', 'CoPrefix',
+            'CoRelationship', 'CoSuffix',
+            // ── Home / dwelling block ──
+            'Bedrooms', 'ConstructionStyle', 'Cooling', 'DwellingCoverage',
+            'DwellingType', 'DwellingUsage', 'EarthquakeCoverage',
+            'EarthquakeDeductible', 'ElectricalYear', 'ExteriorWalls',
+            'FireHydrantFeet', 'FireStationDist', 'FloodCoverage',
+            'Foundation', 'FullBaths', 'GarageSpaces', 'GarageType',
+            'HalfBaths', 'HeatingType', 'HeatingYear', 'HomeDeductible',
+            'HomeEffectiveDate', 'HomeLossOfUse', 'HomePersonalProperty',
+            'HomePolicyTerm', 'HomePolicyType', 'HomePriorCarrier',
+            'HomePriorExp', 'HomePriorLiability', 'HomePriorPolicyTerm',
+            'HomePriorYears', 'IncreasedReplacementCost', 'MedicalPayments',
+            'Mortgagee', 'NumOccupants', 'NumStories', 'OccupancyType',
+            'OtherStructures', 'PersonalLiability', 'PlumbingYear',
+            'Pool', 'ProtectionClass', 'RoofShape', 'RoofType', 'RoofYear',
+            'SquareFootage', 'WindDeductible', 'YearBuilt',
+        ].sort());
     });
 
     // Field-by-field test: gives a clear failure point when one mapping
@@ -414,23 +450,33 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         expect(App.exportClientJsonForFiller().EffectiveDate).toBe('06/01/2026');
     });
 
-    test('Phase 1: drivers[1+] are NOT yet wired (multi-driver = Phase 2)', () => {
-        // Multi-driver support requires "Add Driver" button click + per-
-        // driver field scoping in the Python filler. Out of scope for
-        // Phase 1 — this PR ships single-driver fill from drivers[0]
-        // only. Phase 2 will add a Drivers[] array to the wire format
-        // and a multi-driver iteration loop in ezlynx_filler.py.
+    test('Phase 2: full Drivers[] array now flows alongside driver0 fields', () => {
+        // Wire format keeps the back-compat driver0 keys at the top level
+        // (LicenseNumber, GoodDriver, SR22Required, etc.) while *also*
+        // emitting a Drivers[] array with every driver. The Python filler
+        // can iterate the array on EZLynx's drivers page and still grab
+        // the primary off the flat keys for the applicant page.
         App.data = {};
         App.drivers = [
-            { dlNum: 'PRIMARY1', goodDriver: 'Yes', sr22: 'No' },
-            { dlNum: 'IGNORED2', goodDriver: 'No',  sr22: 'Yes' },
+            { firstName: 'Pat', lastName: 'Smith', dob: '1980-01-15', dlNum: 'PRIMARY1', goodDriver: 'Yes', sr22: 'No', isPrimaryApplicant: true },
+            { firstName: 'Sam', lastName: 'Smith', dob: '1982-03-04', dlNum: 'SECOND02', goodDriver: 'No',  sr22: 'Yes', isCoApplicant: true, relationship: 'Spouse' },
         ];
         const out = App.exportClientJsonForFiller();
+        // Back-compat: driver0 still surfaces at top level.
         expect(out.LicenseNumber).toBe('PRIMARY1');
         expect(out.GoodDriver).toBe('Yes');
         expect(out.SR22Required).toBe('No');
-        // No Drivers[] key yet — that arrives in Phase 2.
-        expect(out.Drivers).toBeUndefined();
+        // New: Drivers[] array carries everyone.
+        expect(Array.isArray(out.Drivers)).toBe(true);
+        expect(out.Drivers).toHaveLength(2);
+        expect(out.Drivers[0].FirstName).toBe('Pat');
+        expect(out.Drivers[0].DOB).toBe('01/15/1980');
+        expect(out.Drivers[0].LicenseNumber).toBe('PRIMARY1');
+        expect(out.Drivers[0].IsPrimaryApplicant).toBe(true);
+        expect(out.Drivers[1].FirstName).toBe('Sam');
+        expect(out.Drivers[1].LicenseNumber).toBe('SECOND02');
+        expect(out.Drivers[1].IsCoApplicant).toBe(true);
+        expect(out.Drivers[1].Relationship).toBe('Spouse');
     });
 
     test('drivers[1+] are ignored on the applicant page (only drivers[0] flows)', () => {
@@ -449,9 +495,9 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
     // This test never fails; it's a TODO marker that any contributor
     // checking "is X wired?" finds in one place.
     test('documented gaps (Altech collects, filler does NOT yet receive)', () => {
-        // Deliberately not wired:
+        // Still deliberately not wired:
         //
-        //   primaryHomeAddr / primaryHomeCity / primaryHomeState
+        //   primaryHomeAddr / primaryHomeCity / primaryHomeState / primaryHomeZip
         //     EZLynx's applicant page handles mailing-vs-residence via a
         //     single Address Type selector on one address (Home / Mailing
         //     / Office / Billing / Seasonal). Filling a SECOND address
@@ -467,37 +513,115 @@ describe('App.exportClientJsonForFiller — wire-format contract', () => {
         //   4. Happy-path assertion above
         //   5. Remove from this list
         const NOT_YET_WIRED = [
-            'primaryHomeAddr', 'primaryHomeCity', 'primaryHomeState',
+            'primaryHomeAddr', 'primaryHomeCity', 'primaryHomeState', 'primaryHomeZip',
         ];
         expect(NOT_YET_WIRED.length).toBeGreaterThan(0);
     });
 
-    test('auto-policy fields without EZLynx counterparts (out of scope)', () => {
-        // These Altech fields exist but EZLynx's standard rating page
-        // does not expose them on the Auto Policy Info screen:
-        //
-        //   priorExp           — Prior policy expiration date. EZLynx may
-        //                        track this internally via API integration
-        //                        but isn't surfaced as a public field on
-        //                        the rating form.
-        //   umLimits           — UM is bundled into the BI/UM hierarchy
-        //                        on EZLynx, no standalone limit field.
-        //   uimLimits          — Same as umLimits.
-        //   rentalDeductible   — Rental Reimbursement is per-vehicle
-        //                        coverage, lives on the vehicles page.
-        //   towingDeductible   — Towing is per-vehicle coverage, vehicles page.
-        //   accidents          — Multi-year history is per-driver on EZLynx,
-        //                        belongs on drivers page incident scoping.
-        //   violations         — Same as accidents — drivers page.
-        //
-        // None of these are blockers for the Auto Policy Info smoke test.
-        // If a future EZLynx rating-page change exposes any of them, add
-        // a filler key + happy-path assertion in this test.
-        const NO_EZLYNX_AUTO_POLICY_FIELD = [
-            'priorExp', 'umLimits', 'uimLimits',
-            'rentalDeductible', 'towingDeductible',
-            'accidents', 'violations',
+    test('full auto-policy block now flows (Phase 2)', () => {
+        // These were previously documented as "out of scope" because the
+        // Phase 1 filler only consumed the applicant page. With the round-
+        // trip use-case (HawkSoft import → Altech edit → EZLynx export),
+        // the filler now needs them: priorExp drives Prior Policy
+        // Expiration on the rating form; UM/UIM are real dropdowns on
+        // multi-tier carriers; towing/rental are vehicle-level coverages
+        // the filler hands to EZLynx's vehicles page; accidents/violations
+        // surface on the drivers page.
+        App.data = {
+            priorExp:           '2026-04-14',
+            umLimits:           '100/300',
+            uimLimits:          '100/300',
+            rentalDeductible:   '30/900',
+            towingDeductible:   '100',
+        };
+        App.drivers = [{ accidents: 'At fault 2023-05', violations: 'Speeding 6-10' }];
+        const out = App.exportClientJsonForFiller();
+        expect(out.PriorAutoExpiration).toBe('04/14/2026');
+        expect(out.UM).toBe('100/300');
+        expect(out.UIM).toBe('100/300');
+        expect(out.RentalReimbursement).toBe('30/900');
+        expect(out.Towing).toBe('100');
+        expect(out.Drivers[0].Accidents).toBe('At fault 2023-05');
+        expect(out.Drivers[0].Violations).toBe('Speeding 6-10');
+    });
+
+    test('full home/dwelling block flows when present', () => {
+        App.data = {
+            yrBuilt: '1996', dwellingType: 'One Family', sqFt: '2400',
+            constructionStyle: 'Frame', protectionClass: '3',
+            dwellingCoverage: '387660', otherStructures: '38766',
+            homePersonalProperty: '116298', homeLossOfUse: '24',
+            roofType: 'Composition', roofYr: '2018',
+            heatingType: 'Gas', heatYr: '2010', cooling: 'Central',
+            numStories: '2', bedrooms: '4', fullBaths: '2', halfBaths: '1',
+            pool: 'No', earthquakeCoverage: 'No',
+            homePolicyType: 'HO-3', homeDeductible: '1000',
+            personalLiability: '300000', medicalPayments: '1000',
+            mortgagee: 'Wells Fargo Home Mortgage',
+            homePriorCarrier: 'Other Standard', homePriorYears: '5',
+            homePriorExp: '2026-05-20',
+        };
+        App.drivers = [];
+        const out = App.exportClientJsonForFiller();
+        expect(out.YearBuilt).toBe('1996');
+        expect(out.DwellingType).toBe('One Family');
+        expect(out.SquareFootage).toBe('2400');
+        expect(out.DwellingCoverage).toBe('387660');
+        expect(out.OtherStructures).toBe('38766');
+        expect(out.HomePersonalProperty).toBe('116298');
+        expect(out.RoofType).toBe('Composition');
+        expect(out.HeatingType).toBe('Gas');
+        expect(out.HomePolicyType).toBe('HO-3');
+        expect(out.HomeDeductible).toBe('1000');
+        expect(out.PersonalLiability).toBe('300000');
+        expect(out.Mortgagee).toBe('Wells Fargo Home Mortgage');
+        expect(out.HomePriorExp).toBe('05/20/2026');
+    });
+
+    test('co-applicant block flows when present', () => {
+        App.data = {
+            coFirstName: 'Rochelle', coLastName: 'Peters',
+            coDob: '1981-06-22', coGender: 'F',
+            coRelationship: 'Spouse', coMaritalStatus: 'Married',
+            coEmail: 'r@example.com', coPhone: '5551112222',
+            coOccupation: 'Nurse', coIndustry: 'Medical',
+            coEducation: 'Bachelors',
+        };
+        App.drivers = [];
+        const out = App.exportClientJsonForFiller();
+        expect(out.CoFirstName).toBe('Rochelle');
+        expect(out.CoLastName).toBe('Peters');
+        expect(out.CoDOB).toBe('06/22/1981');
+        expect(out.CoGender).toBe('F');
+        expect(out.CoRelationship).toBe('Spouse');
+        expect(out.CoMaritalStatus).toBe('Married');
+        expect(out.CoEmail).toBe('r@example.com');
+        expect(out.CoOccupation).toBe('Nurse');
+    });
+
+    test('multiPolicy + qType flow through to MultiPolicy + QuoteType', () => {
+        App.data = { qType: 'both', multiPolicy: 'yes' };
+        App.drivers = [];
+        const out = App.exportClientJsonForFiller();
+        expect(out.QuoteType).toBe('both');
+        expect(out.MultiPolicy).toBe('yes');
+    });
+
+    test('Vehicles[] array carries every vehicle with use + assignment', () => {
+        App.data = {};
+        App.drivers = [];
+        App.vehicles = [
+            { vin: '1HGCM82633A004352', year: '2003', make: 'HONDA', model: 'ACCORD',
+              use: 'Pleasure', miles: '5500', antiTheft: 'None', primaryDriver: 'driver_1' },
+            { vin: '5FNYG1H4XSB159334', year: '2025', make: 'HONDA', model: 'PILOT',
+              use: 'Commute', miles: '12000', primaryDriver: '' },
         ];
-        expect(NO_EZLYNX_AUTO_POLICY_FIELD.length).toBeGreaterThan(0);
+        const out = App.exportClientJsonForFiller();
+        expect(Array.isArray(out.Vehicles)).toBe(true);
+        expect(out.Vehicles).toHaveLength(2);
+        expect(out.Vehicles[0].VIN).toBe('1HGCM82633A004352');
+        expect(out.Vehicles[0].AnnualMiles).toBe('5500');
+        expect(out.Vehicles[0].PrimaryDriver).toBe('driver_1');
+        expect(out.Vehicles[1].Use).toBe('Commute');
     });
 });
