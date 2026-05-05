@@ -2430,6 +2430,12 @@ This is trusted, complete agency data — extract every field you can find.
 
     // Inline "needs review" badges on intake form labels for ezlynxRequired
     // fields that the import didn't fill. Stamped once per import; idempotent.
+    //
+    // quoting.html labels mostly omit `for=` attributes — fields are visually
+    // associated by DOM nesting rather than id reference. Mirror the
+    // parent-walk used by _stampEzlynxLabels (js/app-navigation.js) so badges
+    // actually attach to the right label, including the .label-with-hint and
+    // double-wrapper variants.
     _markEzlynxRequiredGaps() {
         if (typeof document === 'undefined' || !document.body) return;
         // Clear any prior badges
@@ -2439,7 +2445,7 @@ This is trusted, complete agency data — extract every field you can find.
             if (this.data[f.storageKey]) return;
             const el = document.getElementById(f.id);
             if (!el) return;
-            const label = document.querySelector(`label[for="${f.id}"]`);
+            const label = this._findFieldLabel(el);
             if (!label || label.querySelector('.ez-needs-review-badge')) return;
             const badge = document.createElement('span');
             badge.className = 'ez-needs-review-badge';
@@ -2447,5 +2453,22 @@ This is trusted, complete agency data — extract every field you can find.
             badge.title = 'EZLynx requires this field — please fill it in';
             label.appendChild(badge);
         });
+    },
+
+    // Find the visible <label.label> for an input, walking parents the same
+    // way _stampEzlynxLabels does. Returns the label element or null.
+    _findFieldLabel(el) {
+        if (!el) return null;
+        // Direct association first (the few fields that do use `for=`)
+        if (el.id) {
+            const direct = document.querySelector(`label[for="${el.id}"]`);
+            if (direct) return direct;
+        }
+        const p = el.parentElement;
+        return p?.querySelector(':scope > label.label')
+            || p?.querySelector(':scope > .label-with-hint > label.label')
+            || p?.parentElement?.querySelector(':scope > label.label')
+            || p?.parentElement?.querySelector(':scope > .label-with-hint > label.label')
+            || null;
     },
 });
