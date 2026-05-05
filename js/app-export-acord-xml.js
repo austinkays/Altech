@@ -604,6 +604,30 @@ Object.assign(App, {
             '</Applicant>',
         ].join('');
 
+        // ── Co-applicant (mirrors Auto exporter — see lines 217-237) ──
+        // Without this block EZLynx's home importer never sees the spouse,
+        // and producers have to re-enter spouse data on the EZLynx side.
+        const coApplicant = (() => {
+            if (!data.coFirstName && !data.coLastName) return '';
+            return [
+                '<Applicant>',
+                tag('ApplicantType', 'CoApplicant'),
+                '<PersonalInfo>',
+                '<Name>',
+                tag('FirstName', data.coFirstName),
+                tag('MiddleName', data.coMiddleName || ''),
+                tag('LastName', data.coLastName),
+                '</Name>',
+                tag('DOB', isoDate(data.coDob)),
+                tag('Gender', expandGender(data.coGender)),
+                tag('MaritalStatus', data.coMaritalStatus || ''),
+                tag('Relation', data.coRelationship || 'Spouse'),
+                '</PersonalInfo>',
+                fullAddress, // co-app shares address by default
+                '</Applicant>',
+            ].join('');
+        })();
+
         // ── <AltDwelling> — the insured property location ──────
         const altDwelling = `<AltDwelling>${dwellingAddress}</AltDwelling>`;
 
@@ -728,6 +752,7 @@ Object.assign(App, {
         // ── Assemble document ──────────────────────────────────
         const xml = '<EZHOME xmlns="http://www.ezlynx.com/XMLSchema/Home/V200">'
             + applicant
+            + coApplicant
             + altDwelling
             + priorPolicy
             + policyInfo

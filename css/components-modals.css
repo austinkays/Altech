@@ -409,3 +409,135 @@ body.tauri-desktop .ezlynx-auto-fill-btn { display: flex !important; }
     margin-right: auto;
 }
 
+/* === EZLynx XML Import — Post-import Review Modal === */
+.ez-review-content {
+    max-width: 640px;
+    max-height: 88vh;
+}
+.ez-review-body {
+    padding: 16px 20px 20px;
+    color: var(--text);
+}
+.ez-review-intro {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.ez-review-section {
+    margin: 0 0 18px;
+    padding: 14px 14px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+.ez-review-section h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+.ez-review-hint {
+    margin: 0 0 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+.ez-review-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+}
+.ez-review-row:first-of-type { border-top: none; }
+.ez-review-label {
+    flex: 1 1 auto;
+    font-size: 13px;
+    color: var(--text);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.ez-review-row select,
+.ez-review-row input {
+    flex: 0 0 auto;
+    font-size: 13px;
+    padding: 6px 10px;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+.ez-review-row select { min-width: 180px; }
+.ez-review-veh-facts {
+    display: flex;
+    gap: 6px;
+}
+.ez-review-veh-facts .ez-review-miles {
+    width: 110px;
+}
+.ez-review-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    cursor: pointer;
+}
+.ez-review-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--apple-blue);
+    cursor: pointer;
+}
+.ez-review-gap-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    columns: 2;
+    column-gap: 24px;
+}
+.ez-review-gap-list li { break-inside: avoid; }
+.ez-review-gap-label { color: var(--text); font-weight: 500; }
+.ez-review-gap-section {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+}
+.ez-review-gap-more {
+    list-style: none;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 4px;
+}
+.ez-review-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+/* === Inline "needs review" badge on intake form labels === */
+.ez-needs-review-badge {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+    color: #b45309;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 999px;
+    vertical-align: middle;
+}
+body.dark-mode .ez-needs-review-badge {
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.18);
+    border-color: rgba(245, 158, 11, 0.5);
+}
+
