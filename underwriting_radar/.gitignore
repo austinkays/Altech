@@ -1,0 +1,19 @@
+# Real config (carrier list, webhook URLs).
+config.yaml
+
+# Saved browser sessions — anyone with these can act as you on the portals.
+states/
+state.json
+
+# Downloaded PDFs and the SQLite tracking DB.
+staging_pdfs/
+db/
+*.db
+*.db-journal
+*.db-wal
+
+# Local Python artifacts.
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/

@@ -1,0 +1,48 @@
+# config.example.yaml — copy to config.yaml and customize.
+#
+# config.yaml is gitignored. Treat it (and the state files it references) as
+# secrets — they grant access to your carrier portals.
+
+settings:
+  staging_dir: staging_pdfs       # downloaded PDFs land here
+  db_path: db/radar_state.db      # SQLite file holding last-seen fingerprints
+  headless: true                  # set false locally to watch what's happening
+
+  # Generic JSON webhook (Slack incoming webhook, Discord, Teams, n8n, etc.).
+  # Override at runtime with RADAR_WEBHOOK_URL.
+  webhook_url: ""
+
+  # Optional SMTP fallback. Override with RADAR_SMTP_* env vars in production.
+  smtp_host: ""
+  smtp_port: 465
+  smtp_user: ""
+  smtp_pass: ""
+  smtp_from: ""
+  smtp_to: ""
+
+carriers:
+  - key: travelers_auto_wa        # stable id used in the SQLite state table
+    name: Travelers
+    state: WA
+    line: Auto
+    url: https://agent.travelers.com/path/to/auto-manuals
+    state_file: states/travelers.json
+    pdf_match:
+      text_contains: "Auto Product Guide"
+      # href_pattern: ".*auto.*guide.*\\.pdf$"   # regex alternative
+    login_indicators:
+      url_contains: ["/login", "/signin", "/auth"]
+      text_contains: ["Sign In", "Forgot Password"]
+    # wait_selector: "table.manuals-list"  # optional — wait for SPA content
+
+  - key: progressive_auto_wa
+    name: Progressive
+    state: WA
+    line: Auto
+    url: https://forprogressiveagents.com/manuals/auto-wa
+    state_file: states/progressive.json
+    pdf_match:
+      href_pattern: ".*WA.*Auto.*\\.pdf$"
+    login_indicators:
+      url_contains: ["/login"]
+      text_contains: ["Agent Sign In"]
