@@ -504,12 +504,35 @@ Support Modules (load after plugins):
 
 ### 4.5 Encryption Flow
 
-`CryptoHelper` (in `js/crypto-helper.js`) provides AES-256-GCM encryption using the Web Crypto API.
+`CryptoHelper` ([js/crypto-helper.js](js/crypto-helper.js)) provides AES-256-GCM encryption via Web Crypto API. Two key-derivation paths run in parallel during the Path B migration:
 
-- **Key derivation:** PBKDF2 from a per-device salt stored in `localStorage.altech_encryption_salt`
-- **Encrypted data format:** JSON string `{ iv, salt, data }` (all base64-encoded)
-- **What's encrypted:** `altech_v6` (form data), `altech_v6_quotes` (drafts), email drafts, scan data, driver/vehicle lists
-- **⚠️ JSDOM lacks `crypto.subtle`** — tests suppress encryption errors; encrypted fields return `null` in test environments
+**v1 — legacy device-bound (default for users not yet migrated)**
+- KDF: PBKDF2-SHA256 of a per-device fingerprint, 100k iterations, salt at `STORAGE_KEYS.ENCRYPTION_SALT`
+- No user secret required; key is derivable from the device alone
+- Used to encrypt `altech_v6` (form data), `altech_v6_quotes`, `altech_acct_vault_v2`, `altech_email_drafts`, `altech_commercial_v1`, `altech_commercial_quotes`
+
+**v2 — passphrase-derived MK + wrapping (`STORAGE_KEYS.E2E_CRYPTO_V2='1'`)**
+- Random 32-byte MK generated per user (the actual data key, never stored in plaintext)
+- MK wrapped twice on the server side: once under a **passphrase-derived KEK**, once under a **recovery-key-derived KEK**. Server holds only the wrapped blobs.
+- Server never sees MK, passphrase, or recovery key — true zero-knowledge.
+
+**v2 hardened layers (Phase A–D, May 2026)**
+
+| Layer | What changed | Backward compat |
+|---|---|---|
+| **Argon2id KDF** | New vaults use Argon2id (m=64MiB, t=3, p=1, lazy-loaded `hash-wasm` from CDN). Legacy vaults stay on PBKDF2-600k. Dispatched via `_deriveKEKAuto` reading `passphraseKdf`/`recoveryKdf` from vault meta. | Legacy vaults unlock unchanged; rewrap on passphrase change auto-upgrades to Argon2id (MK stays the same → no data re-encryption). |
+| **HKDF subkey tree** | `kdfTree: 'hkdf-v1'` flag → MK becomes a master *seed*, AES data key is `HKDF-SHA256(MK, info='altech.data.v1')`. Future subkeys (`altech.blind.v1`, `altech.agency.v1`) use distinct info strings — leak of one role can't be replayed against another. | Vaults without `kdfTree` use MK directly. Promoting "no tree" → `hkdf-v1` would require re-encrypting all data, so it never auto-upgrades. |
+| **AAD on Supabase rows** | `encryptForRow(data, identity)` → JSON envelope `{v:2, iv, ct}` with AAD bound to `(table, rowId, userId)`. `pushBlob`/`pushQuote` transparently re-wrap the localStorage value before push. Server can't move ciphertexts between rows or relabel them. | `decryptForRow(envelopeOrLegacy, identity)` handles both shapes. When v2 is locked, push falls back to legacy ciphertext (fail-open). Local-only `encrypt()`/`decrypt()` unchanged. |
+
+**AAD construction is centralized** in [js/crypto-aad.js](js/crypto-aad.js) (`CryptoAAD.buildAAD`). [scripts/lint-aad.mjs](scripts/lint-aad.mjs) runs as `pretest` and fails the build if any file outside `crypto-aad.js`/`crypto-helper.js` passes `additionalData:` directly. Drift in AAD construction would silently break decryption — single source of truth + CI guard.
+
+**Encrypted payload formats:**
+- v1 + legacy v2: `base64( iv(12 bytes) || AES-256-GCM(payload) )` — opaque base64 string
+- v2 row-bound (Supabase only): JSON `{ "v": 2, "iv": "<b64>", "ct": "<b64>" }`
+
+**Vault metadata**: stored locally at `STORAGE_KEYS.VAULT_LOCAL_META` and (when `SYNC_BACKEND='supabase'`) on Supabase `public.user_crypto_meta`. Routed through [js/vault-meta.js](js/vault-meta.js) — single API surface, automatic local-cache fallback for offline unlock. Field mapping (camelCase JS ↔ snake_case DB) is centralized in `JS_TO_DB`/`DB_TO_JS`.
+
+**⚠️ JSDOM lacks `crypto.subtle`** — `tests/setup.js` suppresses the noise, and crypto-touching tests use Node's `webcrypto` + a deterministic Argon2id mock at `globalThis.hashwasm`. See [tests/crypto-helper-v2.test.js](tests/crypto-helper-v2.test.js) for the pattern.
 
 ### 4.6 Three Workflows
 
@@ -761,7 +784,42 @@ Defined in `vercel.json` headers:
 
 ### 6.4 Encryption at Rest
 
-Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device key derived from PBKDF2 salt. Data is decrypted on read and re-encrypted on write. Cloud sync pushes encrypted data to Firestore.
+Client-side AES-256-GCM encryption for sensitive localStorage data. **See §4.5** for the full key-derivation model — this section covers what's encrypted where.
+
+| Surface | Cipher | Key source | Notes |
+|---|---|---|---|
+| localStorage (v1, default) | AES-256-GCM | PBKDF2(deviceFingerprint, salt) | Device-bound; user can't lose access by forgetting a passphrase. |
+| localStorage (v2 active) | AES-256-GCM | Argon2id(passphrase) → KEK → unwraps MK; HKDF derives data key when `kdfTree='hkdf-v1'` | Per-user E2E. Server never sees MK. |
+| Firestore (Firebase backend) | TLS in transit + Google-managed at rest | n/a | Plaintext to Google; the migration moves users off this. |
+| Supabase `user_blobs` / `user_quotes` (legacy) | TLS + opaque ciphertext | App-side AES-GCM under v1 or v2 | Server holds opaque base64. |
+| Supabase `user_blobs` / `user_quotes` (Phase B+) | AAD-bound v=2 envelope | `encryptForRow(data, {table, rowId, userId})` | Auth tag binds row identity — server can't move ciphertexts between rows or users. |
+
+**Vault metadata** (passphrase salt, wrapped MK, KDF params) lives at `STORAGE_KEYS.VAULT_LOCAL_META` and on Supabase `public.user_crypto_meta` — see [js/vault-meta.js](js/vault-meta.js) router. All Phase A KDF additions land in [db/migrations/0004_kdf_metadata.sql](db/migrations/0004_kdf_metadata.sql).
+
+### 6.5 Supabase RLS Model
+
+All public tables holding user data have RLS enabled, with policies gating every operation on `auth.uid() = user_id`:
+
+| Table | Policy summary |
+|---|---|
+| `user_blobs` | Owner-only SELECT/INSERT/UPDATE/DELETE; `with check (auth.uid() = user_id)` on every write. |
+| `user_quotes` | Same — `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)`. |
+| `user_crypto_meta` | Same. |
+| `audit_log` | Owner-only SELECT + INSERT (own user_id); **no UPDATE/DELETE policy** → append-only. |
+| `agencies`, `agency_members`, `agency_key_wraps`, `agency_blobs` (Phase 2.5 schema, app code TBD) | Membership-gated via two `SECURITY DEFINER` helpers (`is_agency_member`, `is_agency_admin`) — both granted only to `authenticated`, never to `PUBLIC`. |
+
+**RLS audit ([db/migrations/0005_rls_audit.sql](db/migrations/0005_rls_audit.sql))**: self-checking SQL — refuses to apply if any public table is missing from the inventory, lacks RLS, or has zero policies. Also enforces the `SECURITY DEFINER` allowlist. **When adding a new public table, add it to `expected_tables[]` in `0005`** or the audit will fail on next apply.
+
+**Live verification ([scripts/verify-rls.mjs](scripts/verify-rls.mjs))**: operator script that anon-connects to a live Supabase project and asserts cross-user reads return 0 rows / writes are rejected. Run manually with `SUPABASE_URL` + `SUPABASE_ANON_KEY` env vars; not in CI.
+
+### 6.6 Migration Safety Net
+
+Phase 4 of the Firebase→Supabase rollout (Session 2 of [js/migration-ui.js](js/migration-ui.js), still pending) will be wrapped by:
+
+- **`MigrationBackup.snapshot()`** ([js/migration-backup.js](js/migration-backup.js)) — captures every `altech_*` localStorage key (excluding `MIGRATION_*`/`SYNC_BACKEND`/`DEVICE_ID`/`SYNC_META_SUPABASE`) before the pipeline begins. `restore()` puts the device back exactly as it was on hard failure. 30-day TTL with auto-clean on next `load()`.
+- **`MIGRATION_DRY_RUN` flag** — when set, the pipeline copies + verifies but doesn't flip `SYNC_BACKEND`. Lets an admin verify Supabase decryption before committing the per-user switch. Read via `MigrationUI.isDryRun()`.
+
+Neither is wired into production code yet — the Session 1 stub in `migration-ui.js` doesn't touch user data. Session 2 must call `snapshot()` at the top of the pipeline, honor `isDryRun()` before the backend flip, and call `restore()` on hard failure. See [js/migration-ui.js:90-103](js/migration-ui.js#L90-L103) for the contract.
 
 ---
 
@@ -802,9 +860,19 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. Per-device k
 | `altech_user_name` | User's name | ❌ | ❌ | Onboarding |
 | `altech_agency_profile` | Agency profile | ❌ | ❌ | Onboarding |
 | `altech_agency_glossary` | Agency shorthand glossary (max 500 chars) | ? | ? | CallLogger / Settings |
-| `altech_encryption_salt` | PBKDF2 salt | ❌ | ❌ | CryptoHelper |
+| `altech_encryption_salt` | PBKDF2 salt for legacy v1 device key | ❌ | ❌ | CryptoHelper |
+| `altech_passphrase_salt` | Per-device cache of v2 passphrase salt | ❌ | ❌ | CryptoHelper |
+| `altech_e2e_crypto_v2` | Feature flag: `'1'` = v2 vault active | ❌ | ❌ | CryptoHelper |
+| `altech_vault_meta_local` | Vault meta (offline cache + local fallback for the Supabase router) | ❌ | ❌ | VaultMeta |
 | `altech_sync_meta` | Sync metadata | ❌ | ❌ | CloudSync |
+| `altech_sync_backend` | `'firebase'` (default) \| `'supabase'` | ❌ | ❌ | SyncFacade |
+| `altech_migration_enabled` | `'1'` = show migration modal (admin/dev only) | ❌ | ❌ | MigrationUI |
+| `altech_migration_state` | Resume-on-crash state for the Phase 4 pipeline | ❌ | ❌ | MigrationUI |
+| `altech_migration_dry_run` | `'1'` = Session 2 copies but doesn't flip backend | ❌ | ❌ | MigrationUI |
+| `altech_pre_migration_backup` | Snapshot before Session 2 runs; 30-day TTL | partial¹ | ❌ | MigrationBackup |
 | `gemini_api_key` | User's Gemini key | ❌ | ❌ | Multiple plugins |
+
+¹ The backup record is JSON metadata wrapping verbatim copies of other localStorage values. Captured values that were already encrypted (e.g., `altech_v6`) stay encrypted; plaintext-stored values stay plaintext. The wrapper itself isn't re-encrypted.
 
 ### 7.2 Form Data Shape (`altech_v6`)
 

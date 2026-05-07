@@ -160,7 +160,15 @@ Key entries (see `js/storage-keys.js` for full list):
 | `CGL_STATE` | `altech_cgl_state` | Cloud-synced |
 | `REMINDERS` | `altech_reminders` | Cloud-synced |
 | `DARK_MODE` | `altech_dark_mode` | Cloud-synced via settings doc |
-| `ENCRYPTION_SALT` | `altech_encryption_salt` | Never sync to cloud |
+| `ENCRYPTION_SALT` | `altech_encryption_salt` | PBKDF2 salt for legacy v1 device key — never sync |
+| `PASSPHRASE_SALT` | `altech_passphrase_salt` | Per-device cache of v2 passphrase salt — never sync |
+| `E2E_CRYPTO_V2` | `altech_e2e_crypto_v2` | Feature flag: `'1'` = v2 vault active |
+| `VAULT_LOCAL_META` | `altech_vault_meta_local` | Vault meta cache (also offline fallback for the Supabase router) |
+| `SYNC_BACKEND` | `altech_sync_backend` | `'firebase'` (default) \| `'supabase'` |
+| `MIGRATION_ENABLED` | `altech_migration_enabled` | `'1'` = show migration modal (admin/dev only during rollout) |
+| `MIGRATION_STATE` | `altech_migration_state` | Resume-on-crash state for the Phase 4 pipeline |
+| `MIGRATION_DRY_RUN` | `altech_migration_dry_run` | `'1'` = Session 2 pipeline copies but doesn't flip backend |
+| `PRE_MIGRATION_BACKUP` | `altech_pre_migration_backup` | Snapshot taken before Session 2 runs; 30-day TTL, auto-clean |
 
 ---
 
@@ -199,7 +207,26 @@ const SYNC_DOCS = [
 
 ### Supabase sync (`js/supabase-sync.js`, `SupabaseSync`)
 
-Mirrors `CloudSync`'s API. Backed by Postgres tables under `public.user_sync` keyed by `(user_id, doc_key)`. Auth via `js/supabase-auth.js`. MFA UI in `js/auth-mfa-ui.js`. Per-user E2E key (`E2E_CRYPTO_V2`) is passphrase-derived; salt + wrapped MK live in `vault-meta.js` / Supabase `user_vault_meta`. Never sync `ENCRYPTION_SALT`, `PASSPHRASE_SALT`, or `*_RECOVERY` keys.
+Mirrors `CloudSync`'s API. Backed by Postgres tables `public.user_blobs` (key-value, keyed by `(user_id, doc_key)`) and `public.user_quotes` (one row per draft, keyed by `id`). Vault metadata lives in `public.user_crypto_meta`. Auth via `js/supabase-auth.js`. MFA UI in `js/auth-mfa-ui.js`. Per-user E2E key (`E2E_CRYPTO_V2`) is passphrase-derived; salt + wrapped MK + KDF parameters are stored on `user_crypto_meta` and routed through [js/vault-meta.js](js/vault-meta.js) (router with localStorage offline cache). Never sync `ENCRYPTION_SALT`, `PASSPHRASE_SALT`, or `*_RECOVERY` keys.
+
+## E2E Crypto — four hardened layers (Phases A–D, May 2026)
+
+The v2 vault (`STORAGE_KEYS.E2E_CRYPTO_V2='1'`) goes deeper than just AES-GCM. New code touching crypto MUST understand which layer it sits in:
+
+| Layer | Where | What it does | Backward compat |
+|---|---|---|---|
+| **A. KDF** | [js/crypto-helper.js](js/crypto-helper.js) | New vaults derive the KEK with **Argon2id** (lazy-loaded `hash-wasm` from CDN, m=64MiB t=3 p=1). Legacy vaults stay on **PBKDF2-600k**. Dispatched via `_deriveKEKAuto` reading `passphraseKdf` / `recoveryKdf` from vault meta — null fields ⇒ legacy PBKDF2. | Old vaults unlock unchanged; rewraps upgrade KDF to Argon2id without re-encrypting data (MK stays the same). |
+| **A. HKDF tree** | [js/crypto-helper.js](js/crypto-helper.js) | New vaults set `kdfTree: 'hkdf-v1'`. MK becomes a master *seed*; the AES data key is `HKDF-SHA256(MK, info='altech.data.v1')`. Future subkeys (`altech.blind.v1`, `altech.agency.v1`) use distinct info strings — leak of one role can't be replayed against another. | Vaults without `kdfTree` use MK directly as the data key. Promoting a vault from "no tree" → `hkdf-v1` would require re-encrypting all data, so it never auto-upgrades. |
+| **A. AAD builder** | [js/crypto-aad.js](js/crypto-aad.js) | `CryptoAAD.buildAAD({ table, rowId, userId, envelopeVersion })` — single source of truth for AAD bytes. **CI lint** ([scripts/lint-aad.mjs](scripts/lint-aad.mjs), runs as `pretest`) fails the build if any file outside `crypto-aad.js`/`crypto-helper.js` passes `additionalData:` directly. | n/a — additive primitive. |
+| **B. AAD envelope** | [js/crypto-helper.js](js/crypto-helper.js), [js/supabase-sync.js](js/supabase-sync.js) | `encryptForRow(data, identity)` → JSON envelope `{v:2, iv, ct}` with AAD bound to `(table, rowId, userId)`. `decryptForRow` handles both v=2 envelopes AND legacy base64 ciphertexts. `pushBlob`/`pushQuote` accept an optional `identity` and transparently re-wrap the localStorage value into a v=2 envelope before pushing — server can no longer move ciphertexts between rows or relabel them. **Side effect**: plaintext-stored docs (`CGL_STATE`, `REMINDERS`) now also become AAD-bound ciphertext on the wire. | When v2 is locked or wrapping fails, legacy ciphertext passes through untouched (fail-open, never corrupt a row). Pull side still returns raw — caller routes through `decryptForRow` to handle either shape. |
+| **C. VaultMeta router** | [js/vault-meta.js](js/vault-meta.js) | When `SYNC_BACKEND='supabase'` + signed in, vault meta reads/writes `public.user_crypto_meta`; otherwise localStorage-only. **Save writes local FIRST** (never blocks on network) and mirrors to Supabase best-effort. **Load prefers server** with local cache as offline fallback. Field mapping is centralized in `JS_TO_DB`/`DB_TO_JS` — adding a new vault-meta field is one line. | API contract unchanged; existing `vault-ui.js` call sites needed no edits. |
+| **D. RLS + safety net** | [db/migrations/0005_rls_audit.sql](db/migrations/0005_rls_audit.sql), [scripts/verify-rls.mjs](scripts/verify-rls.mjs), [js/migration-backup.js](js/migration-backup.js) | (1) Self-checking SQL audit: refuses to apply if any public table lacks RLS or any policy. (2) Operator script that anon-connects to a live Supabase project and asserts cross-user reads return 0 rows / writes are rejected. (3) `MigrationBackup.snapshot()` captures every `altech_*` localStorage key (excluding `MIGRATION_*`/`SYNC_BACKEND`/`DEVICE_ID`) before Session 2 of `migration-ui.js` runs; `restore()` puts the device back exactly as it was on hard failure. 30-day TTL with auto-clean. (4) `MIGRATION_DRY_RUN` flag for "verify but don't flip backend." | Not yet wired — Session 2 of migration-ui.js will call `MigrationBackup.snapshot()` at top of pipeline and honor `isDryRun()`. |
+
+**Cipher envelope dispatch**: `decryptForRow(envelopeOrLegacy, identity)` is the entry point that handles both shapes. Use it for any pull from `user_blobs`/`user_quotes`. For local-only `CryptoHelper.encrypt()`/`decrypt()` (no row identity), nothing changed — those still produce/consume the legacy base64 string.
+
+**KDF-aware vault meta fields** (added by [db/migrations/0004_kdf_metadata.sql](db/migrations/0004_kdf_metadata.sql)): `passphrase_kdf`, `passphrase_kdf_params jsonb`, `recovery_kdf`, `recovery_kdf_params jsonb`, `kdf_tree`. All NULL-default → existing records keep working.
+
+**RLS-protected tables**: `user_blobs`, `user_quotes`, `user_crypto_meta`, `audit_log`, plus the agency-sharing surface from `0003` (`agencies`, `agency_members`, `agency_key_wraps`, `agency_blobs`). When adding a new public table, also add it to `expected_tables[]` in `0005_rls_audit.sql` or the audit migration refuses to apply.
 
 ---
 
