@@ -96,7 +96,12 @@ do $$
 declare
     expected_secdef text[] := array[
         'is_agency_member',
-        'is_agency_admin'
+        'is_agency_admin',
+        -- Supabase platform-provided event trigger: auto-enables RLS on any
+        -- newly created public table. Owner=postgres, defense-in-depth only —
+        -- it cannot grant access, only restrict it. Keeping it in this list
+        -- documents the dependency so future audits don't false-positive.
+        'rls_auto_enable'
     ];
     f record;
     extras text[] := array[]::text[];
