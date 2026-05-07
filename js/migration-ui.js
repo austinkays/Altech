@@ -77,6 +77,22 @@ window.MigrationUI = (() => {
         try { localStorage.setItem(STORAGE_KEYS.MIGRATION_STATE, state); } catch { /* ignore */ }
     }
 
+    // ── Dry-run mode (Phase D-2 prep) ────────────────────────────────────
+    // When this flag is set, the Session 2 pipeline will perform every
+    // step (decrypt → re-encrypt → push to Supabase) EXCEPT the final
+    // SYNC_BACKEND flip. Lets an admin verify decryption works on the
+    // copied data before committing the per-user backend switch.
+    //
+    // Session 2 contract (when it lands):
+    //   1. Call MigrationBackup.snapshot() at the very start.
+    //   2. Honor isDryRun() — skip the flag flip if true.
+    //   3. On hard failure, call MigrationBackup.restore() and surface
+    //      the error.
+    function isDryRun() {
+        try { return localStorage.getItem(STORAGE_KEYS.MIGRATION_DRY_RUN) === '1'; }
+        catch { return false; }
+    }
+
     // ── Modal plumbing (matches VaultUI pattern) ─────────────────────────
 
     function _q(sel) { return document.querySelector(sel); }
@@ -354,6 +370,7 @@ window.MigrationUI = (() => {
 
     return {
         isEnabled,
+        isDryRun,
         migrationState,
         open,
         close,

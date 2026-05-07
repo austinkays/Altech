@@ -68,6 +68,8 @@ window.STORAGE_KEYS = Object.freeze({
     SYNC_BACKEND:           'altech_sync_backend',    // Path B Phase 2 feature flag: 'firebase' (default) | 'supabase'. Flipped by Phase 4 migration.
     MIGRATION_ENABLED:      'altech_migration_enabled', // Phase 4a feature flag: '1' = show the Firebase→Supabase migration modal. Dev/admin-only during rollout.
     MIGRATION_STATE:        'altech_migration_state', // Phase 4a per-user migration progress: 'not-started' | 'in-progress' | 'complete' | 'error:<msg>'. Survives reload so a crashed migration can resume.
+    MIGRATION_DRY_RUN:      'altech_migration_dry_run', // Phase D-2: '1' = Session 2 pipeline copies but does NOT flip SYNC_BACKEND. Lets admins verify decryption on Supabase copy before committing.
+    PRE_MIGRATION_BACKUP:   'altech_pre_migration_backup', // Phase D-3: snapshot of localStorage taken right before the Firebase→Supabase pipeline begins. 30-day TTL, then auto-cleaned. Lets a single user roll back if Supabase decryption fails.
     SYNC_META_SUPABASE:     'altech_sync_meta_supabase', // last-pushed-at per doc_key, Supabase backend only
     CLOUD_SYNC_DISABLED:    'altech_cloud_sync_disabled', // user opt-out flag — local-only, never sync (would be circular)
     GEMINI_KEY:             'gemini_api_key',
