@@ -811,6 +811,116 @@ const CryptoHelper = (() => {
             return _bytesToBase64(combined);
         },
 
+        // ─── Phase B: AAD-bound row encryption ────────────────────────────────
+        //
+        // Server-side rows (Supabase user_blobs / user_quotes) bind the
+        // ciphertext to (table, rowId, userId) via AES-GCM's additionalData.
+        // A compromised or malicious server cannot then move a ciphertext
+        // from one row to another or relabel it for a different user — the
+        // auth tag fails on decrypt.
+        //
+        // Envelope shape (JSON, opaque to the server):
+        //   { v: 2, iv: base64(12-byte IV), ct: base64(AES-GCM ciphertext) }
+        //
+        // Legacy v1 ciphertext from before Phase B is just a base64 string
+        // (iv || ct). decryptForRow() handles both formats so callers don't
+        // have to branch — pulled rows can be in either shape during the
+        // lazy migration window.
+
+        /**
+         * Encrypt JSON-serializable data for a specific server row. AAD is
+         * bound to (table, rowId, userId) so the auth tag fails if the row
+         * identity changes.
+         *
+         * @param {*} data — JSON-serializable plaintext.
+         * @param {{ table: string, rowId: string|number, userId: string }} identity
+         * @returns {Promise<string>} JSON-stringified envelope, ready to push.
+         */
+        async encryptForRow(data, identity) {
+            if (!_v2Key) throw new Error('CRYPTO_LOCKED: No v2 key in memory');
+            if (typeof CryptoAAD === 'undefined' || !CryptoAAD.buildAAD) {
+                throw new Error('CryptoAAD not loaded — js/crypto-aad.js must load before crypto-helper');
+            }
+            const aad = CryptoAAD.buildAAD({
+                ...identity,
+                envelopeVersion: CryptoAAD.ENVELOPE.V2_AAD,
+            });
+
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encoded = new TextEncoder().encode(JSON.stringify(data));
+            const ct = await crypto.subtle.encrypt(
+                { name: 'AES-GCM', iv, additionalData: aad },
+                _v2Key,
+                encoded
+            );
+
+            return JSON.stringify({
+                v: CryptoAAD.ENVELOPE.V2_AAD,
+                iv: _bytesToBase64(iv),
+                ct: _bytesToBase64(new Uint8Array(ct)),
+            });
+        },
+
+        /**
+         * Decrypt a row, accepting BOTH new AAD-bound envelopes (v=2 JSON)
+         * and legacy ciphertexts (base64 string of iv || ct). When given a
+         * legacy ciphertext, the identity is unused — that's the lazy
+         * migration path: every read sees both shapes until the next push
+         * upgrades the row.
+         *
+         * @param {string|object} envelopeOrLegacy — JSON string, JSON object, or legacy base64 string.
+         * @param {{ table, rowId, userId }} identity — required for v=2; ignored for legacy.
+         * @returns {Promise<*|null>} plaintext data, or null if decryption failed (wrong AAD, wrong key, malformed).
+         */
+        async decryptForRow(envelopeOrLegacy, identity) {
+            if (envelopeOrLegacy == null) return null;
+
+            // Detect shape: v=2 envelope is a JSON object (or stringified form).
+            let env = null;
+            if (typeof envelopeOrLegacy === 'object') {
+                env = envelopeOrLegacy;
+            } else if (typeof envelopeOrLegacy === 'string') {
+                const trimmed = envelopeOrLegacy.trim();
+                if (trimmed.length && trimmed[0] === '{') {
+                    try { env = JSON.parse(trimmed); } catch { env = null; }
+                }
+            }
+
+            // If it parsed as an object that LOOKS like an envelope (has v/iv/ct),
+            // route on the version. Unknown envelope versions are explicit errors —
+            // we don't fall back to the legacy path, since the JSON shape is a
+            // strong signal that this is a versioned record.
+            if (env && env.v != null && env.iv != null && env.ct != null) {
+                const V2 = (typeof CryptoAAD !== 'undefined' ? CryptoAAD.ENVELOPE.V2_AAD : 2);
+                if (env.v !== V2) return null; // unknown / unsupported version
+
+                if (!_v2Key) return null; // locked — can't decrypt v=2
+                if (!identity) return null; // v=2 requires identity to rebuild AAD
+                if (typeof CryptoAAD === 'undefined' || !CryptoAAD.buildAAD) return null;
+
+                try {
+                    const aad = CryptoAAD.buildAAD({
+                        ...identity,
+                        envelopeVersion: V2,
+                    });
+                    const iv = _base64ToBytes(env.iv);
+                    const ct = _base64ToBytes(env.ct);
+                    const pt = await crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv, additionalData: aad },
+                        _v2Key,
+                        ct
+                    );
+                    return JSON.parse(new TextDecoder().decode(pt));
+                } catch (e) {
+                    return null; // AAD mismatch or wrong key — auth tag failed.
+                }
+            }
+
+            // Not an envelope — defer to the standard decrypt() which handles
+            // legacy base64 ciphertext AND plaintext-JSON fallback.
+            return this.decrypt(envelopeOrLegacy);
+        },
+
         // ─── Internals for tests only ─────────────────────────────────────────
         _internals: {
             get v2Key() { return _v2Key; },
@@ -856,6 +966,14 @@ function safeSave(key, value) {
         return false;
     }
 }
+
+// Publish to globalThis so other modules can find CryptoHelper via
+// `typeof CryptoHelper !== 'undefined'` lookups regardless of load order.
+// In browsers, top-level const in a <script> tag is already accessible by
+// name from sibling scripts — this assignment is redundant but harmless.
+// In Node CommonJS tests, modules don't share names by default; this is
+// what lets supabase-sync.js (loaded via require) find CryptoHelper.
+if (typeof globalThis !== 'undefined') globalThis.CryptoHelper = CryptoHelper;
 
 // CommonJS export for Node-based tests. Browser path is unaffected — `module`
 // is undefined in script tags, so the if-guard skips this entirely.

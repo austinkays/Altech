@@ -100,7 +100,36 @@ window.SupabaseSync = (() => {
 
     // ── user_blobs ops ────────────────────────────────────────────────────
 
-    async function pushBlob(docKey, ciphertext, _updatedAt) {
+    // Phase B: when identity is provided AND the v2 vault is unlocked, the
+    // payload is transparently re-wrapped as an AAD-bound envelope tied to
+    // (table=user_blobs, rowId=docKey, userId=uid) before push. A
+    // compromised or curious server then cannot move a ciphertext between
+    // rows or relabel it for another user — AES-GCM's auth tag fails on the
+    // next pull. When v2 is locked or AAD wrapping isn't available, the
+    // legacy ciphertext is pushed as-is so we never block a sync on crypto
+    // capability detection. The decrypt-then-rewrap costs one round-trip
+    // per doc per debounced push (3 s default) — negligible.
+    async function _maybeWrapForRow(payload, identity) {
+        if (!identity) return payload;
+        // CryptoHelper is a top-level const in js/crypto-helper.js — accessible
+        // by name in browser script-tag globals AND on globalThis (set by the
+        // helper's bottom-of-file publish line). Match the existing pattern
+        // used everywhere else in the codebase.
+        const ch = (typeof CryptoHelper !== 'undefined') ? CryptoHelper : null;
+        if (!ch || !ch.encryptForRow || !ch.isV2Unlocked || !ch.isV2Unlocked()) {
+            return payload;
+        }
+        try {
+            const plaintext = await ch.decrypt(payload);
+            if (plaintext == null) return payload;
+            return await ch.encryptForRow(plaintext, identity);
+        } catch (e) {
+            console.warn('[SupabaseSync] AAD wrap skipped for', identity.rowId, '—', (e && e.message) || e);
+            return payload;
+        }
+    }
+
+    async function pushBlob(docKey, ciphertext, _updatedAt, identity) {
         // _updatedAt is accepted for API symmetry with CloudSync, but the
         // server ignores it: a BEFORE UPDATE trigger sets updated_at = now()
         // on every write. Keep the arg in the signature for future use.
@@ -108,10 +137,13 @@ window.SupabaseSync = (() => {
         if (!ctx) return { ok: false, skipped: true };
         if (docKey == null || ciphertext == null) return { ok: false, skipped: true };
 
+        const id = identity || { table: BLOBS_TABLE, rowId: docKey, userId: ctx.uid };
+        const wrapped = await _maybeWrapForRow(String(ciphertext), id);
+
         const row = {
             user_id: ctx.uid,
             doc_key: docKey,
-            ciphertext: String(ciphertext),
+            ciphertext: wrapped,
             device_id: DEVICE_ID,
         };
 
@@ -166,14 +198,23 @@ window.SupabaseSync = (() => {
 
     // ── user_quotes ops ───────────────────────────────────────────────────
 
-    async function pushQuote(quoteId, ciphertext) {
+    async function pushQuote(quoteId, ciphertext, identity) {
         const ctx = await _ready();
         if (!ctx) return { ok: false, skipped: true };
         if (ciphertext == null) return { ok: false, skipped: true };
 
+        // For new quotes (no quoteId yet), AAD can't bind the row id since
+        // the server assigns it. Skip the wrap on those — the next push
+        // after the row exists will upgrade it lazily. For updates, build
+        // identity from (table, quoteId, uid).
+        const id = identity || (quoteId
+            ? { table: QUOTES_TABLE, rowId: quoteId, userId: ctx.uid }
+            : null);
+        const wrapped = await _maybeWrapForRow(String(ciphertext), id);
+
         const row = {
             user_id: ctx.uid,
-            ciphertext: String(ciphertext),
+            ciphertext: wrapped,
         };
         if (quoteId) row.id = quoteId;
 
@@ -246,11 +287,16 @@ window.SupabaseSync = (() => {
         if (_pushing) return;
         _pushing = true;
         try {
+            // Resolve uid once for the whole sweep so each pushBlob doesn't
+            // re-hit auth.getSession() for its identity.
+            const ctx = await _ready();
+            if (!ctx) return;
             const jobs = Object.entries(DOC_LOCAL_KEYS).map(async ([docKey, lsKey]) => {
                 if (!lsKey) return null;
                 const raw = localStorage.getItem(lsKey);
                 if (raw == null || raw === '') return null;
-                return pushBlob(docKey, raw);
+                const identity = { table: BLOBS_TABLE, rowId: docKey, userId: ctx.uid };
+                return pushBlob(docKey, raw, undefined, identity);
             });
             await Promise.allSettled(jobs);
         } finally {
