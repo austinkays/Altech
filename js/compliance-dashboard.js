@@ -43,6 +43,7 @@ const ComplianceDashboard = {
     _lastSaveStatus: 'loading', // 'saved' | 'saving' | 'error' | 'loading'
     _printMode: false,
     _selectedForPrint: new Set(),
+    _openNoteRows: new Set(),  // policy numbers with expanded note rows — restored across re-renders
 
     // --- Vercel KV helpers ---
 
@@ -1494,6 +1495,10 @@ const ComplianceDashboard = {
         // For bonds, the entire renewal workflow is "update HawkSoft" — there's no
         // separate state-website step. Since the renewal was detected because HawkSoft
         // was updated, auto-acknowledge instead of nagging with a "Renewed" badge.
+        // For non-bonds, if user already did state/hawksoft work within the last 90 days,
+        // they almost certainly handled this renewal in advance — roll the ack forward
+        // to the new exp instead of wiping it and re-flagging.
+        const RECENT_ACK_MS = 90 * 24 * 60 * 60 * 1000;
         const _applyRenewalMarkers = (nd, policy) => {
             const isBond = (policy.policyType || '').toLowerCase() === 'bond';
             if (isBond) {
@@ -1502,13 +1507,22 @@ const ComplianceDashboard = {
                 nd.hawksoftUpdatedForExp = policy.expirationDate;
                 nd.renewedTo = null;
                 nd.needsStateUpdate = false;
-            } else {
-                nd.stateUpdated = null;
-                nd.hawksoftUpdated = null;
-                nd.hawksoftUpdatedForExp = null;
-                nd.renewedTo = null;
-                nd.needsStateUpdate = true;
+                return;
             }
+            const stateRecent = nd.stateUpdated && (Date.now() - new Date(nd.stateUpdated).getTime() < RECENT_ACK_MS);
+            const hawkRecent = nd.hawksoftUpdated && (Date.now() - new Date(nd.hawksoftUpdated).getTime() < RECENT_ACK_MS);
+            if (stateRecent || hawkRecent) {
+                if (stateRecent) nd.stateUpdatedForExp = policy.expirationDate;
+                if (hawkRecent) nd.hawksoftUpdatedForExp = policy.expirationDate;
+                nd.renewedTo = null;
+                nd.needsStateUpdate = false;
+                return;
+            }
+            nd.stateUpdated = null;
+            nd.hawksoftUpdated = null;
+            nd.hawksoftUpdatedForExp = null;
+            nd.renewedTo = null;
+            nd.needsStateUpdate = true;
         };
 
         this.policies.forEach(policy => {
@@ -1929,11 +1943,14 @@ const ComplianceDashboard = {
             const isOpening = row.style.display === 'none';
             row.style.display = isOpening ? 'table-row' : 'none';
             if (isOpening) {
+                this._openNoteRows.add(policyNumber);
                 // Refresh note log
                 const logEl = row.querySelector('.cgl-note-log');
                 if (logEl) logEl.innerHTML = this.renderNoteLog(policyNumber);
                 const input = row.querySelector('textarea');
                 if (input) { input.value = ''; input.focus(); }
+            } else {
+                this._openNoteRows.delete(policyNumber);
             }
         }
     },
@@ -2505,6 +2522,25 @@ const ComplianceDashboard = {
                     </td>
                 </tr>
             `;
+        }
+
+        // Restore expanded note rows that were open before this re-render
+        // (background L&I/CCB verifications trigger frequent re-renders).
+        // Drop any tracked rows whose policy is no longer in the rendered set.
+        if (this._openNoteRows.size > 0) {
+            const renderedPNs = new Set(paginated.map(p => p.policyNumber));
+            for (const pn of [...this._openNoteRows]) {
+                if (!renderedPNs.has(pn)) {
+                    this._openNoteRows.delete(pn);
+                    continue;
+                }
+                const noteRow = document.getElementById('note-row-' + pn);
+                if (noteRow) {
+                    noteRow.style.display = 'table-row';
+                    const logEl = noteRow.querySelector('.cgl-note-log');
+                    if (logEl) logEl.innerHTML = this.renderNoteLog(pn);
+                }
+            }
         }
     },
 
