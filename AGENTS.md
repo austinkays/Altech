@@ -16,9 +16,9 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 34 files in `css/` (~22,946 lines total) |
-| **JS** | 51 modules in `js/` (~43,480 lines total) |
-| **Plugins** | 18 HTML templates in `plugins/` (~6,335 lines total) |
+| **CSS** | 50 files in `css/` (~23,773 lines total) |
+| **JS** | 78 modules in `js/` (~49,370 lines total) |
+| **Plugins** | 18 HTML templates in `plugins/` (~6,612 lines total) |
 | **APIs** | 13 serverless functions + 3 helpers in `api/` (~8,592 lines total) |
 | **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
 | **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, 680 lines) |
 | **Deploy** | Vercel (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 31 suites, 1797 tests |
+| **Tests** | Jest + JSDOM, 45 suites, 1993+ tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 31 suites, 1797 tests
+npm test              # All 45 suites, 1993+ tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run deploy:vercel   # Production deploy
 ```
@@ -64,7 +64,7 @@ npm run deploy:vercel   # Production deploy
 ├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
 ├── sw.js                       # Service worker
 │
-├── css/                        # 34 stylesheets (~22,946 lines)
+├── css/                        # 50 stylesheets (~23,773 lines)
 │   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
 │   ├── base.css                # Reset, body, typography, scrollbars
 │   ├── components-cards.css    # Cards, quote cards, driver/vehicle, export cards, map previews (split from components.css, 2026-04)
@@ -82,7 +82,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── animations.css          # All @keyframes — never define @keyframes in plugin CSS
 │   ├── landing.css             # Landing / bento grid / tool-row styles
 │   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (866 lines)
+│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (931 lines)
 │   ├── dashboard.css           # Bento grid dashboard widgets (1,244 lines)
 │   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
 │   ├── compliance-main.css     # CGL dashboard core — table, badges, save indicator, fetch progress, notes panel (split from compliance.css, 2026-04)
@@ -115,20 +115,20 @@ npm run deploy:vercel   # Production deploy
 │   ├── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
 │   └── aurora-theme.css        # Aurora northern-lights theme — variable overrides, html::before/::after animated layers, glassmorphism (138 lines)
 │
-├── js/                         # 51 modules (~43,480 lines)
+├── js/                         # 78 modules (~49,370 lines)
 │   │
 │   │  ★ Core App (assembled via Object.assign into global `App`)
 │   ├── app-init.js             # State init, toolConfig[], workflows, stepTitles (6 entries: step-0,1,3,4,5,6 — step-2 removed as dead code)
 │   ├── app-ui-utils.js         # App.toast(), App.toggleDarkMode(), App.loadDarkMode(), App.formatDateDisplay(), App.copyToClipboard()
 │   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
 │   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,153 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (2,621 lines)
+│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,475 lines)
+│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (1,160 lines)
 │   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (645 lines)
-│   ├── app-popups.js           # Vision processing, hazard detection, popups (1,447 lines)
-│   ├── app-export.js           # PDF/CMSMTF/CSV/Text exports, per-driver history aggregation, scan schema, AI coverage gap analysis (1,618 lines)
+│   ├── app-popups.js           # Vision processing, hazard detection, popups (861 lines)
+│   ├── app-export.js           # Export entry points + UI wiring (411 lines; per-format logic in app-export-{pdf,csv,cmsmtf,coverage-gap,carrier-fit}.js)
 │   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (927 lines)
-│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (365 lines)
+│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (392 lines)
 │   │
 │   │  ★ Infrastructure
 │   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
@@ -140,18 +140,18 @@ npm run deploy:vercel   # Production deploy
 │   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
 │   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
 │   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,418 lines)
+│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,439 lines)
 │   │
 │   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
 │   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep, emoji note icons (Windows-safe: 🏠🔰💤), note-count badge, two-step workflow (State Updated / HawkSoft Updated), CSS-class-based button colors (no inline styles), note icon tooltips via _noteIconHtml() (2,930 lines)
+│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep, emoji note icons (Windows-safe: 🏠🔰💤), note-count badge, two-step workflow (State Updated / HawkSoft Updated), CSS-class-based button colors (no inline styles), note icon tooltips via _noteIconHtml() (3,183 lines)
 │   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
 │   ├── endorsement-parser.js   # AI-powered endorsement email parser, extracts structured data from carrier change requests (805 lines)
-│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,119 lines)
-│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI, lossless vehicle+driver rebuild, per-driver FSC incidents, Client Office field (1,770 lines)
-│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,112 lines)
+│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,259 lines)
+│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI, lossless vehicle+driver rebuild, per-driver FSC incidents, Client Office field (1,630 lines)
+│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,001 lines)
 │   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,005 lines)
-│   ├── prospect.js              # Commercial prospect investigation, risk scoring (2,318 lines)
+│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,952 lines)
 │   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (758 lines)
 │   ├── quote-compare.js         # Quote comparison + AI recommendation (1,098 lines)
 │   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary, daily digest toast from /api/reminders-sweep cron (1,138 lines)
@@ -161,7 +161,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (838 lines)
 │   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (575 lines)
 │   ├── blind-spot-brief.js      # Blind Spot Brief — coverage gap analyzer (374 lines)
-│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export; bizName required-field validation; Places retry capped at 10; map image onerror handlers; filename sanitization (1,335 lines)
+│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export; bizName required-field validation; Places retry capped at 10; map image onerror handlers; filename sanitization (1,367 lines)
 │   ├── dec-import.js            # Dec Page Importer — PDF/image → form-fill pipeline (734 lines)
 │   ├── deposit-sheet.js         # Deposit Sheet — trust deposit calculator + CSV export (499 lines)
 │   │
@@ -179,7 +179,7 @@ npm run deploy:vercel   # Production deploy
 │   ├── coi.html                # ACORD 25 COI form (418 lines)
 │   ├── prospect.html           # Commercial investigation UI (333 lines)
 │   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, polished form/toolbar, account cards, coin counter (292 lines)
-│   ├── compliance.html         # CGL dashboard + print toolbar + two-step workflow help (no progress bar) (298 lines)
+│   ├── compliance.html         # CGL dashboard + print toolbar + two-step workflow help (no progress bar) (322 lines)
 │   ├── vin-decoder.html        # VIN decoder (141 lines)
 │   ├── reminders.html          # Task manager (144 lines)
 │   ├── intake-assist.html      # AI chat two-pane (152 lines)
@@ -985,7 +985,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call CloudSync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 11 files (incl. app-ui-utils.js, app-navigation.js) — app-boot.js loads LAST
-8. Test with: npm test (1797 tests, 31 suites, all must pass)
+8. Test with: npm test (1993+ tests, 45 suites, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, add an entry to CHANGELOG.md with what changed (files, test counts, date). Run: npm run audit-docs
@@ -1018,7 +1018,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 31 suites, 1797 tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 45 suites, 1993+ tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements

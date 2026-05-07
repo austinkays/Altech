@@ -82,25 +82,19 @@
 
 | File | Topic |
 |------|-------|
-| [PHASE_1_IMPLEMENTATION.md](PHASE_1_IMPLEMENTATION.md) | ArcGIS county APIs |
-| [PHASE_2_IMPLEMENTATION.md](PHASE_2_IMPLEMENTATION.md) | Headless browser fallback |
-| [PHASE_3_IMPLEMENTATION.md](PHASE_3_IMPLEMENTATION.md) | RAG standardization |
-| [PHASE_4_IMPLEMENTATION.md](PHASE_4_IMPLEMENTATION.md) | Vision processing |
-| [PHASE_5_IMPLEMENTATION.md](PHASE_5_IMPLEMENTATION.md) | Historical analysis |
-| [PHASE_5_5_SUMMARY.md](PHASE_5_5_SUMMARY.md) | Phase 5.5 summary |
-| [GIS_ENHANCEMENT_ROADMAP.md](GIS_ENHANCEMENT_ROADMAP.md) | GIS roadmap |
-| [FORM_STRUCTURE_UPDATE.md](FORM_STRUCTURE_UPDATE.md) | Form structure changes |
-| [HEIC_FIX_IMPLEMENTATION.md](HEIC_FIX_IMPLEMENTATION.md) | HEIC image fix |
 | [ERROR_CODES.md](ERROR_CODES.md) | Error code reference |
 | [ROADMAP.md](ROADMAP.md) | Product roadmap |
-| [STRATEGIC_ROADMAP.md](STRATEGIC_ROADMAP.md) | Strategic roadmap |
+| [RENTCAST_API.md](RENTCAST_API.md) | Rentcast field schema reference |
+| [WISP.md](WISP.md) | Written Information Security Program |
+
+> Older phase/path implementation docs are in [archive/](archive/).
 
 ---
 
 ## Testing
 
 ```bash
-npm test               # Run all 646 tests (13 suites)
+npm test               # Run all test suites
 npm run test:watch     # TDD mode
 npm run test:coverage  # Coverage report
 ```
@@ -109,8 +103,6 @@ npm run test:coverage  # Coverage report
 |------|----------|
 | [TESTING_GUIDE.md](TESTING_GUIDE.md) | Complete testing reference |
 | [TESTING_QUICK_REFERENCE.md](TESTING_QUICK_REFERENCE.md) | Quick command reference |
-| [TESTING_INDEX.md](TESTING_INDEX.md) | Test suite organization |
-| [PHASE_5_5_TESTING_ROADMAP.md](PHASE_5_5_TESTING_ROADMAP.md) | Testing roadmap |
 
 ---
 

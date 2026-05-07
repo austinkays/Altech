@@ -173,9 +173,9 @@ Layer 6: Historical analysis (70-80%) → 2-5 sec ← NEW
 - `/api/historical-analyzer.js` — Market intelligence (NEW)
 
 ### Documentation Added
-- `docs/PHASE_3_IMPLEMENTATION.md` — RAG pattern details
-- `docs/PHASE_4_IMPLEMENTATION.md` — Vision processing guide
-- `docs/PHASE_5_IMPLEMENTATION.md` — Historical analysis guide (NEW)
+- `docs/archive/PHASE_3_IMPLEMENTATION.md` — RAG pattern details
+- `docs/archive/PHASE_4_IMPLEMENTATION.md` — Vision processing guide
+- `docs/archive/PHASE_5_IMPLEMENTATION.md` — Historical analysis guide
 
 ### Test Status
 - ✅ 12/12 tests passing (verified after each phase)
@@ -342,7 +342,7 @@ Altech/
 1. Edit `/api/historical-analyzer.js` for new analysis types
 2. Update `/index.html` methods if UI changes
 3. Test with sample properties
-4. Update `docs/PHASE_5_IMPLEMENTATION.md`
+4. Document the change in `CHANGELOG.md`
 5. Commit and verify tests
 
 ### For Bug Fixes
