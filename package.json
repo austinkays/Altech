@@ -9,6 +9,8 @@
     "dev": "node server.js",
     "dev:static": "npx serve . -p 8000",
     "dev:vercel": "vercel dev",
+    "lint:aad": "node scripts/lint-aad.mjs",
+    "pretest": "node scripts/lint-aad.mjs",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
