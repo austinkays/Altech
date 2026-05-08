@@ -260,6 +260,100 @@ window.SupabaseAuth = (() => {
         return true;
     }
 
+    // ── WebAuthn / passkey MFA ───────────────────────────────────────────
+    //
+    // Requires @supabase/auth-js >= 2.73 (bundled in supabase-js >= 2.74).
+    // The SDK exposes client.auth.mfa.webauthn.{register,authenticate} which
+    // wrap navigator.credentials.{create,get} and the enroll → challenge →
+    // verify round-trip into one call.
+    //
+    // RP id: defaults to the current origin's hostname. Passkeys are bound
+    // to that, so altech.agency credentials won't be portable to other domains.
+
+    function _passkeySupported() {
+        // PublicKeyCredential is the WebAuthn entry point. Available in all
+        // modern browsers; absent in JSDOM (tests) and old IE/Safari.
+        return typeof window !== 'undefined'
+            && typeof window.PublicKeyCredential === 'function'
+            && typeof navigator !== 'undefined'
+            && navigator.credentials
+            && typeof navigator.credentials.create === 'function';
+    }
+
+    /**
+     * Enroll a WebAuthn passkey factor for the currently signed-in user.
+     * Triggers the platform's native authenticator UI (Face ID / Touch ID /
+     * Windows Hello / hardware key) — must be called from a user gesture.
+     *
+     * @param {{friendlyName?: string}} opts — friendlyName defaults to a
+     *   short device label derived from the user agent.
+     * @returns {Promise<{id?: string}>} factor info on success.
+     */
+    async function enrollPasskey(opts = {}) {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        if (!_passkeySupported()) {
+            throw new Error('This browser does not support passkeys (WebAuthn).');
+        }
+        const wa = client.auth.mfa && client.auth.mfa.webauthn;
+        if (!wa || typeof wa.register !== 'function') {
+            throw new Error('Passkey MFA unavailable — Supabase SDK is too old. Upgrade to supabase-js >= 2.74.');
+        }
+        const friendlyName = opts.friendlyName || _defaultPasskeyName();
+        const { data, error } = await wa.register({ friendlyName });
+        if (error) throw error;
+        // Refresh the factor cache so mfaRequired() / hasVerifiedFactor() flips
+        // immediately. register() returns a session-bearing response, so the
+        // factor is verified on land.
+        await _refreshFactors();
+        return data;
+    }
+
+    /**
+     * Step-up authenticate an existing passkey factor. Used when a returning
+     * user signs in with email+password and has a verified webauthn factor.
+     * Browser prompts for the passkey (no friendly name needed — the factor
+     * is identified by id).
+     */
+    async function authenticatePasskey(factorId) {
+        const client = _client();
+        if (!client) throw new Error('Supabase not initialized');
+        if (!_passkeySupported()) {
+            throw new Error('This browser does not support passkeys (WebAuthn).');
+        }
+        const wa = client.auth.mfa && client.auth.mfa.webauthn;
+        if (!wa || typeof wa.authenticate !== 'function') {
+            throw new Error('Passkey MFA unavailable — Supabase SDK is too old.');
+        }
+        const { data, error } = await wa.authenticate({
+            factorId,
+            webauthn: {}, // empty — SDK derives rpId/rpOrigins from window.location
+        });
+        if (error) throw error;
+        await _refreshFactors();
+        return data;
+    }
+
+    function _defaultPasskeyName() {
+        try {
+            const ua = navigator.userAgent || '';
+            // Best-effort short label: "Chrome on macOS", "Safari on iPhone".
+            // Used purely for the user's later "manage passkeys" view.
+            let browser = 'Browser';
+            if (/Edg\//.test(ua)) browser = 'Edge';
+            else if (/Chrome\//.test(ua)) browser = 'Chrome';
+            else if (/Safari\//.test(ua)) browser = 'Safari';
+            else if (/Firefox\//.test(ua)) browser = 'Firefox';
+            let os = 'this device';
+            if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+            else if (/Android/.test(ua)) os = 'Android';
+            else if (/Mac OS X|Macintosh/.test(ua)) os = 'macOS';
+            else if (/Windows/.test(ua)) os = 'Windows';
+            else if (/Linux/.test(ua)) os = 'Linux';
+            return `${browser} on ${os}`;
+        } catch { return 'This device'; }
+    }
+
     /**
      * Returns whether the user must enroll a TOTP factor before cloud sync is
      * allowed to run. Opt-out users (local-only) are exempt.
@@ -365,6 +459,9 @@ window.SupabaseAuth = (() => {
         enrollTOTP,
         verifyTOTP,
         unenrollTOTP,
+        enrollPasskey,
+        authenticatePasskey,
+        passkeySupported: _passkeySupported,
         mfaRequired,
         mfaEnforcementLevel,
         recordMfaDismiss,

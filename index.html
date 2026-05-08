@@ -81,7 +81,7 @@
 
     <!-- Supabase JS (UMD, Path B Phase 2). Exposes window.supabase.createClient.
          Dormant until SYNC_BACKEND=supabase is set in localStorage. -->
-    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -836,19 +836,30 @@
                 <strong style="color:var(--text)">Local-only users are exempt.</strong> If you've turned off cloud sync in Account → Sync, you don't need 2FA — your data never leaves this device.
             </div>
             <div id="mfaEnrollBody" style="display:flex;flex-direction:column;gap:0.8rem">
-                <div id="mfaEnrollQR" style="text-align:center"></div>
-                <div class="auth-field">
-                    <label for="mfaEnrollSecret">Manual entry code</label>
-                    <input type="text" id="mfaEnrollSecret" readonly style="font-family:monospace;font-size:12px;letter-spacing:1px">
-                </div>
-                <form class="auth-form" onsubmit="AuthMFAUI.handleVerifySubmit(event)">
-                    <div class="auth-field">
-                        <label for="mfaEnrollCode">6-digit code from your authenticator</label>
-                        <input type="text" id="mfaEnrollCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required style="letter-spacing:4px;text-align:center;font-size:1.1rem">
+                <!-- Passkey button (hidden when browser doesn't support WebAuthn) -->
+                <div id="mfaPasskeyOption" style="display:none;background:var(--bg-input);border:1px solid var(--border);border-radius:10px;padding:0.85rem 1rem;text-align:center">
+                    <div style="font-size:13px;font-weight:600;margin-bottom:4px">Use a passkey (recommended)</div>
+                    <div style="font-size:11px;color:var(--text-secondary);line-height:1.5;margin-bottom:0.65rem">
+                        Sign in with Face ID, Touch ID, Windows Hello, or a hardware security key. Works offline, nothing to type.
                     </div>
-                    <div class="auth-error" style="display:none"></div>
-                    <button type="submit" class="btn-auth btn-auth-primary">Verify &amp; Enable</button>
-                </form>
+                    <button id="mfaPasskeyEnrollBtn" type="button" class="btn-auth btn-auth-primary" style="margin:0;width:auto;padding:0.5rem 1.1rem" onclick="AuthMFAUI.handlePasskeyEnroll()">Enable passkey</button>
+                </div>
+                <div id="mfaPasskeyDivider" style="display:none;text-align:center;font-size:11px;color:var(--text-secondary);margin:0.25rem 0">— or use an authenticator app —</div>
+                <div id="mfaTotpSection">
+                    <div id="mfaEnrollQR" style="text-align:center"></div>
+                    <div class="auth-field">
+                        <label for="mfaEnrollSecret">Manual entry code</label>
+                        <input type="text" id="mfaEnrollSecret" readonly style="font-family:monospace;font-size:12px;letter-spacing:1px">
+                    </div>
+                    <form class="auth-form" onsubmit="AuthMFAUI.handleVerifySubmit(event)">
+                        <div class="auth-field">
+                            <label for="mfaEnrollCode">6-digit code from your authenticator</label>
+                            <input type="text" id="mfaEnrollCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="\d{6}" required style="letter-spacing:4px;text-align:center;font-size:1.1rem">
+                        </div>
+                        <div class="auth-error" style="display:none"></div>
+                        <button type="submit" class="btn-auth btn-auth-primary">Verify &amp; Enable</button>
+                    </form>
+                </div>
                 <button id="mfaEnrollDismiss" type="button" class="auth-link" onclick="AuthMFAUI.dismissEnroll()" style="display:none">Set up later</button>
             </div>
         </div>

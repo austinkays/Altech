@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(mfa): passkey / WebAuthn enrollment alongside TOTP** (May 8, 2026):
+  - Bumped `@supabase/supabase-js` CDN tag from `2.45.4` to `2.105.4` (no other SDK call sites changed; tests all green). Brings in [@supabase/auth-js@2.73 PR #1118](https://github.com/supabase/auth-js/pull/1118)'s `client.auth.mfa.webauthn.{register,authenticate}` namespace, which wraps `navigator.credentials.{create,get}` and the enroll → challenge → verify round-trip into a single call.
+  - **`SupabaseAuth.enrollPasskey()`** ([js/supabase-auth.js](js/supabase-auth.js)) — fires the platform's native authenticator UI (Face ID / Touch ID / Windows Hello / hardware key). Friendly name auto-derived from UA (e.g., "Chrome on macOS"). Refreshes the factor cache on success so `mfaRequired()` flips immediately.
+  - **`SupabaseAuth.authenticatePasskey(factorId)`** — step-up verify for return visits. (Currently no call site — the app doesn't do AAL2 gating on sign-in. Hook is ready for when we add it.)
+  - **`SupabaseAuth.passkeySupported()`** — capability detector that checks both `window.PublicKeyCredential` AND that the SDK exposes the new `mfa.webauthn` namespace, so we never show the option in browsers that would fail on click.
+  - **MFA enrollment overlay** ([index.html](index.html), [js/auth-mfa-ui.js](js/auth-mfa-ui.js)) — adds an "Enable passkey" card above the TOTP section. Hidden on unsupported browsers; layout collapses cleanly to TOTP-only. Cancellation paths (user dismissed prompt, timeout, double-enrollment) all surface as friendly messages without scaring the user.
+  - Tests: 43/43 pass (supabase-auth, mfa-enforcement, auth-cloudsync, migration-ui-pipeline). WebAuthn itself can't run in JSDOM — manual browser test required for the actual ceremony.
+
 ### Fixed
 - **fix(sync): post-migration reminders/quickref/cgl no longer silently disappear from local view** (May 8, 2026):
   - **Symptom**: User reported reminders missing after migrating to Supabase. Data was safe on the server (`user_blobs.reminders` = 17,823 bytes encrypted) but invisible locally.
