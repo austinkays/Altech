@@ -58,16 +58,79 @@ window.AuthMFAUI = (() => {
         const qrEl = document.getElementById('mfaEnrollQR');
         const secretEl = document.getElementById('mfaEnrollSecret');
         if (qrEl) {
-            // Supabase returns a data URL for `qr_code` (SVG). Rendering it in
-            // an <img> keeps styling consistent across browsers vs. inline SVG.
-            qrEl.innerHTML = enroll.qrCode
-                ? `<img alt="Scan with your authenticator app" src="${enroll.qrCode}" style="max-width:220px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:8px">`
-                : '<p style="color:var(--text-secondary);font-size:12px">QR unavailable — use the manual code below.</p>';
+            qrEl.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">Generating QR…</p>';
+            await _renderQrInto(qrEl, enroll);
         }
         if (secretEl) secretEl.value = enroll.secret || '';
 
         el.style.display = 'flex';
         el.classList.add('active');
+    }
+
+    /**
+     * Render the TOTP QR into `host`, dispatching across the three response
+     * shapes Supabase has returned over the years:
+     *   1. Raw SVG XML in `qr_code` (current supabase-js v2)
+     *   2. Data URL in `qr_code` (older supabase-js)
+     *   3. Only `uri` (otpauth://) — generate a QR client-side from a CDN lib
+     * On any failure, shows otpauth URI as a clickable link so phones with
+     * Authy/Google Authenticator/1Password etc. can still pair via tap.
+     */
+    async function _renderQrInto(host, enroll) {
+        const qr = enroll && enroll.qrCode;
+        const uri = enroll && enroll.uri;
+
+        // Shape 1: raw SVG returned inline.
+        if (typeof qr === 'string' && qr.trim().startsWith('<svg')) {
+            host.innerHTML = `<div style="background:#fff;padding:10px;border-radius:8px;border:1px solid var(--border);display:inline-block;max-width:220px">${qr}</div>`;
+            return;
+        }
+        // Shape 2: data URL (data:image/svg+xml;…) or http(s) URL.
+        if (typeof qr === 'string' && /^(data:|https?:)/i.test(qr)) {
+            host.innerHTML = `<img alt="Scan with your authenticator app" src="${qr}" style="max-width:220px;border:1px solid var(--border);border-radius:8px;background:#fff;padding:8px">`;
+            return;
+        }
+        // Shape 3: only an otpauth URI — render via a CDN QR library.
+        if (typeof uri === 'string' && uri.startsWith('otpauth://')) {
+            try {
+                await _ensureQrLib();
+                const canvas = document.createElement('canvas');
+                canvas.style.cssText = 'background:#fff;padding:10px;border-radius:8px;border:1px solid var(--border);max-width:220px';
+                host.innerHTML = '';
+                host.appendChild(canvas);
+                await window.QRCode.toCanvas(canvas, uri, { width: 200, margin: 1 });
+                return;
+            } catch (e) {
+                console.warn('[AuthMFAUI] Client-side QR render failed:', e && e.message);
+                // Fall through to URI link.
+            }
+        }
+        // Last resort: show the otpauth URI as a clickable link (phone OS
+        // intercepts and opens the user's authenticator app).
+        if (typeof uri === 'string' && uri.startsWith('otpauth://')) {
+            host.innerHTML = `
+                <p style="color:var(--text-secondary);font-size:12px;margin:0 0 8px">QR unavailable. On your phone, tap this link:</p>
+                <a href="${uri}" style="word-break:break-all;font-family:monospace;font-size:11px;color:var(--apple-blue)">${uri}</a>
+                <p style="color:var(--text-secondary);font-size:11px;margin:8px 0 0">Or enter the manual code below into your authenticator app.</p>`;
+            return;
+        }
+        // No QR, no URI — manual entry only.
+        host.innerHTML = '<p style="color:var(--text-secondary);font-size:12px">QR unavailable — enter the manual code below into your authenticator app (e.g. Authy, Google Authenticator, 1Password).</p>';
+    }
+
+    let _qrLibPromise = null;
+    function _ensureQrLib() {
+        if (window.QRCode && typeof window.QRCode.toCanvas === 'function') return Promise.resolve();
+        if (_qrLibPromise) return _qrLibPromise;
+        _qrLibPromise = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+            s.async = true;
+            s.onload = () => resolve();
+            s.onerror = () => { _qrLibPromise = null; reject(new Error('Failed to load QR library from CDN')); };
+            document.head.appendChild(s);
+        });
+        return _qrLibPromise;
     }
 
     function closeEnroll() {

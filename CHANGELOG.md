@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(mfa): TOTP enrollment QR now actually shows up** ([js/auth-mfa-ui.js](js/auth-mfa-ui.js), May 8, 2026):
+  - The original code blindly passed Supabase's `qr_code` field into `<img src=...>`. supabase-js v2 returns **raw SVG XML** there, not a data URL, so the `<img>` rendered as a broken image and users only saw the manual entry code + 6-digit input. Now dispatches across three response shapes: raw SVG XML (rendered inline), data URL / http URL (rendered via `<img>`), and `otpauth://` URI only (rendered via lazy-loaded `qrcode@1.5.3` from jsdelivr CDN — already in CSP allowlist).
+  - On every fallback path the user gets a usable affordance: tap-to-pair `otpauth://` link on phone, manual code, or both.
+
 - **fix(migration): vault meta now mirrors to `user_crypto_meta` + auto-heal for affected users** (May 8, 2026):
   - **Bug**: Session 2 migration pipeline ran `_persistVaultMeta()` (step 5) BEFORE flipping `SYNC_BACKEND` to `'supabase'` (step 6). `VaultMeta.save()` consults `SYNC_BACKEND` to decide whether to write `public.user_crypto_meta` — so the Supabase mirror got skipped and migrated users ended up with 0 rows in that table. Their `vaultMeta` blob in `user_blobs` still let them unlock on the current device, but cross-device sign-in / agency-sharing keypair / KDF upgrades all live on `user_crypto_meta` and would have failed on a new device.
   - **Pipeline fix** ([js/migration-ui.js](js/migration-ui.js)): swapped step order so the backend flips before vault meta save. Future migrations populate the table correctly.
