@@ -84,8 +84,31 @@ window.MigrationBackup = (() => {
             if (v != null) keys[k] = v;
         }
         const record = { takenAt: Date.now(), ttlDays, keys };
-        localStorage.setItem(KEY, JSON.stringify(record));
-        return record;
+        try {
+            localStorage.setItem(KEY, JSON.stringify(record));
+            return record;
+        } catch (e) {
+            // localStorage is ~5MB per origin in most browsers. A user with a
+            // large compliance state + quote history can already be near that
+            // ceiling, and copying every key into a second blob doubles the
+            // footprint. Treat quota errors as "snapshot unavailable" — the
+            // Firebase backend still has the originals, so a hard failure
+            // mid-migration can be recovered by flipping SYNC_BACKEND back to
+            // 'firebase' and clearing the partial Supabase write. Caller
+            // (migration-ui.js Session 2) detects null + surfaces a warning.
+            const isQuota = (e && (
+                e.name === 'QuotaExceededError' ||
+                e.code === 22 || e.code === 1014 || // legacy WebKit / Firefox codes
+                /quota/i.test(String(e.message || e))
+            ));
+            if (isQuota) {
+                console.warn('[MigrationBackup] snapshot skipped — localStorage quota exceeded.',
+                    'Migration can still proceed; Firebase originals are preserved.');
+                try { localStorage.removeItem(KEY); } catch { /* leave whatever's there */ }
+                return null;
+            }
+            throw e;
+        }
     }
 
     function _read() {

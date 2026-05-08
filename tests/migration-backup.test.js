@@ -72,6 +72,34 @@ describe('MigrationBackup.snapshot', () => {
         const raw = JSON.parse(localStorage.getItem('altech_pre_migration_backup'));
         expect(raw.keys['altech_v6']).toBe('second');
     });
+
+    test('snapshot returns null on QuotaExceededError instead of throwing', () => {
+        localStorage.setItem('altech_v6', 'big-blob');
+
+        // Simulate a full localStorage by making setItem throw a quota error
+        // ONLY when writing to PRE_MIGRATION_BACKUP. Other writes (like the
+        // pre-existing altech_v6) still succeed.
+        const realSet = localStorage.setItem;
+        localStorage.setItem = (k, v) => {
+            if (k === 'altech_pre_migration_backup') {
+                const err = new Error("Failed to execute 'setItem' on 'Storage': quota exceeded.");
+                err.name = 'QuotaExceededError';
+                throw err;
+            }
+            return realSet.call(localStorage, k, v);
+        };
+
+        // Silence the expected console.warn so the test output stays clean.
+        const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const result = MigrationBackup.snapshot();
+            expect(result).toBeNull();
+            expect(warnSpy).toHaveBeenCalled();
+        } finally {
+            localStorage.setItem = realSet;
+            warnSpy.mockRestore();
+        }
+    });
 });
 
 describe('MigrationBackup.restore', () => {

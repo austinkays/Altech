@@ -115,11 +115,17 @@ window.MigrationUI = (() => {
     }
 
     function _setError(msg) {
-        const el = _q('#migrationModal .migration-error');
-        if (el) {
+        // index.html has one .migration-error div per step, so a single
+        // querySelector picks the FIRST (hidden welcome) one and the
+        // visible step's div stays empty. Set text on every instance —
+        // the parent step's display=none hides the others anyway.
+        const modal = _q('#migrationModal');
+        if (!modal) return;
+        const els = modal.querySelectorAll('.migration-error');
+        els.forEach(el => {
             el.textContent = msg || '';
             el.style.display = msg ? 'block' : 'none';
-        }
+        });
     }
 
     function _setBusy(busy) {
@@ -381,11 +387,18 @@ window.MigrationUI = (() => {
 
         try {
             // 1. Snapshot every altech_* localStorage value so any failure
-            //    after this point is fully recoverable.
+            //    after this point is fully recoverable. snapshot() returns
+            //    null when the browser's localStorage quota is exhausted —
+            //    we still proceed in that case because Firebase originals
+            //    aren't deleted, so a hard failure is still recoverable
+            //    (just by flipping SYNC_BACKEND back to 'firebase').
             _updateProgress(5, 'Backing up local data…');
             if (typeof MigrationBackup !== 'undefined' && MigrationBackup.snapshot) {
-                MigrationBackup.snapshot();
-                snapshotTaken = true;
+                const rec = MigrationBackup.snapshot();
+                snapshotTaken = !!rec;
+                if (!rec) {
+                    console.warn('[MigrationUI] No local rollback snapshot taken — Firebase originals are intact, so a failure is still recoverable.');
+                }
             }
 
             // 2. Pull fresh from Firebase so localStorage reflects whatever's
@@ -466,6 +479,10 @@ window.MigrationUI = (() => {
                 } catch (re) {
                     restoreNote = ' WARNING: snapshot restore also failed: ' + ((re && re.message) || re);
                 }
+            } else if (!snapshotTaken) {
+                // No local rollback was available (quota exhausted). Firebase
+                // originals were never touched — point the user there.
+                restoreNote = ' (No local rollback snapshot was available; your Firebase data is unchanged.)';
             }
 
             _state.error = baseMsg + restoreNote;
