@@ -220,6 +220,22 @@
     transform: scale(0.97);
 }
 
+/* "Apply to Personal Intake" — primary CTA. Apple-blue distinguishes it from
+   the CMSMTF download (green/success) so the two distinct outcomes are
+   visually separable: blue = go to form, green = save to HawkSoft. */
+.di-apply-btn {
+    background: linear-gradient(135deg, var(--apple-blue, #007AFF), #0066d6);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.25);
+}
+.di-apply-btn:hover {
+    box-shadow: 0 6px 18px rgba(0, 122, 255, 0.32);
+    filter: none;
+}
+body.dark-mode .di-apply-btn {
+    background: linear-gradient(135deg, #0A84FF, #0066D6);
+    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.30);
+}
+
 .di-clear-btn {
     padding: 12px 28px;
     border: 1px solid var(--border);

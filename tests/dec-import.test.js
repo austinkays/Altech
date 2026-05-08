@@ -580,3 +580,329 @@ describe('Dec Import — _generateCMSMTF', () => {
         expect(out).not.toContain('gen_sLpName1');
     });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// Apply-to-Personal-Intake helpers (pure functions, no DOM/App)
+// Re-implements the same logic as js/dec-import.js for unit testing.
+// ═══════════════════════════════════════════════════════════════
+
+function _isoDate(v) {
+    if (!v) return '';
+    const s = _val(v);
+    const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mdy) return `${mdy[3]}-${mdy[1].padStart(2, '0')}-${mdy[2].padStart(2, '0')}`;
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    return s;
+}
+
+function _buildFormOverrides(data) {
+    const out = {};
+    const pt = (data.policyType || '').toUpperCase();
+    let qType;
+    if (pt === 'BOTH') qType = 'both';
+    else if (pt === 'HOME') qType = 'home';
+    else if (pt === 'AUTO') qType = 'auto';
+    else qType = (data.vehicles && data.vehicles.length > 0) ? 'auto' : 'home';
+    out.qType = qType;
+    if (qType === 'both') out.multiPolicy = 'yes';
+
+    const isHome = (qType === 'home' || qType === 'both');
+    const isAuto = (qType === 'auto' || qType === 'both');
+
+    const primary = _parseName((data.namedInsureds && data.namedInsureds[0]) || '');
+    if (primary.firstName) out.firstName = primary.firstName;
+    if (primary.lastName)  out.lastName  = primary.lastName;
+
+    if (data.namedInsureds && data.namedInsureds.length > 1) {
+        const co = _parseName(data.namedInsureds[1]);
+        out.hasCoApplicant = 'yes';
+        if (co.firstName) out.coFirstName = co.firstName;
+        if (co.lastName)  out.coLastName  = co.lastName;
+    }
+
+    const addr = data.mailingAddress || {};
+    if (addr.street) out.addrStreet = addr.street;
+    if (addr.city)   out.addrCity   = addr.city;
+    if (addr.state)  out.addrState  = String(addr.state).toUpperCase().slice(0, 2);
+    if (addr.zip)    out.addrZip    = addr.zip;
+
+    const prop = data.property || {};
+    if (prop.yearBuilt)         out.yrBuilt           = prop.yearBuilt;
+    if (prop.sqFt)              out.sqFt              = prop.sqFt;
+    if (prop.stories)           out.numStories        = prop.stories;
+    if (prop.roofType)          out.roofType          = prop.roofType;
+    if (prop.constructionStyle) out.constructionStyle = prop.constructionStyle;
+    if (prop.foundation)        out.foundation        = prop.foundation;
+    if (prop.heating)           out.heatingType       = prop.heating;
+    if (prop.protectionClass)   out.protectionClass   = prop.protectionClass;
+
+    if (isHome) {
+        const cov = data.coverages || {};
+        if (cov.dwelling)       out.dwellingCoverage  = cov.dwelling;
+        if (cov.liability)      out.personalLiability = cov.liability;
+        if (cov.deductibleAOP)  out.homeDeductible    = cov.deductibleAOP;
+        if (cov.deductibleWind) out.windDeductible    = cov.deductibleWind;
+        const m = data.mortgagee || {};
+        if (m.name) {
+            const cityStateZip = [m.city, m.state, m.zip].filter(Boolean).join(' ');
+            out.mortgagee = [m.name, m.address, cityStateZip].filter(Boolean).join(', ');
+        }
+        if (data.carrier)         out.homePriorCarrier = data.carrier;
+        if (data.expirationDate)  out.homePriorExp     = _isoDate(data.expirationDate);
+    }
+
+    if (isAuto) {
+        const cov = data.coverages || {};
+        if (cov.bi)      out.liabilityLimits = cov.bi;
+        if (cov.pd)      out.pdLimit         = cov.pd;
+        if (cov.umBi)    out.umLimits        = cov.umBi;
+        if (cov.uimBi)   out.uimLimits       = cov.uimBi;
+        if (cov.medical) out.medPayments     = cov.medical;
+        if (data.carrier)        out.priorCarrier    = data.carrier;
+        if (data.expirationDate) out.priorExpiration = _isoDate(data.expirationDate);
+    }
+
+    if (data.term) out.policyTerm = data.term;
+    return out;
+}
+
+function _buildDriversArray(decDrivers, baseTs) {
+    const ts = baseTs || Date.now();
+    return (decDrivers || []).map((d, i) => {
+        const parsed = _parseName(d.fullName);
+        return {
+            id: `driver_${ts}_${i}`,
+            firstName: parsed.firstName || '',
+            lastName: parsed.lastName || '',
+            dob: _isoDate(d.dob),
+            dlNum: (d.licenseNumber || '').toUpperCase(),
+            dlState: (d.licenseState || 'WA').toUpperCase().slice(0, 2),
+            relationship: d.relationship || (i === 0 ? 'Self' : 'Other'),
+            isCoApplicant: false,
+            isPrimaryApplicant: i === 0,
+            accidents: '',
+            violations: '',
+            studentGPA: ''
+        };
+    });
+}
+
+function _buildVehiclesArray(decVehicles, baseTs) {
+    const ts = baseTs || Date.now();
+    return (decVehicles || []).map((v, i) => ({
+        id: `vehicle_${ts}_${i}`,
+        vin: (v.vin || '').toUpperCase(),
+        year: v.year || '',
+        make: v.make || '',
+        model: v.model || '',
+        use: v.use || 'Commute',
+        miles: v.annualMileage || '12000',
+        primaryDriver: ''
+    }));
+}
+
+describe('Dec Import — _isoDate', () => {
+    test('MM/DD/YYYY → YYYY-MM-DD with padding', () => {
+        expect(_isoDate('1/3/2026')).toBe('2026-01-03');
+        expect(_isoDate('11/30/2026')).toBe('2026-11-30');
+    });
+    test('passes through ISO', () => {
+        expect(_isoDate('2026-05-08')).toBe('2026-05-08');
+        expect(_isoDate('2026-05-08T00:00')).toBe('2026-05-08');
+    });
+    test('empty inputs return empty', () => {
+        expect(_isoDate('')).toBe('');
+        expect(_isoDate(null)).toBe('');
+        expect(_isoDate(undefined)).toBe('');
+    });
+});
+
+describe('Dec Import — _buildFormOverrides workflow detection', () => {
+    test('policyType BOTH → qType=both + multiPolicy=yes', () => {
+        const out = _buildFormOverrides({ policyType: 'BOTH', vehicles: [], drivers: [] });
+        expect(out.qType).toBe('both');
+        expect(out.multiPolicy).toBe('yes');
+    });
+    test('policyType HOME → qType=home, no multiPolicy', () => {
+        const out = _buildFormOverrides({ policyType: 'HOME', vehicles: [], drivers: [] });
+        expect(out.qType).toBe('home');
+        expect(out.multiPolicy).toBeUndefined();
+    });
+    test('policyType AUTO → qType=auto', () => {
+        const out = _buildFormOverrides({ policyType: 'AUTO', vehicles: [{ vin: 'X' }], drivers: [] });
+        expect(out.qType).toBe('auto');
+    });
+    test('missing policyType + vehicles present → qType=auto', () => {
+        const out = _buildFormOverrides({ vehicles: [{ year: '2020' }], drivers: [] });
+        expect(out.qType).toBe('auto');
+    });
+    test('missing policyType + no vehicles → qType=home', () => {
+        const out = _buildFormOverrides({ vehicles: [], drivers: [] });
+        expect(out.qType).toBe('home');
+    });
+});
+
+describe('Dec Import — _buildFormOverrides applicant + co-applicant', () => {
+    test('first named insured → firstName + lastName', () => {
+        const out = _buildFormOverrides({
+            namedInsureds: ['Jane Doe'], policyType: 'HOME', vehicles: [], drivers: []
+        });
+        expect(out.firstName).toBe('Jane');
+        expect(out.lastName).toBe('Doe');
+    });
+    test('two named insureds → co-applicant fields populated', () => {
+        const out = _buildFormOverrides({
+            namedInsureds: ['Jane Doe', 'John Doe'], policyType: 'HOME', vehicles: [], drivers: []
+        });
+        expect(out.hasCoApplicant).toBe('yes');
+        expect(out.coFirstName).toBe('John');
+        expect(out.coLastName).toBe('Doe');
+    });
+    test('single named insured → no hasCoApplicant', () => {
+        const out = _buildFormOverrides({
+            namedInsureds: ['Jane Doe'], policyType: 'HOME', vehicles: [], drivers: []
+        });
+        expect(out.hasCoApplicant).toBeUndefined();
+        expect(out.coFirstName).toBeUndefined();
+    });
+});
+
+describe('Dec Import — _buildFormOverrides address normalization', () => {
+    test('state forced to 2-letter uppercase', () => {
+        const out = _buildFormOverrides({
+            namedInsureds: ['X X'], policyType: 'HOME', vehicles: [], drivers: [],
+            mailingAddress: { street: '1 Main St', city: 'Portland', state: 'oregon', zip: '97201' }
+        });
+        expect(out.addrState).toBe('OR');
+        expect(out.addrStreet).toBe('1 Main St');
+        expect(out.addrCity).toBe('Portland');
+        expect(out.addrZip).toBe('97201');
+    });
+    test('already-2-letter state passes through uppercased', () => {
+        const out = _buildFormOverrides({
+            namedInsureds: ['X X'], policyType: 'HOME', vehicles: [], drivers: [],
+            mailingAddress: { street: '1', city: 'X', state: 'wa', zip: '1' }
+        });
+        expect(out.addrState).toBe('WA');
+    });
+});
+
+describe('Dec Import — _buildFormOverrides home + auto coverage routing', () => {
+    test('HOME workflow writes home coverage + homePriorCarrier, skips auto', () => {
+        const out = _buildFormOverrides({
+            policyType: 'HOME', namedInsureds: ['X'], vehicles: [], drivers: [],
+            carrier: 'Acme', expirationDate: '12/31/2026',
+            coverages: { dwelling: '500000', liability: '300000', deductibleAOP: '2500', bi: '100/300' }
+        });
+        expect(out.dwellingCoverage).toBe('500000');
+        expect(out.personalLiability).toBe('300000');
+        expect(out.homeDeductible).toBe('2500');
+        expect(out.homePriorCarrier).toBe('Acme');
+        expect(out.homePriorExp).toBe('2026-12-31');
+        expect(out.liabilityLimits).toBeUndefined();
+        expect(out.priorCarrier).toBeUndefined();
+    });
+    test('AUTO workflow writes auto coverage + priorCarrier, skips home', () => {
+        const out = _buildFormOverrides({
+            policyType: 'AUTO', namedInsureds: ['X'], vehicles: [{ vin: 'A' }], drivers: [],
+            carrier: 'Acme', expirationDate: '06/15/2026',
+            coverages: { bi: '100/300', pd: '50000', umBi: '100/300', uimBi: '100/300', medical: '5000', dwelling: '500000' }
+        });
+        expect(out.liabilityLimits).toBe('100/300');
+        expect(out.pdLimit).toBe('50000');
+        expect(out.umLimits).toBe('100/300');
+        expect(out.medPayments).toBe('5000');
+        expect(out.priorCarrier).toBe('Acme');
+        expect(out.priorExpiration).toBe('2026-06-15');
+        expect(out.dwellingCoverage).toBeUndefined();
+        expect(out.homePriorCarrier).toBeUndefined();
+    });
+    test('BOTH workflow writes both coverage groups', () => {
+        const out = _buildFormOverrides({
+            policyType: 'BOTH', namedInsureds: ['X'], vehicles: [{ vin: 'A' }], drivers: [],
+            carrier: 'Acme',
+            coverages: { dwelling: '500000', bi: '100/300' }
+        });
+        expect(out.dwellingCoverage).toBe('500000');
+        expect(out.liabilityLimits).toBe('100/300');
+        expect(out.priorCarrier).toBe('Acme');
+        expect(out.homePriorCarrier).toBe('Acme');
+    });
+});
+
+describe('Dec Import — _buildFormOverrides mortgagee', () => {
+    test('mortgagee with all parts → joined string', () => {
+        const out = _buildFormOverrides({
+            policyType: 'HOME', namedInsureds: ['X'], vehicles: [], drivers: [],
+            mortgagee: { name: 'Acme Bank', address: '1 Loan Way', city: 'Boston', state: 'MA', zip: '02101' }
+        });
+        expect(out.mortgagee).toBe('Acme Bank, 1 Loan Way, Boston MA 02101');
+    });
+    test('mortgagee with name only → just the name', () => {
+        const out = _buildFormOverrides({
+            policyType: 'HOME', namedInsureds: ['X'], vehicles: [], drivers: [],
+            mortgagee: { name: 'Acme Bank' }
+        });
+        expect(out.mortgagee).toBe('Acme Bank');
+    });
+    test('mortgagee with no name → no mortgagee field set', () => {
+        const out = _buildFormOverrides({
+            policyType: 'HOME', namedInsureds: ['X'], vehicles: [], drivers: [],
+            mortgagee: { address: '1 Loan Way' }
+        });
+        expect(out.mortgagee).toBeUndefined();
+    });
+});
+
+describe('Dec Import — _buildDriversArray', () => {
+    test('first driver flagged as primary applicant', () => {
+        const out = _buildDriversArray([{ fullName: 'Jane Doe', dob: '1/2/1990', licenseNumber: 'wa123', licenseState: 'wa' }], 1000);
+        expect(out).toHaveLength(1);
+        expect(out[0].firstName).toBe('Jane');
+        expect(out[0].lastName).toBe('Doe');
+        expect(out[0].dob).toBe('1990-01-02');
+        expect(out[0].dlNum).toBe('WA123');
+        expect(out[0].dlState).toBe('WA');
+        expect(out[0].isPrimaryApplicant).toBe(true);
+        expect(out[0].relationship).toBe('Self');
+    });
+    test('second+ drivers default to Other relationship if missing', () => {
+        const out = _buildDriversArray([
+            { fullName: 'A B' },
+            { fullName: 'C D' }
+        ], 1000);
+        expect(out[0].relationship).toBe('Self');
+        expect(out[0].isPrimaryApplicant).toBe(true);
+        expect(out[1].relationship).toBe('Other');
+        expect(out[1].isPrimaryApplicant).toBe(false);
+    });
+    test('empty driver list → empty array', () => {
+        expect(_buildDriversArray([], 1000)).toEqual([]);
+        expect(_buildDriversArray(null, 1000)).toEqual([]);
+        expect(_buildDriversArray(undefined, 1000)).toEqual([]);
+    });
+    test('driver license state defaults to WA when blank', () => {
+        const out = _buildDriversArray([{ fullName: 'X' }], 1000);
+        expect(out[0].dlState).toBe('WA');
+    });
+});
+
+describe('Dec Import — _buildVehiclesArray', () => {
+    test('VIN normalized to uppercase', () => {
+        const out = _buildVehiclesArray([{ year: '2024', make: 'Honda', model: 'Civic', vin: 'jhmfb2f5xkx000001' }], 1000);
+        expect(out[0].vin).toBe('JHMFB2F5XKX000001');
+    });
+    test('annualMileage maps to miles', () => {
+        const out = _buildVehiclesArray([{ year: '2024', make: 'X', model: 'Y', vin: '1', annualMileage: '8000' }], 1000);
+        expect(out[0].miles).toBe('8000');
+    });
+    test('blank use defaults to Commute and blank miles defaults to 12000', () => {
+        const out = _buildVehiclesArray([{ year: '2024', make: 'X', model: 'Y', vin: '1' }], 1000);
+        expect(out[0].use).toBe('Commute');
+        expect(out[0].miles).toBe('12000');
+    });
+    test('empty vehicle list → empty array', () => {
+        expect(_buildVehiclesArray([], 1000)).toEqual([]);
+        expect(_buildVehiclesArray(null, 1000)).toEqual([]);
+    });
+});
