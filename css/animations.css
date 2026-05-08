@@ -3,6 +3,12 @@
 /* Progress bar shimmer */
 @keyframes progressShimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
+/* Migration modal running-step shimmer (translate-based overlay) */
+@keyframes migrationShimmer {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
+}
+
 /* Card entrance */
 @keyframes cardFadeIn {
     from { opacity: 0; transform: translateY(12px); }
