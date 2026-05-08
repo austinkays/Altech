@@ -626,22 +626,46 @@ Rules:
                 await App.saveDriversVehicles();
             }
 
+            // Build a specific summary of what landed so the user can tell
+            // at a glance whether the mapping caught the important pieces.
+            const summary = _buildApplySummary(overrides, App.drivers, App.vehicles);
+
             if (typeof App.toast === 'function') {
-                App.toast('Form populated from dec page', 'success');
+                App.toast('Form populated: ' + summary, { type: 'success', duration: 4000 });
             }
-            _showStatus('Applied. Opening Personal Intake…', 'success');
+            _showStatus('Applied: ' + summary + '. Opening Personal Intake…', 'success');
 
             // Navigate after a brief beat so the user sees the success state.
             if (typeof App.navigateTo === 'function') {
                 setTimeout(() => {
                     try { App.navigateTo('quoting'); }
                     catch (e) { console.warn('[DecImport] navigateTo failed:', e && e.message); }
-                }, 600);
+                }, 700);
             }
         } catch (err) {
             console.warn('[DecImport] applyToQuoteForm failed:', err);
             _showStatus('Failed to apply: ' + (err.message || err), 'error');
         }
+    }
+
+    /**
+     * Build a short human-readable summary of what was applied. Used in
+     * the toast + status line so the user sees a confidence-building
+     * "X applicants, Y drivers, Z vehicles, prior carrier" line rather
+     * than a generic success.
+     */
+    function _buildApplySummary(overrides, drivers, vehicles) {
+        const parts = [];
+        if (overrides.firstName || overrides.lastName) parts.push('applicant');
+        if (overrides.hasCoApplicant === 'yes') parts.push('co-applicant');
+        if (drivers && drivers.length) parts.push(`${drivers.length} driver${drivers.length > 1 ? 's' : ''}`);
+        if (vehicles && vehicles.length) parts.push(`${vehicles.length} vehicle${vehicles.length > 1 ? 's' : ''}`);
+        if (overrides.addrStreet || overrides.addrZip) parts.push('address');
+        if (overrides.dwellingCoverage || overrides.personalLiability) parts.push('home coverage');
+        if (overrides.liabilityLimits || overrides.pdLimit) parts.push('auto coverage');
+        if (overrides.mortgagee) parts.push('mortgagee');
+        if (overrides.priorCarrier || overrides.homePriorCarrier) parts.push('prior carrier');
+        return parts.length ? parts.join(', ') : 'no fields';
     }
 
     // ── CMSMTF Generation ───────────────────────────────────────
@@ -959,6 +983,7 @@ Rules:
         _buildFormOverrides,
         _buildDriversArray,
         _buildVehiclesArray,
+        _buildApplySummary,
         _applyToQuoteForm
     };
 })();

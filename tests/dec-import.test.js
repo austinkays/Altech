@@ -887,6 +887,53 @@ describe('Dec Import — _buildDriversArray', () => {
     });
 });
 
+function _buildApplySummary(overrides, drivers, vehicles) {
+    const parts = [];
+    if (overrides.firstName || overrides.lastName) parts.push('applicant');
+    if (overrides.hasCoApplicant === 'yes') parts.push('co-applicant');
+    if (drivers && drivers.length) parts.push(`${drivers.length} driver${drivers.length > 1 ? 's' : ''}`);
+    if (vehicles && vehicles.length) parts.push(`${vehicles.length} vehicle${vehicles.length > 1 ? 's' : ''}`);
+    if (overrides.addrStreet || overrides.addrZip) parts.push('address');
+    if (overrides.dwellingCoverage || overrides.personalLiability) parts.push('home coverage');
+    if (overrides.liabilityLimits || overrides.pdLimit) parts.push('auto coverage');
+    if (overrides.mortgagee) parts.push('mortgagee');
+    if (overrides.priorCarrier || overrides.homePriorCarrier) parts.push('prior carrier');
+    return parts.length ? parts.join(', ') : 'no fields';
+}
+
+describe('Dec Import — _buildApplySummary', () => {
+    test('full home+auto override → exhaustive summary', () => {
+        const overrides = {
+            firstName: 'A', lastName: 'B', hasCoApplicant: 'yes',
+            addrStreet: '1', dwellingCoverage: '500000', liabilityLimits: '100/300',
+            mortgagee: 'Bank', priorCarrier: 'Acme', homePriorCarrier: 'Acme'
+        };
+        const out = _buildApplySummary(overrides, [{}, {}], [{}]);
+        expect(out).toContain('applicant');
+        expect(out).toContain('co-applicant');
+        expect(out).toContain('2 drivers');
+        expect(out).toContain('1 vehicle');
+        expect(out).toContain('home coverage');
+        expect(out).toContain('auto coverage');
+        expect(out).toContain('mortgagee');
+        expect(out).toContain('prior carrier');
+    });
+    test('singular vs plural for drivers/vehicles', () => {
+        expect(_buildApplySummary({ firstName: 'X' }, [{}], [])).toContain('1 driver');
+        expect(_buildApplySummary({ firstName: 'X' }, [{}, {}, {}], [])).toContain('3 drivers');
+        expect(_buildApplySummary({ firstName: 'X' }, [], [{}])).toContain('1 vehicle');
+        expect(_buildApplySummary({ firstName: 'X' }, [], [{}, {}])).toContain('2 vehicles');
+    });
+    test('completely empty overrides → "no fields"', () => {
+        expect(_buildApplySummary({}, [], [])).toBe('no fields');
+        expect(_buildApplySummary({}, null, null)).toBe('no fields');
+    });
+    test('partial overrides only emit the parts that are present', () => {
+        const out = _buildApplySummary({ firstName: 'X', addrStreet: '1' }, [], []);
+        expect(out).toBe('applicant, address');
+    });
+});
+
 describe('Dec Import — _buildVehiclesArray', () => {
     test('VIN normalized to uppercase', () => {
         const out = _buildVehiclesArray([{ year: '2024', make: 'Honda', model: 'Civic', vin: 'jhmfb2f5xkx000001' }], 1000);
