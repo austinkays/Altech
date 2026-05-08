@@ -1135,8 +1135,15 @@
                 <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">
                     Cross-device sync is active again. Sign in on another device and you'll be asked for your passphrase to unlock.
                 </div>
+                <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:1rem">
+                    <div style="font-size:13px;font-weight:600;margin-bottom:4px">Recommended: turn on two-factor auth</div>
+                    <div style="font-size:12px;color:var(--text-secondary);line-height:1.5">
+                        Your data is now end-to-end encrypted in the cloud. Adding 2FA blocks anyone with just your password from logging in. Takes 30 seconds with any authenticator app.
+                    </div>
+                </div>
                 <div class="vault-actions">
-                    <button type="button" class="btn-auth btn-auth-primary" onclick="MigrationUI.handleDoneClose()">Close</button>
+                    <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.handleDoneClose()">Skip for now</button>
+                    <button type="button" class="btn-auth btn-auth-primary" onclick="MigrationUI.handleEnableMfa()">Enable two-factor auth</button>
                 </div>
             </div>
 

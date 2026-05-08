@@ -37,10 +37,18 @@
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1.8;
-    word-break: break-all;
+    /* Recovery key is XXXX-XXXX-XXXX-XXXX. Prefer hyphen breaks over
+       mid-token splitting; word-break: break-all would shred each group
+       into single-char columns on narrow viewports. */
+    overflow-wrap: anywhere;
+    word-break: normal;
+    min-width: 0;
     user-select: all;
     text-align: center;
     color: var(--text);
+}
+@media (max-width: 480px) {
+    .vault-recovery-box { font-size: 12px; padding: 0.75rem 0.6rem; }
 }
 
 .vault-saved-checkbox {

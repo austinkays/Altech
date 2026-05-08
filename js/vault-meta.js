@@ -214,10 +214,19 @@ window.VaultMeta = (() => {
                     _localWrite(remote); // refresh cache for offline next time
                     return remote;
                 }
-                // Server has nothing OR call failed — fall back to local cache.
-                // (If the server genuinely has no row but local does, the
-                // user's vault was created on this device before backend flip;
-                // keep using the local copy until the next save propagates it.)
+                // Server has nothing. If local has a complete record, this is
+                // almost certainly a user whose vault meta was saved BEFORE the
+                // backend flip during migration (the original Session 2 bug:
+                // _persistVaultMeta ran while SYNC_BACKEND was still 'firebase',
+                // so the Supabase mirror got skipped). Auto-heal by uploading
+                // local now — best-effort, never throws. Cross-device unlock
+                // starts working as soon as this lands.
+                const local = _localRead();
+                if (local && local.passphraseSaltB64 && local.passphraseWrappedMKB64) {
+                    try { await _supabaseSave(local); }
+                    catch (e) { console.warn('[VaultMeta] Auto-heal mirror failed:', e && e.message); }
+                }
+                return local;
             }
             return _localRead();
         },

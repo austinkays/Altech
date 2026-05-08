@@ -358,10 +358,12 @@ window.MigrationUI = (() => {
     //   4. _ensureSupabaseAccount() — signUp (or signIn if already exists) with
     //      the user's Firebase email + reauth password. Single source of
     //      identity post-migration.
-    //   5. VaultMeta.save(_state.cryptoMaterial) — writes wrapped MK + KDF
+    //   5. Temporarily flip SYNC_BACKEND='supabase' so SupabaseSync.pushBlob
+    //      stops being a no-op AND VaultMeta.save mirrors to the server (the
+    //      VaultMeta router consults SYNC_BACKEND to decide whether to write
+    //      public.user_crypto_meta — must flip before step 6, not after).
+    //   6. VaultMeta.save(_state.cryptoMaterial) — writes wrapped MK + KDF
     //      metadata to public.user_crypto_meta so future devices can unlock.
-    //   6. Temporarily flip SYNC_BACKEND='supabase' so SupabaseSync.pushBlob
-    //      stops being a no-op.
     //   7. _pushAllToSupabase(plaintextMap) — encryptForRow (v=2 AAD-bound
     //      envelope) + pushBlob/pushQuote per doc.
     //   8. _verifyRoundTrip — pull one blob back, decrypt, assert match.
@@ -419,16 +421,19 @@ window.MigrationUI = (() => {
             _updateProgress(45, 'Setting up Supabase account…');
             await _ensureSupabaseAccount();
 
-            // 5. Persist the new vault meta (passphrase + recovery wraps,
+            // 5. Flip SYNC_BACKEND='supabase' BEFORE saving vault meta. The
+            //    VaultMeta router only mirrors to public.user_crypto_meta when
+            //    SYNC_BACKEND === 'supabase' — flipping after step 6 would
+            //    leave the server-side row empty and break cross-device unlock.
+            //    Reverted in the dry-run path or on failure.
+            _safeSetLS(STORAGE_KEYS.SYNC_BACKEND, 'supabase');
+            backendFlipped = true;
+
+            // 6. Persist the new vault meta (passphrase + recovery wraps,
             //    KDF identifiers) to public.user_crypto_meta. Cross-device
             //    unlock starts working as soon as this row lands.
             _updateProgress(55, 'Saving vault metadata…');
             await _persistVaultMeta();
-
-            // 6. Flip SYNC_BACKEND='supabase' so SupabaseSync exits no-op
-            //    mode. We revert this in the dry-run path or on failure.
-            _safeSetLS(STORAGE_KEYS.SYNC_BACKEND, 'supabase');
-            backendFlipped = true;
 
             // 7. Re-encrypt every doc as a v=2 AAD-bound envelope and push.
             _updateProgress(70, 'Re-encrypting and uploading…');
@@ -792,6 +797,26 @@ window.MigrationUI = (() => {
         // Session 2 will soft-reload here to re-read SYNC_BACKEND from flags.
     }
 
+    /**
+     * Close the migration modal and immediately open the MFA enrollment
+     * overlay in 'hard' mode (no skip). Called from the done step's
+     * "Enable two-factor auth" button. Best-effort — if AuthMFAUI is
+     * unavailable for any reason, fall through to a normal close so the
+     * user is never trapped in the migration modal.
+     */
+    function handleEnableMfa() {
+        close();
+        if (typeof AuthMFAUI !== 'undefined' && typeof AuthMFAUI.openEnroll === 'function') {
+            // Defer one tick so the migration overlay's display:none takes
+            // effect before the MFA overlay opens — avoids a brief frame
+            // where both overlays are visible.
+            setTimeout(() => {
+                try { AuthMFAUI.openEnroll({ hard: true }); }
+                catch (e) { console.warn('[MigrationUI] MFA enroll failed to open:', e && e.message); }
+            }, 0);
+        }
+    }
+
     // ── Step 7: Error ────────────────────────────────────────────────────
 
     function handleErrorRetry() {
@@ -813,6 +838,7 @@ window.MigrationUI = (() => {
         handlePassphraseSubmit,
         handleRecoveryContinue,
         handleDoneClose,
+        handleEnableMfa,
         handleErrorRetry,
         downloadRecoveryKey,
         copyRecoveryKey,

@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(migration): vault meta now mirrors to `user_crypto_meta` + auto-heal for affected users** (May 8, 2026):
+  - **Bug**: Session 2 migration pipeline ran `_persistVaultMeta()` (step 5) BEFORE flipping `SYNC_BACKEND` to `'supabase'` (step 6). `VaultMeta.save()` consults `SYNC_BACKEND` to decide whether to write `public.user_crypto_meta` — so the Supabase mirror got skipped and migrated users ended up with 0 rows in that table. Their `vaultMeta` blob in `user_blobs` still let them unlock on the current device, but cross-device sign-in / agency-sharing keypair / KDF upgrades all live on `user_crypto_meta` and would have failed on a new device.
+  - **Pipeline fix** ([js/migration-ui.js](js/migration-ui.js)): swapped step order so the backend flips before vault meta save. Future migrations populate the table correctly.
+  - **Auto-heal** ([js/vault-meta.js](js/vault-meta.js)): `VaultMeta.load()` now actively mirrors local→server when SYNC_BACKEND is supabase, server returns null, and local has a complete record. Migrated users self-repair on next refresh — no console snippet needed.
+- **fix(css): recovery key no longer wraps to single-character columns on narrow viewports** ([css/vault.css](css/vault.css)) — replaced `word-break: break-all` (which ignored hyphens and shredded each `XXXX-XXXX-XXXX-XXXX` group character-by-character) with `overflow-wrap: anywhere; word-break: normal` so hyphens are preferred break points. Added 480px font-size breakpoint.
+
+### Added
+- **feat(migration): MFA enrollment baked into the migration done step** (May 8, 2026):
+  - Step 6 of `MigrationUI` now has a primary **"Enable two-factor auth"** button that closes the migration modal and opens `AuthMFAUI.openEnroll({ hard: true })` after one tick (avoids overlay flash). "Skip for now" is the secondary action. Wires the encryption story end-to-end: passphrase + Supabase password + TOTP, in one flow.
+- **docs(crypto): ENCRYPTION_AND_MFA.md** ([docs/ENCRYPTION_AND_MFA.md](docs/ENCRYPTION_AND_MFA.md)) — 652-line deep dive on AES-GCM, KDF, vault lifecycle, TOTP, RLS, and migration. Cherry-picked from `claude/document-encryption-details-ptbHc` with a prominent header flagging it as a **pre-Phase-A snapshot** so future readers consult CLAUDE.md for the current Argon2id + HKDF + AAD-bound state. (The branch's other ~3,200 deletions — migration-ui.js, crypto-aad.js, the new test files, migrations 0004/0005/0006 — were stale-divergent and intentionally NOT pulled.)
+
 ### Added
 - **feat(export): unified Export Files picker + cross-exporter contract test + round-trip test** (May 5, 2026):
   - Producers now have one "📦 Export Files…" button on step-6 instead of separate PDF / EZLynx XML buttons. Opens a modal that combines:
