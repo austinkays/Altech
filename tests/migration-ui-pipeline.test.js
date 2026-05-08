@@ -324,6 +324,36 @@ describe('runMigration — happy path', () => {
         expect(SupabaseAuth.signIn).toHaveBeenCalledWith('agent@example.com', 'fb-pass-123');
         expect(localStorage.getItem(STORAGE_KEYS.MIGRATION_STATE)).toBe('complete');
     });
+
+    test('happy path forces signIn when signUp returns no session (email-confirm OFF)', async () => {
+        _seedLocalDocs();
+        _seedCryptoMaterial();
+        // Simulate signUp succeeding but returning no session — this is the
+        // shape Supabase returns whether confirm is on or off; the code
+        // forces a signIn next, which only succeeds when confirm is OFF.
+        SupabaseAuth.signUp.mockResolvedValueOnce({ user: { email: 'agent@example.com' }, session: null });
+
+        await MigrationUI._internal.runMigration();
+
+        expect(SupabaseAuth.signUp).toHaveBeenCalledTimes(1);
+        expect(SupabaseAuth.signIn).toHaveBeenCalledWith('agent@example.com', 'fb-pass-123');
+        expect(localStorage.getItem(STORAGE_KEYS.MIGRATION_STATE)).toBe('complete');
+    });
+
+    test('hard failure when email confirmation is required', async () => {
+        _seedLocalDocs();
+        _seedCryptoMaterial();
+        SupabaseAuth.signUp.mockResolvedValueOnce({ user: { email: 'agent@example.com' }, session: null });
+        SupabaseAuth.signIn.mockRejectedValueOnce(new Error('Email not confirmed'));
+
+        await MigrationUI._internal.runMigration();
+
+        const finalState = MigrationUI._internal.getState();
+        expect(localStorage.getItem(STORAGE_KEYS.MIGRATION_STATE)).toBe('error');
+        expect(finalState.error).toMatch(/Confirm email/i);
+        // Backend never flipped — confirmed by SYNC_BACKEND staying at firebase.
+        expect(localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND)).toBe('firebase');
+    });
 });
 
 describe('runMigration — dry run', () => {

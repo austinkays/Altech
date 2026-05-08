@@ -577,10 +577,29 @@ window.MigrationUI = (() => {
     }
 
     async function _normalizeToPlaintext(raw) {
+        // Most altech_* localStorage values are plain JSON (cglState,
+        // reminders, glossary, commercialDraft, ...). Try parse first to
+        // avoid a noisy "Decryption failed: InvalidCharacterError" log on
+        // every parse-able doc. Only the FORM and per-quote .data fields
+        // are legacy v1 ciphertext.
+        if (typeof raw === 'string' && raw.length) {
+            const c0 = raw[0];
+            if (c0 === '{' || c0 === '[' || c0 === '"' || /^-?\d/.test(c0)) {
+                try {
+                    const parsed = JSON.parse(raw);
+                    // Don't accept a parsed plain-string as plaintext (could
+                    // still be ciphertext stored as a JSON-quoted string —
+                    // fall through to the decrypt attempt). Objects/arrays
+                    // we trust.
+                    if (typeof parsed === 'object' && parsed !== null) return parsed;
+                } catch { /* fall through */ }
+            }
+        }
         const dec = await _tryDecrypt(raw);
         if (dec != null && typeof dec === 'object') return dec;
-        // Not encrypted — try JSON parse, else return the raw string.
-        try { return JSON.parse(raw); } catch { return raw; }
+        // Last resort: a primitive (string/number) — return the raw value
+        // so downstream code can decide what to do.
+        return raw;
     }
 
     async function _tryDecrypt(maybeCiphertext) {
@@ -611,15 +630,37 @@ window.MigrationUI = (() => {
             try { await window.Supabase.init(); } catch { /* SupabaseAuth.init also tries */ }
         }
 
+        let signedIn = false;
         try {
-            await SupabaseAuth.signUp(email, password);
+            const result = await SupabaseAuth.signUp(email, password);
+            // signUp returns a user but NO session when "Confirm email" is on
+            // in the Supabase Auth settings — the user has to click the email
+            // link before any session is issued. The migration pipeline can't
+            // proceed without a session, so we attempt signIn next; if THAT
+            // also fails with "email not confirmed," we surface a clear
+            // operator-actionable error.
+            if (result && result.session) signedIn = true;
         } catch (e) {
             const msg = String((e && e.message) || e || '');
-            // Treat "user already exists" as a return migration — sign in instead.
-            // Supabase v2 returns 422 with "User already registered" for the existing-user case.
-            if (/already.*registered|already.*exists|user_already_exists/i.test(msg)) {
+            // Treat "user already exists" as a return migration — fall through
+            // to signIn. Supabase v2 returns 422 / "User already registered".
+            if (!/already.*registered|already.*exists|user_already_exists/i.test(msg)) {
+                throw e;
+            }
+        }
+
+        if (!signedIn) {
+            try {
                 await SupabaseAuth.signIn(email, password);
-            } else {
+            } catch (e) {
+                const msg = String((e && e.message) || e || '');
+                if (/email.*not.*confirmed|email_not_confirmed/i.test(msg)) {
+                    throw new Error(
+                        'Supabase requires email confirmation before sign-in. Open the Supabase Dashboard → '
+                        + 'Authentication → Providers → Email → toggle "Confirm email" OFF, then re-run the migration. '
+                        + '(Alternatively, click the confirmation link in the email Supabase just sent and re-run.)'
+                    );
+                }
                 throw e;
             }
         }

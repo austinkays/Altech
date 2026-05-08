@@ -2262,8 +2262,15 @@ const ComplianceDashboard = {
 
     filterPolicies() {
         this._expireSnoozes();
-        const searchTerm = document.getElementById('cglSearchInput').value.toLowerCase();
-        const filterStatus = document.getElementById('cglFilterSelect').value;
+        // verifyAllClients drains the verify queue with .finally() chains that
+        // can fire long after the user has navigated away from the dashboard
+        // panel — at which point the search/filter inputs are no longer in
+        // the DOM. Guard the .value reads so the queue doesn't crash mid-drain.
+        const searchEl = document.getElementById('cglSearchInput');
+        const filterEl = document.getElementById('cglFilterSelect');
+        if (!searchEl || !filterEl) return;
+        const searchTerm = searchEl.value.toLowerCase();
+        const filterStatus = filterEl.value;
 
         const filtered = this.policies.filter(policy => {
             const isHidden = this.isHidden(policy.policyNumber);
