@@ -332,6 +332,71 @@ window.SupabaseSync = (() => {
         return window.Supabase.init();
     }
 
+    /**
+     * Pull every plain-JSON doc from user_blobs, decrypt the v=2 AAD-bound
+     * envelope, and write the plaintext back to localStorage. Used for:
+     *   - Recovery after a stale Firebase pull overwrote local state
+     *   - Initial hydration when signing in on a new device
+     *
+     * **Skips `currentForm`** because that key is stored as v1-encrypted
+     * ciphertext locally; writing decrypted plaintext into it would break
+     * App.load()'s decrypt path. Form recovery has to go through a
+     * dedicated re-encrypt-on-write helper (TODO).
+     *
+     * **Skips `vaultMeta`** because VaultMeta.load() is the canonical reader
+     * for that record — never write it via the generic path.
+     *
+     * **Skips quotes** for now — quotes are a list-shaped doc with per-row
+     * AAD identities, needing a separate listQuotes + decryptForRow loop.
+     *
+     * Returns `{ restored: string[], skipped: string[], failed: string[] }`
+     * for diagnostics. Best-effort: a failure on one doc does not abort
+     * the others.
+     */
+    async function restoreFromCloud() {
+        if (!_enabled()) return { restored: [], skipped: ['supabase-disabled'], failed: [] };
+        const ctx = await _ready();
+        if (!ctx) return { restored: [], skipped: ['no-session'], failed: [] };
+        const ch = (typeof CryptoHelper !== 'undefined') ? CryptoHelper : null;
+        if (!ch || typeof ch.decryptForRow !== 'function') {
+            return { restored: [], skipped: [], failed: ['crypto-unavailable'] };
+        }
+
+        const SKIP = new Set(['currentForm', 'vaultMeta']);
+        const restored = [];
+        const skipped = [];
+        const failed = [];
+
+        for (const [docKey, lsKey] of Object.entries(DOC_LOCAL_KEYS)) {
+            if (!lsKey) continue;
+            if (SKIP.has(docKey)) { skipped.push(docKey); continue; }
+
+            const fetched = await pullBlob(docKey);
+            if (!fetched || !fetched.ciphertext) { skipped.push(docKey); continue; }
+
+            const identity = { table: BLOBS_TABLE, rowId: docKey, userId: ctx.uid };
+            let plaintext = null;
+            try { plaintext = await ch.decryptForRow(fetched.ciphertext, identity); }
+            catch (e) {
+                console.warn('[SupabaseSync] decryptForRow threw on', docKey, e && e.message);
+                failed.push(docKey);
+                continue;
+            }
+            if (plaintext == null) { failed.push(docKey); continue; }
+
+            try {
+                const serialized = (typeof plaintext === 'string') ? plaintext : JSON.stringify(plaintext);
+                localStorage.setItem(lsKey, serialized);
+                restored.push(docKey);
+            } catch (e) {
+                console.warn('[SupabaseSync] localStorage write failed for', docKey, e && e.message);
+                failed.push(docKey);
+            }
+        }
+
+        return { restored, skipped, failed };
+    }
+
     return {
         // Public API surface mirrors the slice of CloudSync that the Phase 2
         // feature-flag routing cares about. Every method is a no-op when the
@@ -352,5 +417,9 @@ window.SupabaseSync = (() => {
 
         // Explicit full sweep for the Phase 4 migration / manual "Sync Now".
         pushAllBlobs: _pushAllBlobs,
+
+        // Recovery: pull every plain-JSON blob from Supabase + decrypt + write
+        // to localStorage. Skips currentForm/vaultMeta/quotes (special paths).
+        restoreFromCloud,
     };
 })();

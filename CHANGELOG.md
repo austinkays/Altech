@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(sync): post-migration reminders/quickref/cgl no longer silently disappear from local view** (May 8, 2026):
+  - **Symptom**: User reported reminders missing after migrating to Supabase. Data was safe on the server (`user_blobs.reminders` = 17,823 bytes encrypted) but invisible locally.
+  - **Root cause**: [js/auth.js](js/auth.js) calls `CloudSync.pullFromCloud()` directly on every Firebase auth-state change. Post-migration users still hold a Firebase session in IndexedDB (we don't sign them out of Firebase, just stop reading from it), so this fires AFTER the user is on the Supabase backend. Firebase still has the *pre-migration* version of each doc; the pull writes those stale (sometimes empty) values back to localStorage, overwriting whatever the migration restored. Phase 4 was supposed to migrate these direct call sites to the facade but hadn't shipped.
+  - **Fix 1** ([js/auth.js](js/auth.js)): gate the pull on `SYNC_BACKEND !== 'supabase'`. Migrated users no longer get clobbered by stale Firebase data.
+  - **Fix 2** ([js/supabase-sync.js](js/supabase-sync.js)): added `SupabaseSync.restoreFromCloud()` — pulls every plain-JSON blob, decrypts the v=2 AAD envelope, writes plaintext to localStorage. Skips `currentForm` (locally v1-encrypted, needs re-encrypt path), `vaultMeta` (canonical reader is `VaultMeta.load`), and quotes (per-row identity loop).
+  - **Fix 3** ([js/sync-facade.js](js/sync-facade.js)): exposed it as `Sync.restoreFromCloud()`. From the console: `await Sync.restoreFromCloud()` returns `{ restored, skipped, failed }` and reloading the page shows the data.
+  - Tests: 27/27 pass across auth-cloudsync, admin-only-sync, migration-ui-pipeline.
+
 - **fix(mfa): TOTP enrollment QR now actually shows up** ([js/auth-mfa-ui.js](js/auth-mfa-ui.js), May 8, 2026):
   - The original code blindly passed Supabase's `qr_code` field into `<img src=...>`. supabase-js v2 returns **raw SVG XML** there, not a data URL, so the `<img>` rendered as a broken image and users only saw the manual entry code + 6-digit input. Now dispatches across three response shapes: raw SVG XML (rendered inline), data URL / http URL (rendered via `<img>`), and `otpauth://` URI only (rendered via lazy-loaded `qrcode@1.5.3` from jsdelivr CDN — already in CSP allowlist).
   - On every fallback path the user gets a usable affordance: tap-to-pair `otpauth://` link on phone, manual code, or both.

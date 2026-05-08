@@ -51,8 +51,18 @@ const Auth = (() => {
             console.log('[Auth] Signed in:', user.email);
             // Upsert user profile to Firestore and check admin/blocked status
             _syncUserProfile(user).catch(e => console.warn('[Auth] Profile sync failed:', e));
-            // Trigger cloud sync on login
-            if (typeof CloudSync !== 'undefined' && CloudSync.pullFromCloud) {
+            // Trigger cloud sync on login — but ONLY when this user is still on
+            // the Firebase backend. Post-migration users are signed in via
+            // SupabaseAuth and their data lives in user_blobs; pulling from
+            // Firebase here would silently overwrite their localStorage with
+            // stale pre-migration values and apparently delete reminders /
+            // quick-ref / cgl state. This was the cause of the May 2026
+            // "missing reminders" report.
+            const onSupabase = (function () {
+                try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'; }
+                catch { return false; }
+            })();
+            if (!onSupabase && typeof CloudSync !== 'undefined' && CloudSync.pullFromCloud) {
                 CloudSync.pullFromCloud().catch(e => console.error('[Auth] Initial sync failed:', e));
             }
             // Load subscription state for paywall

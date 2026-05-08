@@ -116,6 +116,11 @@
         },
         pullQuote(...args)   { return callSupabase('pullQuote', args, Promise.resolve(null)); },
         listQuotes(...args)  { return callSupabase('listQuotes', args, Promise.resolve([])); },
+        // Recovery: pulls plain-JSON blobs from Supabase + decrypts + writes
+        // to localStorage. No-op on Firebase (CloudSync.pullFromCloud already
+        // covers that path). Returns { restored, skipped, failed } from
+        // SupabaseSync.restoreFromCloud.
+        restoreFromCloud(...args) { return callSupabase('restoreFromCloud', args, Promise.resolve({ restored: [], skipped: ['firebase-backend'], failed: [] })); },
         deleteQuote(...args) {
             if (writeBlocked()) return Promise.resolve({ ok: false, skipped: mfaBlocksSync() ? 'mfa-required' : 'policy-blocked' });
             return callSupabase('deleteQuote', args, Promise.resolve({ ok: false, skipped: true }));
