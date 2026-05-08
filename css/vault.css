@@ -75,7 +75,11 @@
     gap: 0.5rem;
     margin-top: 0.75rem;
 }
-.vault-actions .btn-auth { flex: 1; }
+/* Reset margins on every button in the action row — .btn-auth-primary ships
+   with margin-top: 0.5rem for solo-button forms, which misaligns it from the
+   .btn-auth-secondary it's paired with here (~8px vertical drift). The row's
+   own gap handles spacing. */
+.vault-actions .btn-auth { flex: 1; margin: 0; }
 
 .vault-link {
     background: none;
