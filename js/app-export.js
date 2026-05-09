@@ -326,85 +326,53 @@ Object.assign(App, {
             '- quality_issues array: list any blurry text, missing pages, ambiguous data, or low-confidence extractions.\n' +
             '\nEXAMPLE OUTPUT STRUCTURE:\n' +
             '{"fields":{"firstName":"John","lastName":"Smith","dob":"1985-03-15","addrStreet":"123 Main St","addrCity":"Seattle","addrState":"WA","addrZip":"98101",...},' +
-            '"confidence":{"firstName":0.95,"lastName":0.95,"dob":0.8,...},"quality_issues":["Page 2 was partially cut off","Prior carrier name unclear"]}';
+            '"confidence":{"firstName":0.95,"lastName":0.95,"dob":0.8,...},"quality_issues":["Page 2 was partially cut off","Prior carrier name unclear"]}\n\n' +
+            'ALLOWED FIELD KEYS (use ONLY these keys inside "fields" and "confidence" — do not invent new keys, do not abbreviate, match casing exactly):\n' +
+            this._getScanFieldKeys().join(', ');
     },
 
-    // Shared Gemini scan schema (used by processScan + processScanFromText)
-    _getScanSchema() {
-        const fieldProps = {
+    // Allowlist of field keys the model is expected to populate. Injected into
+    // the system prompt instead of being sent as a Gemini response_schema —
+    // a schema with this many properties (×2 for confidence) trips Gemini's
+    // "too many states for serving" constraint. Must stay in sync with the
+    // server-side FIELD_KEYS list in api/policy-scan.js and the consumer
+    // categorizers in js/intake-assist.js / js/app-scan.js.
+    _getScanFieldKeys() {
+        return [
             // Applicant
-            prefix: { type: 'string' }, firstName: { type: 'string' }, lastName: { type: 'string' }, suffix: { type: 'string' },
-            dob: { type: 'string' }, gender: { type: 'string' }, maritalStatus: { type: 'string' },
-            phone: { type: 'string' }, email: { type: 'string' },
-            education: { type: 'string' }, occupation: { type: 'string' }, industry: { type: 'string' },
+            'prefix','firstName','lastName','suffix','dob','gender','maritalStatus','phone','email','education','occupation','industry',
             // Co-Applicant
-            coFirstName: { type: 'string' }, coLastName: { type: 'string' },
-            coDob: { type: 'string' }, coGender: { type: 'string' }, coEmail: { type: 'string' }, coPhone: { type: 'string' }, coRelationship: { type: 'string' },
+            'coFirstName','coLastName','coDob','coGender','coEmail','coPhone','coRelationship',
             // Address
-            addrStreet: { type: 'string' }, addrCity: { type: 'string' },
-            addrState: { type: 'string' }, addrZip: { type: 'string' },
-            yearsAtAddress: { type: 'string' }, county: { type: 'string' },
+            'addrStreet','addrCity','addrState','addrZip','yearsAtAddress','county',
             // Property
-            dwellingUsage: { type: 'string' }, occupancyType: { type: 'string' },
-            yrBuilt: { type: 'string' }, sqFt: { type: 'string' }, dwellingType: { type: 'string' },
-            roofType: { type: 'string' }, roofShape: { type: 'string' }, roofYr: { type: 'string' },
-            constructionStyle: { type: 'string' },
-            numStories: { type: 'string' }, foundation: { type: 'string' },
-            exteriorWalls: { type: 'string' }, heatingType: { type: 'string' },
-            cooling: { type: 'string' }, heatYr: { type: 'string' },
-            plumbYr: { type: 'string' }, elecYr: { type: 'string' },
-            sewer: { type: 'string' }, waterSource: { type: 'string' },
-            garageType: { type: 'string' }, garageSpaces: { type: 'string' }, lotSize: { type: 'string' },
-            numOccupants: { type: 'string' }, bedrooms: { type: 'string' },
-            fullBaths: { type: 'string' }, halfBaths: { type: 'string' },
-            kitchenQuality: { type: 'string' }, flooring: { type: 'string' },
-            numFireplaces: { type: 'string' }, purchaseDate: { type: 'string' },
-            pool: { type: 'string' }, trampoline: { type: 'string' }, farmingLivestock: { type: 'string' }, dogInfo: { type: 'string' },
-            businessOnProperty: { type: 'string' }, woodStove: { type: 'string' },
+            'dwellingUsage','occupancyType','yrBuilt','sqFt','dwellingType','roofType','roofShape','roofYr','constructionStyle',
+            'numStories','foundation','exteriorWalls','heatingType','cooling','heatYr','plumbYr','elecYr','sewer','waterSource',
+            'garageType','garageSpaces','lotSize','numOccupants','bedrooms','fullBaths','halfBaths','kitchenQuality','flooring',
+            'numFireplaces','purchaseDate','pool','trampoline','farmingLivestock','dogInfo','businessOnProperty','woodStove',
             // Safety & Protection
-            burglarAlarm: { type: 'string' }, fireAlarm: { type: 'string' },
-            sprinklers: { type: 'string' }, smokeDetector: { type: 'string' },
-            fireStationDist: { type: 'string' }, fireHydrantFeet: { type: 'string' }, protectionClass: { type: 'string' },
+            'burglarAlarm','fireAlarm','sprinklers','smokeDetector','fireStationDist','fireHydrantFeet','protectionClass',
             // Home Coverage
-            homePolicyType: { type: 'string' }, dwellingCoverage: { type: 'string' },
-            personalLiability: { type: 'string' }, medicalPayments: { type: 'string' },
-            homeDeductible: { type: 'string' }, windDeductible: { type: 'string' }, mortgagee: { type: 'string' },
-            earthquakeCoverage: { type: 'string' }, earthquakeZone: { type: 'string' }, earthquakeDeductible: { type: 'string' },
-            floodCoverage: { type: 'string' }, floodBuildingLimit: { type: 'string' }, floodContentsLimit: { type: 'string' }, floodDeductible: { type: 'string' },
-            jewelryLimit: { type: 'string' }, scheduledItems: { type: 'string' },
+            'homePolicyType','dwellingCoverage','personalLiability','medicalPayments','homeDeductible','windDeductible','mortgagee',
+            'earthquakeCoverage','earthquakeZone','earthquakeDeductible','floodCoverage','floodBuildingLimit','floodContentsLimit','floodDeductible',
+            'jewelryLimit','scheduledItems',
             // Auto / Vehicles
-            vin: { type: 'string' }, vehDesc: { type: 'string' },
-            autoPolicyType: { type: 'string' },
-            liabilityLimits: { type: 'string' }, pdLimit: { type: 'string' },
-            umLimits: { type: 'string' }, uimLimits: { type: 'string' },
-            compDeductible: { type: 'string' }, autoDeductible: { type: 'string' },
-            medPayments: { type: 'string' },
-            rentalDeductible: { type: 'string' }, towingDeductible: { type: 'string' },
-            studentGPA: { type: 'string' },
+            'vin','vehDesc','autoPolicyType','liabilityLimits','pdLimit','umLimits','uimLimits','compDeductible','autoDeductible',
+            'medPayments','rentalDeductible','towingDeductible','studentGPA',
             // Policy / Prior
-            policyNumber: { type: 'string' },
-            effectiveDate: { type: 'string' }, policyTerm: { type: 'string' },
-            priorCarrier: { type: 'string' }, priorExp: { type: 'string' },
-            priorPolicyTerm: { type: 'string' }, priorLiabilityLimits: { type: 'string' },
-            priorYears: { type: 'string' }, continuousCoverage: { type: 'string' },
-            homePriorCarrier: { type: 'string' }, homePriorExp: { type: 'string' },
-            homePriorPolicyTerm: { type: 'string' }, homePriorYears: { type: 'string' },
-            accidents: { type: 'string' }, violations: { type: 'string' },
+            'policyNumber','effectiveDate','policyTerm','priorCarrier','priorExp','priorPolicyTerm','priorLiabilityLimits',
+            'priorYears','continuousCoverage','homePriorCarrier','homePriorExp','homePriorPolicyTerm','homePriorYears',
+            'accidents','violations',
             // Additional
-            additionalInsureds: { type: 'string' },
-            contactTime: { type: 'string' }, referralSource: { type: 'string' },
-            additionalVehicles: { type: 'string' }, additionalDrivers: { type: 'string' },
-        };
-        const confProps = {};
-        Object.keys(fieldProps).forEach(k => { confProps[k] = { type: 'number' }; });
-        return {
-            type: 'object',
-            properties: {
-                fields: { type: 'object', properties: fieldProps },
-                confidence: { type: 'object', properties: confProps },
-                quality_issues: { type: 'array', items: { type: 'string' } }
-            },
-            required: ['fields']
-        };
+            'additionalInsureds','contactTime','referralSource','additionalVehicles','additionalDrivers',
+        ];
+    },
+
+    // Returns null so direct Gemini callers + AIProvider skip response_schema.
+    // The field-key allowlist is enforced via the system prompt instead — see
+    // _getScanFieldKeys() / _getScanSystemPrompt(). Kept as a stub so existing
+    // call sites in app-scan.js don't have to change.
+    _getScanSchema() {
+        return null;
     },
 });

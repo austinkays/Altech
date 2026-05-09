@@ -718,14 +718,15 @@ This is trusted, complete agency data — extract every field you can find.
                 }
             }
 
-            // Fallback: direct Gemini API
+            // Fallback: direct Gemini API. No response_schema — the field-key
+            // allowlist is enforced via the system prompt because a 200-property
+            // schema trips Gemini's "too many states for serving" constraint.
             if (!raw) {
                 const apiKey = await this._getGeminiKey();
                 if (!apiKey) {
                     if (status) status.textContent = '⚠️ Open Settings to configure Smart features.';
                     return;
                 }
-                const schema = this._getScanSchema();
                 const res = await fetch(
                     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
                     {
@@ -734,7 +735,7 @@ This is trusted, complete agency data — extract every field you can find.
                         body: JSON.stringify({
                             contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
                             systemInstruction: { role: 'system', parts: [{ text: scanSystemPrompt }]},
-                            generationConfig: { temperature: 0.1, response_mime_type: 'application/json', response_schema: schema }
+                            generationConfig: { temperature: 0.1, response_mime_type: 'application/json' }
                         })
                     }
                 );
@@ -866,13 +867,13 @@ This is trusted, complete agency data — extract every field you can find.
                 }
             }
 
-            // Try 1b: Direct Gemini API fallback (when AIProvider not configured or non-Google)
+            // Try 1b: Direct Gemini API fallback (when AIProvider not configured or non-Google).
+            // No response_schema — see comment on the text-only path above.
             if (!result) {
                 const apiKey = await this._getGeminiKey();
                 if (apiKey) {
                     try {
                         console.log('[PolicyScan] Trying direct Gemini API...');
-                        const schema = this._getScanSchema();
 
                         const geminiRes = await fetch(
                             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -884,8 +885,7 @@ This is trusted, complete agency data — extract every field you can find.
                                     systemInstruction: { role: 'system', parts: [{ text: scanSystemPrompt }]},
                                     generationConfig: {
                                         temperature: 0.1,
-                                        response_mime_type: 'application/json',
-                                        response_schema: schema
+                                        response_mime_type: 'application/json'
                                     }
                                 })
                             }

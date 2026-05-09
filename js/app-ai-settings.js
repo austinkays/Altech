@@ -73,12 +73,11 @@ Object.assign(App, {
         { tool: 'Policy Scan (text)',    icon: '📄', inputBase: 10000, outputAvg: 2000, images: 0,  note: 'Desktop text import' },
         { tool: 'Policy Q&A (1 question)', icon: '💬', inputBase: 15000, outputAvg: 1000, images: 0, note: 'Varies with policy length' },
         { tool: 'GIS Property Extract',  icon: '🏠', inputBase: 1300,  outputAvg: 1000, images: 1,  note: 'County assessor screenshot' },
-        { tool: 'Driver License Scan',   icon: '🪪', inputBase: 300,   outputAvg: 300,  images: 1,  note: 'Single DL photo' },
         { tool: 'Property Image Analysis',icon: '📷', inputBase: 800,   outputAvg: 400,  images: 1,  note: 'Roof/exterior photo' },
         { tool: 'Aerial Hazard Check',   icon: '🛰️', inputBase: 600,   outputAvg: 600,  images: 1,  note: 'Satellite imagery' },
         { tool: 'PDF Document Analysis', icon: '📋', inputBase: 800,   outputAvg: 600,  images: 1,  note: 'Tax/deed PDF page' },
         { tool: 'Prospect AI Dossier',   icon: '🔍', inputBase: 3500,  outputAvg: 6000, images: 0,  note: 'Full risk analysis' },
-        { tool: 'Full Quote Intake',     icon: '⚡', inputBase: 18100, outputAvg: 6700, images: 5,  note: 'Scan + DL + property + Q&A' }
+        { tool: 'Full Quote Intake',     icon: '⚡', inputBase: 17800, outputAvg: 6400, images: 4,  note: 'Scan + property + Q&A' }
     ],
 
     /** Build cost estimate table for the selected model */
