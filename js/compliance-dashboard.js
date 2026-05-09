@@ -2971,6 +2971,69 @@ const ComplianceDashboard = {
         const n = this._selectedForPrint.size;
         if (countEl) countEl.textContent = n + ' selected';
         if (genBtn) genBtn.disabled = n === 0;
+        // Mirror disabled state to the bulk action buttons.
+        ['cglBulkStateBtn', 'cglBulkHsBtn', 'cglBulkSnoozeBtn', 'cglBulkDismissBtn'].forEach(id => {
+            const b = document.getElementById(id);
+            if (b) b.disabled = n === 0;
+        });
+    },
+
+    /**
+     * Bulk action helper: iterate the selected policies, call `methodName`
+     * for each, then reset selection mode + re-render. Avoids duplicating
+     * the iteration boilerplate across the four bulk handlers.
+     *
+     * @param {string} methodName  the per-policy method to call (must accept policyNumber)
+     * @param {string} verb         human-readable verb for toast/log ("snoozed", "dismissed", …)
+     * @param {boolean} confirmFirst  if true, window.confirm() the destructive op once for all rows
+     */
+    _runBulkAction(methodName, verb, confirmFirst) {
+        const selected = Array.from(this._selectedForPrint);
+        if (selected.length === 0) return;
+        if (confirmFirst) {
+            const ok = window.confirm(`${verb.charAt(0).toUpperCase() + verb.slice(1)} ${selected.length} selected polic${selected.length === 1 ? 'y' : 'ies'}? This affects all of them.`);
+            if (!ok) return;
+        }
+        const fn = this[methodName];
+        if (typeof fn !== 'function') {
+            console.warn('[CGL] Unknown bulk action:', methodName);
+            return;
+        }
+        let processed = 0;
+        for (const pn of selected) {
+            try { fn.call(this, pn); processed++; }
+            catch (err) { console.warn('[CGL] bulk', methodName, 'failed for', pn, err); }
+        }
+        // Exit selection mode + clear set + re-render.
+        this._selectedForPrint.clear();
+        if (this._printMode) this.togglePrintMode();  // toggles off
+        else { this.updatePrintCount(); this.filterPolicies(); }
+
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast(`${verb.charAt(0).toUpperCase() + verb.slice(1)} ${processed} polic${processed === 1 ? 'y' : 'ies'}`, { type: 'success', duration: 3000 });
+        }
+        if (window.ActivityLog) {
+            window.ActivityLog.add({
+                type: 'save', area: 'cgl', ok: true,
+                message: `Bulk ${verb}: ${processed} polic${processed === 1 ? 'y' : 'ies'}`,
+            });
+        }
+    },
+
+    bulkSnooze() {
+        this._runBulkAction('snoozePolicy', 'snoozed', false);
+    },
+
+    bulkDismiss() {
+        this._runBulkAction('dismissPolicy', 'dismissed', true);
+    },
+
+    bulkMarkStateUpdated() {
+        this._runBulkAction('markStateUpdated', 'marked state-updated', false);
+    },
+
+    bulkMarkHawksoftUpdated() {
+        this._runBulkAction('markHawksoftUpdated', 'marked HawkSoft-updated', false);
     },
 
     async generatePrintPDF() {
