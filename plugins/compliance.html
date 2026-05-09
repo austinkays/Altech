@@ -80,7 +80,10 @@
         <!-- Populated by renderTypeToggles() -->
     </div>
 
-    <!-- Print Selection Toolbar (hidden until print mode) -->
+    <!-- Selection toolbar (shown when "Print" / multi-select mode is on).
+         Hosts both PDF generation AND bulk row actions. The single multi-select
+         UI does double duty so the user doesn't have to learn two separate
+         "select rows" patterns. Buttons disabled until ≥1 row is selected. -->
     <div class="cgl-print-toolbar" id="cglPrintToolbar" style="display: none;">
         <div class="cgl-print-toolbar-left">
             <button class="cgl-print-action" onclick="ComplianceDashboard.togglePrintSelectAll()">Select All</button>
@@ -88,7 +91,11 @@
             <span class="cgl-print-count" id="cglPrintCount">0 selected</span>
         </div>
         <div class="cgl-print-toolbar-right">
-            <button class="cgl-print-generate" id="cglPrintGenerateBtn" onclick="ComplianceDashboard.generatePrintPDF()" disabled>Generate PDF</button>
+            <button class="cgl-print-generate" id="cglPrintGenerateBtn" onclick="ComplianceDashboard.generatePrintPDF()" disabled>📄 Generate PDF</button>
+            <button class="cgl-bulk-action" id="cglBulkStateBtn" onclick="ComplianceDashboard.bulkMarkStateUpdated()" disabled title="Mark all selected as State Updated (with note)">🏛️ State Updated</button>
+            <button class="cgl-bulk-action" id="cglBulkHsBtn" onclick="ComplianceDashboard.bulkMarkHawksoftUpdated()" disabled title="Mark all selected as HawkSoft Updated">🦅 HawkSoft Updated</button>
+            <button class="cgl-bulk-action" id="cglBulkSnoozeBtn" onclick="ComplianceDashboard.bulkSnooze()" disabled title="Hide all selected until tomorrow">💤 Snooze</button>
+            <button class="cgl-bulk-action" id="cglBulkDismissBtn" onclick="ComplianceDashboard.bulkDismiss()" disabled title="Permanently dismiss selected (one confirm)">✕ Dismiss</button>
             <button class="cgl-print-cancel" onclick="ComplianceDashboard.togglePrintMode()">Cancel</button>
         </div>
     </div>
