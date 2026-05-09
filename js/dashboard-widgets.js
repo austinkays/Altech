@@ -1067,6 +1067,10 @@ window.DashboardWidgets = (() => {
             ? `<span class="header-notification-badge">${urgentCount}</span>`
             : '<span class="header-notification-badge"></span>';
 
+        // Sync-status pill — green=ok, red=last activity was an error, gray=no activity yet.
+        // Click opens the activity log slide-out. Live-updates via ActivityLog.subscribe.
+        const syncStatusHtml = _renderSyncStatusButton();
+
         header.innerHTML = `
             <div class="header-breadcrumb" id="dashBreadcrumb">
                 <button class="mobile-menu-btn" onclick="DashboardWidgets.toggleMobileSidebar()" aria-label="Menu">
@@ -1076,11 +1080,60 @@ window.DashboardWidgets = (() => {
             </div>
             <div class="header-actions">
                 ${greetingHtml}
+                ${syncStatusHtml}
                 <button class="header-notification-btn" onclick="App.navigateTo('reminders')" title="Reminders" aria-label="Reminders">
                     ${icon('bell', 18)}
                     ${badgeHtml}
                 </button>
             </div>`;
+
+        // Re-render the pill on every new activity event (idempotent — only
+        // wires the listener once per session via the flag below).
+        if (!renderHeader._activitySubscribed && window.ActivityLog) {
+            renderHeader._activitySubscribed = true;
+            window.ActivityLog.subscribe(() => {
+                const pill = document.getElementById('headerSyncPill');
+                if (pill) pill.outerHTML = _renderSyncStatusButton();
+            });
+        }
+    }
+
+    /**
+     * Build the sync-status pill HTML. Reads the most recent entry from
+     * ActivityLog and colors the dot accordingly. Click opens the panel.
+     */
+    function _renderSyncStatusButton() {
+        const last = (window.ActivityLog && window.ActivityLog.lastStatus()) || null;
+        let color = 'var(--text-secondary, #888)';   // gray = no activity
+        let title = 'Activity log — no recent events';
+        let label = 'idle';
+        if (last) {
+            if (last.ok) {
+                color = 'var(--success, #34c759)';
+                title = `Last activity: ${last.message}`;
+                label = 'ok';
+            } else {
+                color = 'var(--danger, #ff3b30)';
+                title = `Last error: ${last.message}`;
+                label = 'error';
+            }
+        }
+        return `
+            <button id="headerSyncPill" type="button"
+                    onclick="window.ActivityLog && window.ActivityLog.openPanel()"
+                    title="${_escapeAttr(title)}"
+                    aria-label="${_escapeAttr(title)}"
+                    class="header-sync-pill"
+                    data-status="${label}"
+                    style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--border, #ddd); border-radius:999px; background:transparent; color:var(--text-secondary, #666); font-size:12px; cursor:pointer;">
+                <span aria-hidden="true" style="width:8px; height:8px; border-radius:50%; background:${color};"></span>
+                <span>Activity</span>
+            </button>`;
+    }
+
+    function _escapeAttr(s) {
+        if (s == null) return '';
+        return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     // ── Mobile Bottom Nav ──

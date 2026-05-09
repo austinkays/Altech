@@ -554,16 +554,37 @@ const CloudSync = (() => {
                 const succeeded = attempted.filter(r => r.status === 'fulfilled' && r.value && r.value.ok);
                 if (attempted.length > 0 && succeeded.length === 0) {
                     _notify('Sync failed — changes saved locally', 'error');
+                    if (window.ActivityLog) window.ActivityLog.add({
+                        type: 'sync', area: 'firebase', ok: false,
+                        message: 'Cloud sync failed — changes saved locally',
+                        detail: failures.map(f => (f.reason && f.reason.message) || (f.value && f.value.error && f.value.error.message) || '').filter(Boolean).slice(0, 3).join('; '),
+                    });
                 } else {
                     _lastSyncTime = Date.now();
                     if (failures.length === 0) {
                         _notify('☁️ Synced to cloud', 'success');
+                        if (window.ActivityLog) window.ActivityLog.add({
+                            type: 'sync', area: 'firebase', ok: true,
+                            message: `Synced ${succeeded.length} doc${succeeded.length === 1 ? '' : 's'} to cloud`,
+                        });
+                    } else if (window.ActivityLog) {
+                        // Partial success — surface as a warning so the user knows
+                        // some docs didn't make it but the rest are safe.
+                        window.ActivityLog.add({
+                            type: 'sync', area: 'firebase', ok: false,
+                            message: `Partial sync — ${failures.length}/${attempted.length} docs failed`,
+                            detail: failures.slice(0, 3).map(f => (f.reason && f.reason.message) || '').filter(Boolean).join('; '),
+                        });
                     }
-                    // Partial success: silently continue (no toast to avoid noise)
                 }
                 console.log('[CloudSync] Push complete');
             } catch (e) {
                 console.error('[CloudSync] Push error:', e.code || e.message || e);
+                if (window.ActivityLog) window.ActivityLog.add({
+                    type: 'sync', area: 'firebase', ok: false,
+                    message: 'Cloud sync errored',
+                    detail: e && (e.message || e.code) || String(e),
+                });
                 // Don't show toast for transient/network errors during background sync
             } finally {
                 _syncing = false;
