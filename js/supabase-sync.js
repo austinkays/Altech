@@ -298,7 +298,34 @@ window.SupabaseSync = (() => {
                 const identity = { table: BLOBS_TABLE, rowId: docKey, userId: ctx.uid };
                 return pushBlob(docKey, raw, undefined, identity);
             });
-            await Promise.allSettled(jobs);
+            const results = await Promise.allSettled(jobs);
+            // Surface to the activity log so the header pill reflects sync health.
+            // Same pattern as cloud-sync.js — full success / partial / total fail.
+            if (window.ActivityLog) {
+                const attempted = results.filter(r => r.status === 'fulfilled' && r.value !== null);
+                const failures = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && r.value && r.value.ok === false));
+                const succeeded = attempted.filter(r => r.value && r.value.ok);
+                if (attempted.length === 0) {
+                    // No-op: nothing in localStorage to push, don't log noise.
+                } else if (succeeded.length === 0) {
+                    window.ActivityLog.add({
+                        type: 'sync', area: 'supabase', ok: false,
+                        message: 'Supabase sync failed — changes saved locally',
+                        detail: failures.slice(0, 3).map(f => (f.reason && f.reason.message) || (f.value && f.value.error && f.value.error.message) || '').filter(Boolean).join('; '),
+                    });
+                } else if (failures.length === 0) {
+                    window.ActivityLog.add({
+                        type: 'sync', area: 'supabase', ok: true,
+                        message: `Synced ${succeeded.length} doc${succeeded.length === 1 ? '' : 's'} to Supabase`,
+                    });
+                } else {
+                    window.ActivityLog.add({
+                        type: 'sync', area: 'supabase', ok: false,
+                        message: `Partial Supabase sync — ${failures.length}/${attempted.length} docs failed`,
+                        detail: failures.slice(0, 3).map(f => (f.reason && f.reason.message) || '').filter(Boolean).join('; '),
+                    });
+                }
+            }
         } finally {
             _pushing = false;
         }

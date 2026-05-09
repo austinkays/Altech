@@ -157,13 +157,30 @@ const ComplianceDashboard = {
         this._updateSaveStatus('saving');
         CglIDB.setAnnotations(stateObj).then(() => {
             this._updateSaveStatus('saved');
+            if (window.ActivityLog) {
+                const counts = `${Object.keys(stateObj.verifiedPolicies || {}).length}v · ${Object.keys(stateObj.dismissedPolicies || {}).length}d · ${Object.keys(stateObj.policyNotes || {}).length}n`;
+                window.ActivityLog.add({
+                    type: 'save', area: 'cgl', ok: true,
+                    message: `CGL state saved (${counts})`,
+                });
+            }
         }).catch(err => {
             console.error('[CGL] IndexedDB annotation write failed:', err);
             this._updateSaveStatus('error');
+            if (window.ActivityLog) {
+                window.ActivityLog.add({
+                    type: 'error', area: 'cgl', ok: false,
+                    message: 'CGL save failed (IndexedDB)',
+                    detail: err && err.message ? err.message : String(err),
+                });
+            }
         });
 
-        // 2. BACKUP: localStorage (survives page reload)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj));
+        // 2. BACKUP: localStorage (survives page reload).
+        // Note: `_safeLSWrite` is added by PR #68 — this raw write is the
+        // pre-#68 behavior, kept here so PR #69 doesn't depend on PR #68's
+        // merge order.
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj)); } catch (e) { /* see PR #68 */ }
 
         // 3. BACKUP: Linked disk file (File System Access API)
         if (this.fileHandle) {
