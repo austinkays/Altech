@@ -1129,10 +1129,10 @@
                     <p class="auth-subtitle">Don't close this window. Should take under a minute.</p>
                 </div>
                 <div style="padding:12px 0">
-                    <div style="background:var(--bg-input);border-radius:8px;height:8px;overflow:hidden;margin-bottom:10px">
-                        <div id="migrationProgressBar" style="background:var(--apple-blue);height:100%;width:0%;transition:width 0.3s ease"></div>
+                    <div class="migration-progress-track">
+                        <div id="migrationProgressBar" class="migration-progress-fill"></div>
                     </div>
-                    <div id="migrationProgressLabel" style="font-size:13px;color:var(--text-secondary);text-align:center">Starting…</div>
+                    <div id="migrationProgressLabel" class="migration-progress-label">Starting…</div>
                 </div>
             </div>
 
@@ -1146,15 +1146,15 @@
                 <div style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem;line-height:1.5">
                     Cross-device sync is active again. Sign in on another device and you'll be asked for your passphrase to unlock.
                 </div>
-                <div style="background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:1rem">
-                    <div style="font-size:13px;font-weight:600;margin-bottom:4px">Recommended: turn on two-factor auth</div>
-                    <div style="font-size:12px;color:var(--text-secondary);line-height:1.5">
+                <div class="migration-recommend-card">
+                    <div class="migration-recommend-title">🛡️ Recommended: turn on two-factor auth</div>
+                    <div class="migration-recommend-body">
                         Your data is now end-to-end encrypted in the cloud. Adding 2FA blocks anyone with just your password from logging in. Takes 30 seconds with any authenticator app.
                     </div>
                 </div>
                 <div class="vault-actions">
                     <button type="button" class="btn-auth btn-auth-secondary" onclick="MigrationUI.handleDoneClose()">Skip for now</button>
-                    <button type="button" class="btn-auth btn-auth-primary" onclick="MigrationUI.handleEnableMfa()">Enable two-factor auth</button>
+                    <button type="button" class="btn-auth btn-auth-primary" onclick="MigrationUI.handleEnableMfa()">Enable 2FA</button>
                 </div>
             </div>
 

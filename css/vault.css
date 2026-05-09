@@ -27,8 +27,9 @@
 .vault-warning strong { color: var(--text); }
 
 .vault-recovery-box {
-    background: var(--bg-input);
-    border: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--bg-input) 0%, rgba(255, 159, 10, 0.05) 100%);
+    border: 1px solid rgba(255, 159, 10, 0.32);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     border-radius: 10px;
     padding: 0.9rem 1rem;
     margin: 0.9rem 0;
@@ -46,6 +47,11 @@
     user-select: all;
     text-align: center;
     color: var(--text);
+}
+body.dark-mode .vault-recovery-box {
+    background: linear-gradient(180deg, #2C2C2E 0%, rgba(255, 159, 10, 0.06) 100%);
+    border-color: rgba(255, 159, 10, 0.38);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 @media (max-width: 480px) {
     .vault-recovery-box { font-size: 12px; padding: 0.75rem 0.6rem; }
@@ -75,7 +81,11 @@
     gap: 0.5rem;
     margin-top: 0.75rem;
 }
-.vault-actions .btn-auth { flex: 1; }
+/* Reset margins on every button in the action row — .btn-auth-primary ships
+   with margin-top: 0.5rem for solo-button forms, which misaligns it from the
+   .btn-auth-secondary it's paired with here (~8px vertical drift). The row's
+   own gap handles spacing. */
+.vault-actions .btn-auth { flex: 1; margin: 0; }
 
 .vault-link {
     background: none;
@@ -135,4 +145,79 @@
     background: var(--bg-input);
     color: var(--text);
     resize: vertical;
+}
+
+/* ── Dark-mode legibility for the yellow "what changes" callouts ──
+   Default 10% yellow over the dark-mode background with --text-secondary
+   washed out. Bump opacity and switch to a warm-amber text color so the
+   warning reads as a warning. */
+body.dark-mode .vault-warning {
+    background: rgba(245, 200, 66, 0.14);
+    border-color: rgba(245, 200, 66, 0.45);
+    color: #E5C46B;
+}
+body.dark-mode .vault-warning strong { color: #FFE89A; }
+
+/* ── Migration "done" step: 2FA recommendation card ──
+   Soft blue accent makes "turn on 2FA" feel like an inviting next step
+   instead of a generic gray info note. */
+.migration-recommend-card {
+    background: linear-gradient(180deg, rgba(0, 122, 255, 0.06) 0%, rgba(0, 122, 255, 0.02) 100%);
+    border: 1px solid rgba(0, 122, 255, 0.22);
+    border-left: 3px solid var(--apple-blue, #007AFF);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 1rem;
+}
+.migration-recommend-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    letter-spacing: -0.01em;
+}
+.migration-recommend-body {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+body.dark-mode .migration-recommend-card {
+    background: linear-gradient(180deg, rgba(10, 132, 255, 0.10) 0%, rgba(10, 132, 255, 0.04) 100%);
+    border-color: rgba(10, 132, 255, 0.32);
+    border-left-color: #0A84FF;
+}
+
+/* ── Migration "running" step: thicker progress bar with shimmer ──
+   The 8px solid bar with a centered label felt anemic during the 5-stage
+   pipeline. Bumped to 10px, blue→indigo gradient (matches the encryption
+   theme), and a slow shimmer overlay so the user can tell something is
+   happening between stage-label updates. */
+.migration-progress-track {
+    background: var(--bg-input);
+    border-radius: 8px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    position: relative;
+}
+.migration-progress-fill {
+    background: linear-gradient(90deg, var(--apple-blue, #007AFF) 0%, #5856D6 100%);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+.migration-progress-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.28) 50%, transparent 100%);
+    animation: migrationShimmer 1.6s linear infinite;
+}
+.migration-progress-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: center;
+    line-height: 1.4;
 }

@@ -424,6 +424,250 @@ Rules:
         return data;
     }
 
+    // ── Apply to Personal Intake form ───────────────────────────
+
+    /**
+     * Convert MM/DD/YYYY → YYYY-MM-DD for native date inputs.
+     * Pass-through for already-ISO values; empty string for unparseable.
+     */
+    function _isoDate(v) {
+        if (!v) return '';
+        const s = _val(v);
+        const mdy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (mdy) return `${mdy[3]}-${mdy[1].padStart(2, '0')}-${mdy[2].padStart(2, '0')}`;
+        if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+        return s;
+    }
+
+    /**
+     * Build a flat map of App.data field overrides from the dec-import data
+     * shape. Pure function — easy to test, no DOM/App side effects. The
+     * caller decides what to do with the result (assign into App.data,
+     * navigate, etc.).
+     *
+     * Workflow detection:
+     *   - policyType "BOTH"   → qType: 'both'
+     *   - policyType "HOME"   → qType: 'home'
+     *   - policyType "AUTO"   → qType: 'auto'
+     *   - missing → 'auto' if vehicles[] is non-empty, else 'home'
+     *
+     * Co-applicant: if a second namedInsured exists, hasCoApplicant='yes'
+     * and coFirstName/coLastName are populated. Other co-app fields stay
+     * blank — the dec page rarely lists DOB/gender for co-insureds.
+     *
+     * Prior carrier: the dec page IS the user's current carrier when
+     * they're shopping the renewal, which means it's the PRIOR carrier
+     * for the new quote being built. carrier → priorCarrier and/or
+     * homePriorCarrier depending on workflow.
+     */
+    function _buildFormOverrides(data) {
+        const out = {};
+        const pt = (data.policyType || '').toUpperCase();
+        let qType;
+        if (pt === 'BOTH') qType = 'both';
+        else if (pt === 'HOME') qType = 'home';
+        else if (pt === 'AUTO') qType = 'auto';
+        else qType = (data.vehicles && data.vehicles.length > 0) ? 'auto' : 'home';
+        out.qType = qType;
+        if (qType === 'both') out.multiPolicy = 'yes';
+
+        const isHome = (qType === 'home' || qType === 'both');
+        const isAuto = (qType === 'auto' || qType === 'both');
+
+        // Applicant
+        const primary = _parseName((data.namedInsureds && data.namedInsureds[0]) || '');
+        if (primary.firstName) out.firstName = primary.firstName;
+        if (primary.lastName)  out.lastName  = primary.lastName;
+
+        // Co-applicant (second named insured)
+        if (data.namedInsureds && data.namedInsureds.length > 1) {
+            const co = _parseName(data.namedInsureds[1]);
+            out.hasCoApplicant = 'yes';
+            if (co.firstName) out.coFirstName = co.firstName;
+            if (co.lastName)  out.coLastName  = co.lastName;
+        }
+
+        // Address
+        const addr = data.mailingAddress || {};
+        if (addr.street) out.addrStreet = addr.street;
+        if (addr.city)   out.addrCity   = addr.city;
+        if (addr.state)  out.addrState  = String(addr.state).toUpperCase().slice(0, 2);
+        if (addr.zip)    out.addrZip    = addr.zip;
+
+        // Property
+        const prop = data.property || {};
+        if (prop.yearBuilt)         out.yrBuilt           = prop.yearBuilt;
+        if (prop.sqFt)              out.sqFt              = prop.sqFt;
+        if (prop.stories)           out.numStories        = prop.stories;
+        if (prop.roofType)          out.roofType          = prop.roofType;
+        if (prop.constructionStyle) out.constructionStyle = prop.constructionStyle;
+        if (prop.foundation)        out.foundation        = prop.foundation;
+        if (prop.heating)           out.heatingType       = prop.heating;
+        if (prop.protectionClass)   out.protectionClass   = prop.protectionClass;
+
+        // Home coverage
+        if (isHome) {
+            const cov = data.coverages || {};
+            if (cov.dwelling)       out.dwellingCoverage  = cov.dwelling;
+            if (cov.liability)      out.personalLiability = cov.liability;
+            if (cov.deductibleAOP)  out.homeDeductible    = cov.deductibleAOP;
+            if (cov.deductibleWind) out.windDeductible    = cov.deductibleWind;
+            const m = data.mortgagee || {};
+            if (m.name) {
+                const cityStateZip = [m.city, m.state, m.zip].filter(Boolean).join(' ');
+                out.mortgagee = [m.name, m.address, cityStateZip].filter(Boolean).join(', ');
+            }
+            if (data.carrier)         out.homePriorCarrier = data.carrier;
+            if (data.expirationDate)  out.homePriorExp     = _isoDate(data.expirationDate);
+        }
+
+        // Auto coverage
+        if (isAuto) {
+            const cov = data.coverages || {};
+            if (cov.bi)      out.liabilityLimits = cov.bi;
+            if (cov.pd)      out.pdLimit         = cov.pd;
+            if (cov.umBi)    out.umLimits        = cov.umBi;
+            if (cov.uimBi)   out.uimLimits       = cov.uimBi;
+            if (cov.medical) out.medPayments     = cov.medical;
+            if (data.carrier)        out.priorCarrier    = data.carrier;
+            if (data.expirationDate) out.priorExpiration = _isoDate(data.expirationDate);
+        }
+
+        // Policy term (shared by both workflows)
+        if (data.term) out.policyTerm = data.term;
+
+        return out;
+    }
+
+    /**
+     * Build a fresh drivers[] array (App schema) from the dec-import driver
+     * list. First driver is flagged as primary applicant.
+     */
+    function _buildDriversArray(decDrivers, baseTs) {
+        const ts = baseTs || Date.now();
+        return (decDrivers || []).map((d, i) => {
+            const parsed = _parseName(d.fullName);
+            return {
+                id: `driver_${ts}_${i}`,
+                firstName: parsed.firstName || '',
+                lastName: parsed.lastName || '',
+                dob: _isoDate(d.dob),
+                dlNum: (d.licenseNumber || '').toUpperCase(),
+                dlState: (d.licenseState || 'WA').toUpperCase().slice(0, 2),
+                relationship: d.relationship || (i === 0 ? 'Self' : 'Other'),
+                isCoApplicant: false,
+                isPrimaryApplicant: i === 0,
+                accidents: '',
+                violations: '',
+                studentGPA: ''
+            };
+        });
+    }
+
+    /**
+     * Build a fresh vehicles[] array (App schema) from the dec-import vehicle
+     * list. Schema-extra fields (comp/coll/towing/rental/garagingZip) don't
+     * have homes in App.vehicles[] — they're preserved in the dec-import
+     * panel data and only flow to the HawkSoft CMSMTF export.
+     */
+    function _buildVehiclesArray(decVehicles, baseTs) {
+        const ts = baseTs || Date.now();
+        return (decVehicles || []).map((v, i) => ({
+            id: `vehicle_${ts}_${i}`,
+            vin: (v.vin || '').toUpperCase(),
+            year: v.year || '',
+            make: v.make || '',
+            model: v.model || '',
+            use: v.use || 'Commute',
+            miles: v.annualMileage || '12000',
+            primaryDriver: ''
+        }));
+    }
+
+    /**
+     * Apply the reviewed dec-import data to the Personal Intake form
+     * (App.data + App.drivers + App.vehicles), persist, then navigate the
+     * user into the Personal Intake plugin so they can finish + quote.
+     */
+    async function _applyToQuoteForm() {
+        const data = _readForm();
+        if (!data.namedInsureds.length && !data.policyNumber) {
+            _showStatus('No data to apply. Extract a dec page first.', 'error');
+            return;
+        }
+        if (typeof App === 'undefined' || typeof App.save !== 'function') {
+            _showStatus('Personal Intake (App) is not loaded — reload the page and try again.', 'error');
+            return;
+        }
+
+        // Replace existing form data — confirm first if it looks populated.
+        const existing = App.data || {};
+        const looksPopulated = !!(existing.firstName || existing.lastName || existing.addrStreet || (App.drivers && App.drivers.length) || (App.vehicles && App.vehicles.length));
+        if (looksPopulated) {
+            const ok = window.confirm('This will replace your current Personal Intake form with the extracted dec-page data. Continue?');
+            if (!ok) return;
+        }
+
+        _showStatus('Applying to Personal Intake…', 'loading');
+
+        try {
+            const overrides = _buildFormOverrides(data);
+            App.data = Object.assign({}, App.data || {}, overrides);
+
+            const ts = Date.now();
+            App.drivers  = _buildDriversArray(data.drivers, ts);
+            App.vehicles = _buildVehiclesArray(data.vehicles, ts);
+
+            // Persist to localStorage / cloud sync. App.save() flushes
+            // App.data; saveDriversVehicles() flushes the drivers+vehicles
+            // arrays separately.
+            await App.save({});
+            if (typeof App.saveDriversVehicles === 'function') {
+                await App.saveDriversVehicles();
+            }
+
+            // Build a specific summary of what landed so the user can tell
+            // at a glance whether the mapping caught the important pieces.
+            const summary = _buildApplySummary(overrides, App.drivers, App.vehicles);
+
+            if (typeof App.toast === 'function') {
+                App.toast('Form populated: ' + summary, { type: 'success', duration: 4000 });
+            }
+            _showStatus('Applied: ' + summary + '. Opening Personal Intake…', 'success');
+
+            // Navigate after a brief beat so the user sees the success state.
+            if (typeof App.navigateTo === 'function') {
+                setTimeout(() => {
+                    try { App.navigateTo('quoting'); }
+                    catch (e) { console.warn('[DecImport] navigateTo failed:', e && e.message); }
+                }, 700);
+            }
+        } catch (err) {
+            console.warn('[DecImport] applyToQuoteForm failed:', err);
+            _showStatus('Failed to apply: ' + (err.message || err), 'error');
+        }
+    }
+
+    /**
+     * Build a short human-readable summary of what was applied. Used in
+     * the toast + status line so the user sees a confidence-building
+     * "X applicants, Y drivers, Z vehicles, prior carrier" line rather
+     * than a generic success.
+     */
+    function _buildApplySummary(overrides, drivers, vehicles) {
+        const parts = [];
+        if (overrides.firstName || overrides.lastName) parts.push('applicant');
+        if (overrides.hasCoApplicant === 'yes') parts.push('co-applicant');
+        if (drivers && drivers.length) parts.push(`${drivers.length} driver${drivers.length > 1 ? 's' : ''}`);
+        if (vehicles && vehicles.length) parts.push(`${vehicles.length} vehicle${vehicles.length > 1 ? 's' : ''}`);
+        if (overrides.addrStreet || overrides.addrZip) parts.push('address');
+        if (overrides.dwellingCoverage || overrides.personalLiability) parts.push('home coverage');
+        if (overrides.liabilityLimits || overrides.pdLimit) parts.push('auto coverage');
+        if (overrides.mortgagee) parts.push('mortgagee');
+        if (overrides.priorCarrier || overrides.homePriorCarrier) parts.push('prior carrier');
+        return parts.length ? parts.join(', ') : 'no fields';
+    }
+
     // ── CMSMTF Generation ───────────────────────────────────────
 
     /**
@@ -701,6 +945,11 @@ Rules:
             });
         }
 
+        const applyBtn = document.getElementById('diApplyToQuoteBtn');
+        if (applyBtn) {
+            applyBtn.addEventListener('click', _applyToQuoteForm);
+        }
+
         if (clearBtn) {
             clearBtn.addEventListener('click', _clear);
         }
@@ -729,6 +978,12 @@ Rules:
         _fmtDate,
         _readForm,
         _val,
-        _line
+        _line,
+        _isoDate,
+        _buildFormOverrides,
+        _buildDriversArray,
+        _buildVehiclesArray,
+        _buildApplySummary,
+        _applyToQuoteForm
     };
 })();
