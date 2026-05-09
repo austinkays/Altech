@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # node server.js — port 8000 (override with PORT env)
-npm test                  # 33 test suites
+npm test                  # 49+ test suites (~2175 tests)
 npx jest --no-coverage    # faster
 ```
 
@@ -24,6 +24,8 @@ npx jest --no-coverage    # faster
 | `window.STORAGE_KEYS` | `js/storage-keys.js` | Frozen map of ~62 localStorage keys |
 | `window.Utils` | `js/utils.js` | `escapeHTML`, `escapeAttr`, `tryParseLS`, `debounce` |
 | `window.FIELDS` / `window.FIELD_BY_ID` | `js/fields.js` | ~160 intake form field definitions with id/label/type/section |
+| `window.ActivityLog` | `js/activity-log.js` | Local-only ring buffer of recent saves/syncs/exports/AI calls. `add({type, area, message, ok, detail})` / `list()` / `lastStatus()` / `subscribe(fn)` / `openPanel()` / `clear()`. Persists last 100 entries to `STORAGE_KEYS.ACTIVITY_LOG`; never cloud-synced. |
+| `window.CommandPalette` | `js/command-palette.js` | ⌘K / Ctrl+K jump-to-anywhere palette. Plugins extend via `CommandPalette.register({id, label, hint, run})`. Sources tools, recent clients, and built-in actions. ⌘/ = quick-add reminder. |
 
 ### App Assembly — `Object.assign` Pattern
 
@@ -98,7 +100,7 @@ App core (Object.assign extends App in order):
   → app-quotes.js
 
 Shared services:
-  ai-provider.js, dashboard-widgets.js
+  ai-provider.js, activity-log.js, command-palette.js, dashboard-widgets.js
 
 Plugin IIFEs (in load order):
   prospect-formatters.js, prospect.js, quick-ref.js, accounting-export.js,
@@ -169,6 +171,7 @@ Key entries (see `js/storage-keys.js` for full list):
 | `MIGRATION_STATE` | `altech_migration_state` | Resume-on-crash state for the Phase 4 pipeline |
 | `MIGRATION_DRY_RUN` | `altech_migration_dry_run` | `'1'` = Session 2 pipeline copies but doesn't flip backend |
 | `PRE_MIGRATION_BACKUP` | `altech_pre_migration_backup` | Snapshot taken before Session 2 runs; 30-day TTL, auto-clean |
+| `ACTIVITY_LOG` | `altech_activity_log` | Ring buffer of last ~100 saves / syncs / exports / AI calls. **Local-only — never sync.** Renders into the slide-out panel opened by the header pill or `ActivityLog.openPanel()`. |
 
 ---
 
@@ -311,7 +314,7 @@ Test all three workflows when changing step logic or conditions.
 ## Testing
 
 ```bash
-npm test                          # 33 test suites under tests/ (Jest + JSDOM)
+npm test                          # ~49 test suites / ~2175 tests under tests/ (Jest + JSDOM)
 npx jest --no-coverage            # faster
 npx jest tests/app.test.js        # single suite
 npm run test:ext                  # chrome-extension-v2 suite (separate jest config)
@@ -452,6 +455,77 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 
 `js/compliance-dashboard.js` writes to `STORAGE_KEYS.CGL_STATE` (cloud-synced via `cglState`). Heavy state (parsed policy rows from HawkSoft uploads) is offloaded to IndexedDB through `js/compliance-idb.js` to keep the synced doc small. The `clientCompliance` annotation dict tracks WA L&I / OR CCB classification per HawkSoft `clientNumber` and reuses `_smartMergeDict` for safe multi-device merges.
 
+**Bulk row actions** (May 2026, PR #70). The "🖨 Print" button puts the table into multi-select mode (checkboxes per row + select-all). When ≥1 row is selected, the toolbar enables four bulk action buttons that iterate the selection and call existing per-policy methods: `bulkMarkStateUpdated`, `bulkMarkHawksoftUpdated`, `bulkSnooze`, `bulkDismiss`. Dispatch goes through `_runBulkAction(methodName, verb, confirmFirst)` — destructive ops (`bulkDismiss`) prompt one confirm() for the whole batch, not per row. One toast + one ActivityLog entry per bulk action.
+
+**Event delegation** (PR #68). Row buttons use `data-cgl-action="…" data-cgl-pn="…"` attributes; a single document-level click+change listener wired in `init()` via `_wireDelegatedHandlers` reads `dataset.cglAction / cglPn / cglCn / cglArg` and dispatches to `ComplianceDashboard[action]`. **Don't add new inline `onclick="ComplianceDashboard.fn(…)"` handlers in renders** — use the `data-cgl-action` pattern instead so policy/client numbers can't trip JS-string breakout.
+
+---
+
+## Reliability features (Phase 1, PR #69)
+
+### Toast queue (`App.toast`)
+
+`App.toast(msg, duration|opts, useHtml)` queues entries and drains them in order — new toasts no longer clobber visible ones. Supports `{ type: 'error'|'success'|'info'|'warning', duration: ms, dedupe: boolean }`. Errors get a 3.5s default duration; success/info gets 2.5s. Duplicate consecutive entries (same `msg` + `type`) collapse to one unless `dedupe: false` is passed. Pre-existing call sites that pass `'error'` as a string second arg silently lose styling — always use the object form for typed toasts.
+
+### AI error decoder (`js/ai-provider.js _decodeApiError`)
+
+All four provider call paths (`_callGoogle`, `_callOpenRouter`, `_callOpenAI`, `_callAnthropic`, plus the `_chat*` variants) now run HTTP errors through `_decodeApiError(provider, status, body)`, which translates 401/403/404/408/413/429/5xx into messages that point at a fix:
+- `401` → "Gemini API key is invalid or expired — re-add it in Settings → AI Provider"
+- `429` → "Anthropic rate limit hit — wait ~30s and try again, or check your account quota"
+- `5xx` → "OpenAI is having issues right now (503) — try again in a moment"
+- `413` → "Request too large — try a smaller/shorter document"
+
+Unknown statuses fall back to the upstream message. The 45s `_withTimeout` wrapper also surfaces a retry-able message instead of bare "AI request timed out".
+
+### Activity log (`window.ActivityLog`)
+
+Local-only ring buffer keyed by `STORAGE_KEYS.ACTIVITY_LOG` (capped at 100, persisted, **never synced**). Hooked into the major data-flow sites:
+- `App.save` (intake form) — success and failure
+- `App.logExport` (every export type)
+- `CloudSync.pushToCloud` (full / partial / total fail with per-doc reasons)
+- `SupabaseSync._pushAllBlobs` (same pattern)
+- `Reminders._save`
+- `ComplianceDashboard.saveState`
+
+**Header status pill.** `js/dashboard-widgets.js renderHeader()` adds a small "Activity ●" pill next to the bell. Dot color reflects last activity (green ok / red error / gray no activity). Click opens the slide-out panel from the right edge. Pill auto-updates via `ActivityLog.subscribe(...)`.
+
+**Adding a new hook.** Inside any save/sync/export site:
+```js
+if (window.ActivityLog) {
+    window.ActivityLog.add({
+        type: 'save' | 'sync' | 'export' | 'import' | 'ai' | 'error',
+        area: 'intake' | 'cgl' | 'reminders' | 'firebase' | 'supabase' | …,
+        ok: true | false,
+        message: 'Form saved',           // short, human-readable
+        detail: err && err.message,      // optional — shown collapsed in the panel
+    });
+}
+```
+
+---
+
+## Keyboard shortcuts
+
+| Keys | Action | Owner |
+|------|--------|-------|
+| `⌘K` / `Ctrl+K` | Open command palette (anywhere) | `js/command-palette.js` |
+| `⌘/` / `Ctrl+/` | Open palette pre-filtered to "Add reminder" | `js/command-palette.js` |
+| `↑` / `↓` | Navigate palette suggestions | `js/command-palette.js` |
+| `Enter` | Run selected suggestion | `js/command-palette.js` |
+| `Esc` | Close palette / activity log / Reminders modal / snooze menu | various |
+
+**Adding a custom command.** Plugins can register their own:
+```js
+CommandPalette.register({
+    id: 'email:send-renewal',          // unique; re-registering replaces
+    label: 'Send renewal reminder',
+    hint: 'Action · Email Composer',   // shown smaller, used for fuzzy match
+    run: () => EmailComposer.openTemplate('renewal'),
+});
+```
+
+Built-in commands include: tools (every entry from `App.toolConfig`), recent clients (top 30 from `STORAGE_KEYS.CLIENT_HISTORY`), and a handful of actions: New quote · Add reminder · Open activity log · Toggle dark mode · Go to dashboard · Export files…
+
 ---
 
 ## Key Conventions
@@ -480,3 +554,8 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 | Load `app-boot.js` before plugins | It must always be the last `<script>` tag |
 | Remove a `/* no var */` comment if you encounter one | Leave it — it marks tokenization work still to be done |
 | Reference step-2 in workflows | It was removed — flows go 0 → 1 → 3 → … |
+| `App.toast('msg', 'error')` (string 2nd arg) | `App.toast('msg', { type: 'error' })` — string arg silently no-ops the styling |
+| Use `Utils.escapeHTML(val)` inside `attr="${val}"` | Use `Utils.escapeAttr(val)` — escapeHTML doesn't escape `'` or `"` |
+| Inline `onclick="ComplianceDashboard.fn('${pn}')"` in CGL renders | Use `data-cgl-action="fn" data-cgl-pn="${pnAttr}"` — dispatched via `_wireDelegatedHandlers` |
+| Cloud-sync `STORAGE_KEYS.ACTIVITY_LOG` | Local-only by design — never sync (it's a per-device debugging aid) |
+| Add a new save/sync/export site without `ActivityLog.add(...)` | Hook it in so the header pill + slide-out panel reflect the event |
