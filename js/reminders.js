@@ -605,7 +605,7 @@ window.Reminders = (() => {
         _save();
         render();
         if (typeof App !== 'undefined' && App.toast) {
-            App.toast('Snoozed until tonight', 'success');
+            App.toast('Snoozed until tonight', { type: 'success' });
         }
     }
 
@@ -627,7 +627,7 @@ window.Reminders = (() => {
         _save();
         render();
         if (typeof App !== 'undefined' && App.toast) {
-            App.toast('Pushed to tomorrow — no penalty', 'success');
+            App.toast('Pushed to tomorrow — no penalty', { type: 'success' });
         }
     }
 
@@ -648,7 +648,7 @@ window.Reminders = (() => {
         _save();
         render();
         if (typeof App !== 'undefined' && App.toast) {
-            App.toast('Skipped this week — resets Monday', 'success');
+            App.toast('Skipped this week — resets Monday', { type: 'success' });
         }
     }
 
@@ -919,7 +919,10 @@ window.Reminders = (() => {
         });
 
         if (tasks.length === 0) {
-            list.innerHTML = `<div class="rem-empty">
+            // role="status" on the empty-state node so the aria-live="polite"
+            // list still announces the change without treating "no items" as
+            // a listitem (which would be incorrect ARIA semantics).
+            list.innerHTML = `<div class="rem-empty" role="status">
                 <div class="rem-empty-icon"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
                 <p>${filter === 'all' && !search ? 'No reminders yet. Click + to add one.' : 'No matching reminders.'}</p>
             </div>`;
@@ -938,7 +941,7 @@ window.Reminders = (() => {
             const snoozeIcon = isSnoozed ? '<span class="rem-snooze-indicator" title="Snoozed">🕐</span>' : '';
             const canSnooze = !isCompleted;
 
-            return `<div class="rem-task-card ${statusClass} ${isSnoozed ? 'rem-snoozed' : ''}" data-id="${t.id}" style="animation-delay: ${i * 0.02}s;">
+            return `<div class="rem-task-card ${statusClass} ${isSnoozed ? 'rem-snoozed' : ''}" role="listitem" data-id="${t.id}" style="animation-delay: ${i * 0.02}s;">
                 <div class="rem-task-row">
                     <button class="rem-check-btn ${isCompleted ? 'checked' : ''}" onclick="Reminders.toggle('${t.id}')" aria-label="Toggle complete">
                         ${isCompleted ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
@@ -1028,13 +1031,13 @@ window.Reminders = (() => {
         const title = titleEl.value.trim();
         if (!title) {
             titleEl.focus();
-            if (typeof App !== 'undefined' && App.toast) App.toast('Reminder title is required', 'warning');
+            if (typeof App !== 'undefined' && App.toast) App.toast('Reminder title is required', { type: 'error' });
             return;
         }
         const dueDate = dueDateEl.value;
         if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
             dueDateEl.focus();
-            if (typeof App !== 'undefined' && App.toast) App.toast('Pick a due date for this reminder', 'warning');
+            if (typeof App !== 'undefined' && App.toast) App.toast('Pick a due date for this reminder', { type: 'error' });
             return;
         }
         const data = {
