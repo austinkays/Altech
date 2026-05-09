@@ -71,6 +71,52 @@ const ComplianceDashboard = {
         }
     },
 
+    /**
+     * Delegated event dispatcher for the dashboard.
+     * Replaces inline onclick="ComplianceDashboard.fn('${pn}')" patterns,
+     * which had to pre-escape values via Utils.escapeAttr to be XSS-safe.
+     * Data-attrs sidestep that entirely because the browser handles
+     * HTML-entity decoding automatically when reading dataset.* values.
+     *
+     * Element markup:
+     *   <button data-cgl-action="snoozePolicy"      data-cgl-pn="${policy}">…</button>
+     *   <button data-cgl-action="addQuickNote"      data-cgl-pn="${policy}" data-cgl-arg="Notified insured">…</button>
+     *   <button data-cgl-action="markReportedToWA"  data-cgl-cn="${client}" data-cgl-arg="${expiry}">…</button>
+     *   <button data-cgl-action="toggleType"        data-cgl-arg="${type}">…</button>
+     *   <button data-cgl-action="showMore">…</button>
+     *
+     * Attach via _wireDelegatedHandlers(); idempotent.
+     */
+    _wireDelegatedHandlers() {
+        if (this._delegationWired) return;
+        this._delegationWired = true;
+
+        const dispatch = (e) => {
+            const target = e.target.closest('[data-cgl-action]');
+            if (!target) return;
+            const action = target.dataset.cglAction;
+            const fn = this[action];
+            if (typeof fn !== 'function') {
+                console.warn('[CGL] Unknown delegated action:', action);
+                return;
+            }
+            const pn = target.dataset.cglPn;
+            const cn = target.dataset.cglCn;
+            const arg = target.dataset.cglArg;
+            // Two-arg actions
+            if (pn != null && arg != null) return fn.call(this, pn, arg);
+            if (cn != null && arg != null) return fn.call(this, cn, arg);
+            // Single-arg actions
+            if (pn != null) return fn.call(this, pn);
+            if (cn != null) return fn.call(this, cn);
+            if (arg != null) return fn.call(this, arg);
+            // No-arg actions (showMore, etc.)
+            return fn.call(this);
+        };
+        document.addEventListener('click', dispatch);
+        document.addEventListener('change', dispatch);
+    },
+
     // --- Vercel KV helpers ---
 
     /** Check if KV store is available (caches result) */
@@ -696,6 +742,10 @@ const ComplianceDashboard = {
             return;
         }
         this._initialized = true;
+
+        // Wire one delegated click+change listener so renderPolicies() etc.
+        // can use data-cgl-action attributes instead of inline onclicks.
+        this._wireDelegatedHandlers();
 
         // ── Load annotations (disk → localStorage → IDB merge) ──
         try {
@@ -1962,7 +2012,7 @@ const ComplianceDashboard = {
             <div class="cgl-note-entry">
                 <span class="cgl-note-entry-text">${iconHtml}${Utils.escapeHTML(entry.text)}</span>
                 <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
-                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${Utils.escapeAttr(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
+                <button class="cgl-note-delete-btn" data-cgl-action="deleteNoteEntry" data-cgl-pn="${Utils.escapeAttr(policyNumber)}" data-cgl-arg="${origIdx}" title="Delete this note">&times;</button>
             </div>
         `;
         }).join('');
@@ -1996,8 +2046,10 @@ const ComplianceDashboard = {
     },
 
     deleteNoteEntry(policyNumber, index) {
+        // index may arrive as a string when invoked via data-cgl-arg dispatch.
+        index = typeof index === 'number' ? index : Number(index);
         const data = this.getNoteData(policyNumber);
-        if (!data || !data.log || index < 0 || index >= data.log.length) return;
+        if (!data || !data.log || !Number.isFinite(index) || index < 0 || index >= data.log.length) return;
         data.log.splice(index, 1);
         // Keep the note object (even if empty) to prevent stale
         // IDB/KV sources from resurrecting old data during merge
@@ -2203,9 +2255,9 @@ const ComplianceDashboard = {
             const logEl = noteRow.querySelector('.cgl-note-log');
             if (logEl) logEl.innerHTML = this.renderNoteLog(policyNumber);
         }
-        // Update renewed badge. Use escapeAttr inside attribute-context strings
-        // (single-quoted onclick) so embedded apostrophes/quotes can't break out;
-        // escapeHTML only escapes < > & and is unsafe inside attribute values.
+        // Update renewed badge using data-cgl-action dispatch (matches the
+        // initial-render path in renderPolicies — keeps the dispatcher as
+        // the single source of truth for click handling).
         const badgeEl = document.getElementById('renewed-badge-' + policyNumber);
         if (badgeEl && data && data.renewedTo) {
             badgeEl.style.display = 'inline-flex';
@@ -2214,7 +2266,7 @@ const ComplianceDashboard = {
             const renewedToAttr = Utils.escapeAttr(data.renewedTo);
             const renewedToText = Utils.escapeHTML(data.renewedTo);
             const pnAttr = Utils.escapeAttr(policyNumber);
-            badgeEl.innerHTML = `<span onclick="ComplianceDashboard.searchForPolicy('${renewedToAttr}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${renewedToText}</span><span onclick="ComplianceDashboard.clearRenewed('${pnAttr}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>`;
+            badgeEl.innerHTML = `<span data-cgl-action="searchForPolicy" data-cgl-pn="${renewedToAttr}" style="cursor:pointer;" title="Click to find renewed policy">→ ${renewedToText}</span><span data-cgl-action="clearRenewed" data-cgl-pn="${pnAttr}" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>`;
         } else if (badgeEl) {
             badgeEl.style.display = 'none';
             badgeEl.innerHTML = '';
@@ -2272,7 +2324,7 @@ const ComplianceDashboard = {
             const label = this._typeLabel(type);
             return `<label class="cgl-notify-type-label${isNotifying ? '' : ' cgl-notify-muted'}">
                 <input type="checkbox" ${isNotifying ? 'checked' : ''}
-                    onchange="ComplianceDashboard.toggleNotifyType('${type}')">
+                    data-cgl-action="toggleNotifyType" data-cgl-arg="${Utils.escapeAttr(type)}">
                 <span class="cgl-type-badge ${type}">${label}</span>
             </label>`;
         }).join('');
@@ -2292,7 +2344,7 @@ const ComplianceDashboard = {
             const label = this._typeLabel(type);
             // Count only non-hidden/dismissed policies to match stat card total
             const count = this.policies.filter(p => (p.policyType || 'cgl') === type && !this.isHidden(p.policyNumber)).length;
-            return `<button class="cgl-type-toggle cgl-type-badge ${type} ${isHidden ? 'cgl-type-hidden' : ''}" onclick="ComplianceDashboard.toggleType('${type}')" title="${isHidden ? 'Show' : 'Hide'} ${label} policies (${count})">${label} <span class="cgl-type-count">${count}</span></button>`;
+            return `<button class="cgl-type-toggle cgl-type-badge ${type} ${isHidden ? 'cgl-type-hidden' : ''}" data-cgl-action="toggleType" data-cgl-arg="${Utils.escapeAttr(type)}" title="${isHidden ? 'Show' : 'Hide'} ${label} policies (${count})">${label} <span class="cgl-type-count">${count}</span></button>`;
         }).join('');
     },
 
@@ -2451,12 +2503,17 @@ const ComplianceDashboard = {
             const pType = (policy.policyType || 'cgl');
 
             const rowClass = isHidden ? 'hidden-row' : (needsStateUpdate ? 'cgl-needs-state-row' : (isAnyUpdateDone ? 'cgl-state-updated-row' : ''));
-            // Escape for safe interpolation inside `onclick="fn('${pn}')"` patterns.
-            // The previous \\\\' replacement was broken — Utils.escapeAttr converts
-            // ' → &#39; and " → &quot;, which neutralizes attribute breakout. (Policy
-            // numbers with apostrophes will trip a JS syntax error in the resulting
-            // onclick rather than execute attacker payload — non-exploitable failure.)
+            // For inline element IDs (id="...-${pn}") we still need attribute
+            // escaping. Anywhere we used to interpolate as a JS-string arg
+            // (onclick="fn('${pn}')") has been replaced with data-cgl-action +
+            // data-cgl-pn delegation so this escape is no longer load-bearing
+            // for safety — but it keeps ID strings well-formed.
             const pn = Utils.escapeAttr(policy.policyNumber);
+            // Raw policy number for use inside data-cgl-pn="…" attributes.
+            // Browsers HTML-decode attribute values when reading via dataset,
+            // so we just need standard attribute encoding here. escapeAttr
+            // covers all characters that could break out of the attribute.
+            const pnAttr = Utils.escapeAttr(policy.policyNumber);
 
             const verifiedTitle = isVerified
                 ? 'Verified on ' + new Date(this.verifiedPolicies[policy.policyNumber].updatedAt).toLocaleDateString()
@@ -2467,13 +2524,13 @@ const ComplianceDashboard = {
             if (isHidden && this.showHidden) {
                 if (isSnoozed) {
                     const until = new Date(this.snoozedPolicies[policy.policyNumber].snoozedUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    actionHtml = `<span class="cgl-snoozed-badge">💤 Until ${until}</span><button class="cgl-restore-btn" onclick="ComplianceDashboard.unsnoozePolicy('${pn}')">Wake</button>`;
+                    actionHtml = `<span class="cgl-snoozed-badge">💤 Until ${until}</span><button class="cgl-restore-btn" data-cgl-action="unsnoozePolicy" data-cgl-pn="${pnAttr}">Wake</button>`;
                 } else {
                     const fn = isDismissed ? 'undismissPolicy' : 'unverifyPolicy';
-                    actionHtml = `<button class="cgl-restore-btn" onclick="ComplianceDashboard.${fn}('${pn}')">Restore</button>`;
+                    actionHtml = `<button class="cgl-restore-btn" data-cgl-action="${fn}" data-cgl-pn="${pnAttr}">Restore</button>`;
                 }
             } else if (!isHidden) {
-                actionHtml = `<button class="cgl-snooze-btn" onclick="ComplianceDashboard.snoozePolicy('${pn}')" title="Hide until tomorrow">💤</button><button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
+                actionHtml = `<button class="cgl-snooze-btn" data-cgl-action="snoozePolicy" data-cgl-pn="${pnAttr}" title="Hide until tomorrow">💤</button><button class="cgl-dismiss-btn" data-cgl-action="dismissPolicy" data-cgl-pn="${pnAttr}">Dismiss</button>`;
             }
 
             const isSelected = this._printMode && this._selectedForPrint.has(policy.policyNumber);
@@ -2481,10 +2538,10 @@ const ComplianceDashboard = {
 
             return `
                 <tr class="${rowClass}${printRowClass}">
-                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${Utils.escapeAttr(policy.policyNumber)}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
+                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${pnAttr}" ${isSelected ? 'checked' : ''} data-cgl-action="togglePrintSelect" data-cgl-pn="${pnAttr}"></td>` : ''}
                     <td>
                         <label class="cgl-toggle" title="${verifiedTitle}">
-                            <input type="checkbox" ${isVerified ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyVerified('${pn}')">
+                            <input type="checkbox" ${isVerified ? 'checked' : ''} data-cgl-action="togglePolicyVerified" data-cgl-pn="${pnAttr}">
                             <span class="cgl-toggle-slider"></span>
                         </label>
                     </td>
@@ -2510,8 +2567,8 @@ const ComplianceDashboard = {
                         <div>${Utils.escapeHTML(policy.policyNumber)}</div>
                         ${renewedTo
                             ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
-                                <span onclick="ComplianceDashboard.searchForPolicy('${Utils.escapeAttr(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
-                                <span onclick="ComplianceDashboard.clearRenewed('${Utils.escapeAttr(pn)}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
+                                <span data-cgl-action="searchForPolicy" data-cgl-pn="${Utils.escapeAttr(renewedTo)}" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
+                                <span data-cgl-action="clearRenewed" data-cgl-pn="${pnAttr}" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
                                </span>`
                             : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
                     </td>
@@ -2528,7 +2585,7 @@ const ComplianceDashboard = {
                     </td>
                     <td>
                         <div style="display:flex;align-items:center;gap:4px;">
-                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pn}" onclick="ComplianceDashboard.toggleNote('${pn}')" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">📝${noteCount > 0 ? `<span class="cgl-note-count">${noteCount}</span>` : ''}</button>
+                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pn}" data-cgl-action="toggleNote" data-cgl-pn="${pnAttr}" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">📝${noteCount > 0 ? `<span class="cgl-note-count">${noteCount}</span>` : ''}</button>
                             ${actionHtml}
                         </div>
                     </td>
@@ -2538,17 +2595,17 @@ const ComplianceDashboard = {
                         ${this.renderClassificationOverride(policy)}
                         <div class="cgl-quick-notes">
                             <div class="cgl-quick-notes-row">
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Emailed insured')">📧 Emailed Insured</button>
-                                <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Left voicemail')">📱 Left Voicemail</button>
-                                <button class="cgl-quick-note-btn confirm" onclick="ComplianceDashboard.addQuickNote('${pn}','Renewal term confirmed')">✅ Renewal Confirmed</button>
+                                <button class="cgl-quick-note-btn" data-cgl-action="addQuickNote" data-cgl-pn="${pnAttr}" data-cgl-arg="Notified insured">📞 Notified Insured</button>
+                                <button class="cgl-quick-note-btn" data-cgl-action="addQuickNote" data-cgl-pn="${pnAttr}" data-cgl-arg="Emailed insured">📧 Emailed Insured</button>
+                                <button class="cgl-quick-note-btn" data-cgl-action="addQuickNote" data-cgl-pn="${pnAttr}" data-cgl-arg="Left voicemail">📱 Left Voicemail</button>
+                                <button class="cgl-quick-note-btn confirm" data-cgl-action="addQuickNote" data-cgl-pn="${pnAttr}" data-cgl-arg="Renewal term confirmed">✅ Renewal Confirmed</button>
                             </div>
                             <div class="cgl-quick-notes-row cgl-state-actions">
-                                <button class="cgl-quick-note-btn renew" onclick="ComplianceDashboard.markRenewed('${pn}')">🔄 Renewed (New Policy #)</button>
+                                <button class="cgl-quick-note-btn renew" data-cgl-action="markRenewed" data-cgl-pn="${pnAttr}">🔄 Renewed (New Policy #)</button>
                                 ${(policy.policyType || 'cgl') === 'bond'
-                                    ? `<button class="cgl-quick-note-btn hs-done" onclick="ComplianceDashboard.markHawksoftUpdated('${pn}')">🦅 HawkSoft Updated</button>`
-                                    : `<button class="cgl-quick-note-btn state-done" onclick="ComplianceDashboard.markStateUpdated('${pn}')">🏛️ State Updated</button>`}
-                                <button class="cgl-quick-note-btn cgl-snooze-quick" onclick="ComplianceDashboard.snoozePolicy('${pn}')">💤 Sleep Until Tomorrow</button>
+                                    ? `<button class="cgl-quick-note-btn hs-done" data-cgl-action="markHawksoftUpdated" data-cgl-pn="${pnAttr}">🦅 HawkSoft Updated</button>`
+                                    : `<button class="cgl-quick-note-btn state-done" data-cgl-action="markStateUpdated" data-cgl-pn="${pnAttr}">🏛️ State Updated</button>`}
+                                <button class="cgl-quick-note-btn cgl-snooze-quick" data-cgl-action="snoozePolicy" data-cgl-pn="${pnAttr}">💤 Sleep Until Tomorrow</button>
                             </div>
                         </div>
                         <textarea class="cgl-note-input" rows="1" placeholder="Add a note…" onblur="ComplianceDashboard.saveNote('${pn}')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"></textarea>
@@ -2564,7 +2621,7 @@ const ComplianceDashboard = {
             tbody.innerHTML += `
                 <tr class="cgl-show-more-row">
                     <td colspan="${colSpan}" style="text-align: center; padding: 16px;">
-                        <button onclick="ComplianceDashboard.showMore()" class="cgl-show-more-btn">
+                        <button data-cgl-action="showMore" class="cgl-show-more-btn">
                             Show ${nextBatch} More (${remaining} remaining)
                         </button>
                     </td>
@@ -2867,30 +2924,31 @@ const ComplianceDashboard = {
     renderLICCBBadges(policy) {
         if (!this._isLICCBApplicableType(policy)) return '';
         const c = this.getClientCompliance(policy.clientNumber);
-        // escapeAttr neutralizes attribute-breakout (' → &#39;, " → &quot;).
+        // Standard attribute encoding for use inside data-cgl-cn="…".
         const cn = Utils.escapeAttr(String(policy.clientNumber || ''));
         const exp = policy.expirationDate || '';
         if (!c || !c.classification || c.classification === 'unverified') {
-            return `<span class="cgl-li-badge unverified" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Verify against WA L&amp;I and OR CCB">❓ Verify</span>`;
+            return `<span class="cgl-li-badge unverified" data-cgl-action="reverifyClient" data-cgl-cn="${cn}" title="Verify against WA L&amp;I and OR CCB">❓ Verify</span>`;
         }
         if (c.classification === 'exempt') return '';
         const html = [];
+        const expAttr = Utils.escapeAttr(exp);
         if (c.classification === 'wa-contractor' || c.classification === 'wa-or-contractor') {
             const reported = c.waReportedForExp && c.waReportedForExp === exp;
             if (reported) {
                 const date = c.waReportedAt ? new Date(c.waReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                html.push(`<span class="cgl-li-badge reported" onclick="ComplianceDashboard.clearReportedWA('${cn}')" title="Reported to WA L&amp;I${date ? ' on ' + date : ''}. Click to clear.">✅ WA L&amp;I${date ? ' · ' + date : ''}</span>`);
+                html.push(`<span class="cgl-li-badge reported" data-cgl-action="clearReportedWA" data-cgl-cn="${cn}" title="Reported to WA L&amp;I${date ? ' on ' + date : ''}. Click to clear.">✅ WA L&amp;I${date ? ' · ' + date : ''}</span>`);
             } else {
-                html.push(`<span class="cgl-li-badge needs-report" onclick="ComplianceDashboard.markReportedToWA('${cn}', '${Utils.escapeAttr(exp)}')" title="Mark as reported to lni.wa.gov for current expiration">🛠️ WA L&amp;I</span>`);
+                html.push(`<span class="cgl-li-badge needs-report" data-cgl-action="markReportedToWA" data-cgl-cn="${cn}" data-cgl-arg="${expAttr}" title="Mark as reported to lni.wa.gov for current expiration">🛠️ WA L&amp;I</span>`);
             }
         }
         if (c.classification === 'or-contractor' || c.classification === 'wa-or-contractor') {
             const reported = c.orReportedForExp && c.orReportedForExp === exp;
             if (reported) {
                 const date = c.orReportedAt ? new Date(c.orReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                html.push(`<span class="cgl-ccb-badge reported" onclick="ComplianceDashboard.clearReportedOR('${cn}')" title="Reported to OR CCB${date ? ' on ' + date : ''}. Click to clear.">✅ OR CCB${date ? ' · ' + date : ''}</span>`);
+                html.push(`<span class="cgl-ccb-badge reported" data-cgl-action="clearReportedOR" data-cgl-cn="${cn}" title="Reported to OR CCB${date ? ' on ' + date : ''}. Click to clear.">✅ OR CCB${date ? ' · ' + date : ''}</span>`);
             } else {
-                html.push(`<span class="cgl-ccb-badge needs-report" onclick="ComplianceDashboard.markReportedToOR('${cn}', '${Utils.escapeAttr(exp)}')" title="Mark as reported to ccb.state.or.us for current expiration">🛠️ OR CCB</span>`);
+                html.push(`<span class="cgl-ccb-badge needs-report" data-cgl-action="markReportedToOR" data-cgl-cn="${cn}" data-cgl-arg="${expAttr}" title="Mark as reported to ccb.state.or.us for current expiration">🛠️ OR CCB</span>`);
             }
         }
         return html.join(' ');
@@ -2904,7 +2962,7 @@ const ComplianceDashboard = {
         const cn = Utils.escapeAttr(String(policy.clientNumber || ''));
         const cls = c.classification || 'unverified';
         const src = c.classificationSource || 'auto';
-        const opt = (val, label) => `<button class="cgl-class-btn ${cls === val ? 'active' : ''}" onclick="ComplianceDashboard.setClientClassification('${cn}', '${val}')">${label}</button>`;
+        const opt = (val, label) => `<button class="cgl-class-btn ${cls === val ? 'active' : ''}" data-cgl-action="setClientClassification" data-cgl-cn="${cn}" data-cgl-arg="${val}">${label}</button>`;
         const sourceLabel = src === 'manual' ? 'manual override' : (cls === 'unverified' ? 'unverified' : 'auto-detected');
         return `
             <div class="cgl-classification-row">
@@ -2913,7 +2971,7 @@ const ComplianceDashboard = {
                 ${opt('or-contractor', 'OR CCB')}
                 ${opt('wa-or-contractor', 'Both')}
                 ${opt('exempt', 'Exempt')}
-                <button class="cgl-class-reverify" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Re-run automatic verification against L&amp;I and CCB registries">🔄 Re-verify</button>
+                <button class="cgl-class-reverify" data-cgl-action="reverifyClient" data-cgl-cn="${cn}" title="Re-run automatic verification against L&amp;I and CCB registries">🔄 Re-verify</button>
                 <span class="cgl-classification-source">${sourceLabel}</span>
             </div>
         `;
