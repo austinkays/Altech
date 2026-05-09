@@ -249,11 +249,11 @@ Focus on:
 
             // Render results
             this._renderCoverageGapResults(parsed, resultsDiv);
-            this.toast(`✅ Found ${parsed.gaps.length} coverage insights`, 'success');
+            this.toast(`✅ Found ${parsed.gaps.length} coverage insights`, { type: 'success' });
 
         } catch (err) {
             console.error('[CoverageGap]', err);
-            this.toast(`❌ ${err.message || 'Coverage analysis failed'}`, 'error');
+            this.toast(`❌ ${err.message || 'Coverage analysis failed'}`, { type: 'error' });
         } finally {
             if (btn) { btn.disabled = false; btn.textContent = 'Analyze Coverage Gaps'; }
         }

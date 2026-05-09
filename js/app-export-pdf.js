@@ -14,7 +14,7 @@ Object.assign(App, {
         try {
             await window.PDFLibs.ensure('jspdf');
         } catch (e) {
-            this.toast('PDF library failed to load — check your internet connection', 'error');
+            this.toast('PDF library failed to load — check your internet connection', { type: 'error', duration: 4000 });
             throw e;
         }
         const { jsPDF } = window.jspdf;

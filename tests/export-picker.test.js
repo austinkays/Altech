@@ -188,7 +188,7 @@ describe('App export picker', () => {
             const modal = doc.getElementById('ezExportPickerModal');
             modal.querySelectorAll('.ez-picker-format__cb').forEach(cb => { cb.checked = false; });
             App._runSelectedExports();
-            expect(toastSpy).toHaveBeenCalledWith(expect.stringContaining('Pick at least one'), 'error');
+            expect(toastSpy).toHaveBeenCalledWith(expect.stringContaining('Pick at least one'), { type: 'error' });
             // Modal remains
             expect(doc.getElementById('ezExportPickerModal')).toBeTruthy();
             toastSpy.mockRestore();

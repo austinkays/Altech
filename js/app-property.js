@@ -13,7 +13,7 @@ Object.assign(App, {
         const zip = this.data.addrZip || '';
 
         if (!address || !city || !state) {
-            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
+            this.toast('Please enter a complete address (street, city, and state) first.', { type: 'error' });
             return;
         }
 
@@ -111,7 +111,7 @@ Object.assign(App, {
         } catch (error) {
             console.error('Smart auto-fill error:', error);
             btn.innerHTML = '❌ Failed';
-            this.toast('Failed to retrieve property data. Try manually entering details or using Redfin lookup.', 'error');
+            this.toast('Failed to retrieve property data. Try manually entering details or using Redfin lookup.', { type: 'error' });
 
             setTimeout(() => {
                 btn.innerHTML = originalText;
@@ -896,7 +896,7 @@ IMPORTANT: Return null for ANY field you cannot find explicitly stated in the so
         const zip = this.data.addrZip || '';
         
         if (!address || !city || !state) {
-            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
+            this.toast('Please enter a complete address (street, city, and state) first.', { type: 'error' });
             return;
         }
         

@@ -170,7 +170,7 @@ Object.assign(App, {
 
     openRedfin() {
         const a = `${this.data.addrStreet || ''} ${this.data.addrCity || ''} ${this.data.addrState || ''} ${this.data.addrZip || ''}`.trim();
-        if (!a) { this.toast('Please enter an address first.', 'error'); return; }
+        if (!a) { this.toast('Please enter an address first.', { type: 'error' }); return; }
         // Google search for Redfin listing — clicking through from Google lands directly on the property page
         window.open(`https://www.google.com/search?q=${encodeURIComponent(a + ' redfin')}`, '_blank');
     },
@@ -179,7 +179,7 @@ Object.assign(App, {
     // Accepts a Redfin/Zillow/Realtor URL or plain address, uses AI to extract property details.
     async lookupListingUrl(query) {
         if (!query || typeof query !== 'string' || !query.trim()) {
-            this.toast('Paste a listing URL or type an address.', 'error');
+            this.toast('Paste a listing URL or type an address.', { type: 'error' });
             return;
         }
         const trimmed = query.trim();
@@ -192,7 +192,7 @@ Object.assign(App, {
             statusEl.textContent = `Searching ${label}…`;
             statusEl.style.display = '';
         }
-        this.toast(`🔍 Searching ${label}…`, 'info');
+        this.toast(`🔍 Searching ${label}…`, { type: 'info' });
 
         try {
             const resp = await fetch('/api/property-intelligence?mode=listing-search', {
@@ -203,7 +203,7 @@ Object.assign(App, {
             const result = await resp.json();
 
             if (!result.success) {
-                this.toast(`⚠️ ${result.error || 'No property data found.'}`, 'error');
+                this.toast(`⚠️ ${result.error || 'No property data found.'}`, { type: 'error' });
                 if (statusEl) statusEl.style.display = 'none';
                 return;
             }
@@ -228,7 +228,7 @@ Object.assign(App, {
             // Apply extracted property data using existing Zillow-style applier
             this.applyZillowSelects(data);
 
-            this.toast(`✅ Found ${count} property details from ${label}!`, 'success');
+            this.toast(`✅ Found ${count} property details from ${label}!`, { type: 'success' });
             if (statusEl) {
                 statusEl.textContent = `✓ ${count} fields from ${result.source || 'Web Search'}`;
                 setTimeout(() => { statusEl.style.display = 'none'; }, 5000);
@@ -237,7 +237,7 @@ Object.assign(App, {
             this.save();
         } catch (err) {
             console.error('[lookupListingUrl]', err);
-            this.toast('❌ Listing search failed. Try again.', 'error');
+            this.toast('❌ Listing search failed. Try again.', { type: 'error' });
             if (statusEl) statusEl.style.display = 'none';
         }
     },
@@ -314,7 +314,7 @@ Object.assign(App, {
         // ── Auto-fill property data (shared by clipboard and postMessage) ──
         autoFillPropertyData(propertyData) {
             if (!propertyData || !propertyData.data) {
-                this.toast('⚠️ Invalid property data received', 'error');
+                this.toast('⚠️ Invalid property data received', { type: 'error' });
                 return;
             }
 
@@ -428,7 +428,7 @@ Object.assign(App, {
         const zip = this.data.addrZip || '';
         const fullAddr = `${address} ${city} ${state} ${zip}`.trim();
         if (!address || !city || !state) {
-            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
+            this.toast('Please enter a complete address (street, city, and state) first.', { type: 'error' });
             return;
         }
         // Copy address to clipboard so user can paste into assessor search
@@ -528,7 +528,7 @@ Object.assign(App, {
         const zip = this.data.addrZip || '';
         
         if (!address || !city || !state) {
-            this.toast('Please enter a complete address (street, city, and state) first.', 'error');
+            this.toast('Please enter a complete address (street, city, and state) first.', { type: 'error' });
             return;
         }
         

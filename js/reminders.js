@@ -30,6 +30,9 @@ window.Reminders = (() => {
         lastAlertShown: 0
     };
 
+    // Module-level wiring flag — kept off _state so it doesn't get serialized.
+    let _escWired = false;
+
     // ── Persistence ──
 
     function _save() {
@@ -1147,6 +1150,27 @@ window.Reminders = (() => {
         const catFilter = document.getElementById('remCategoryFilter');
         if (catFilter) {
             catFilter.addEventListener('change', () => render());
+        }
+        // ESC closes whichever overlay is open. Standard modal UX expectation;
+        // previously you had to click the × button or click outside. Guard
+        // with a module-level flag so re-navigating to the plugin doesn't
+        // stack handlers.
+        if (!_escWired) {
+            document.addEventListener('keydown', _handleEscape);
+            _escWired = true;
+        }
+    }
+
+    function _handleEscape(e) {
+        if (e.key !== 'Escape') return;
+        const editModal = document.getElementById('remEditModal');
+        if (editModal && editModal.style.display !== 'none') {
+            closeEdit();
+            return;
+        }
+        const snoozeOverlay = document.getElementById('remSnoozeOverlay');
+        if (snoozeOverlay && snoozeOverlay.style.display !== 'none') {
+            closeSnoozeMenu();
         }
     }
 

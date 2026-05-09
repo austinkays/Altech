@@ -29,7 +29,7 @@ Object.assign(App, {
         const driver = this.drivers.find(d => d.id === id);
         // Prevent removing the synced primary applicant driver
         if (driver && driver.isPrimaryApplicant) {
-            if (typeof this.toast === 'function') this.toast('Primary applicant driver cannot be removed.', 'error');
+            if (typeof this.toast === 'function') this.toast('Primary applicant driver cannot be removed.', { type: 'error' });
             return;
         }
         // If removing a synced co-applicant driver, uncheck the co-applicant toggle

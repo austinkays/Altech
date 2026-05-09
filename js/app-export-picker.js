@@ -193,7 +193,7 @@ Object.assign(App, {
             .filter(cb => cb.checked && !cb.disabled)
             .map(cb => cb.value);
         if (!checked.length) {
-            if (typeof this.toast === 'function') this.toast('Pick at least one format to download', 'error');
+            if (typeof this.toast === 'function') this.toast('Pick at least one format to download', { type: 'error' });
             return;
         }
 
@@ -215,7 +215,7 @@ Object.assign(App, {
             try {
                 Promise.resolve(f.fn()).catch(err => {
                     console.error('[ExportPicker] export failed:', f.label, err);
-                    if (typeof this.toast === 'function') this.toast(`${f.label} export failed`, 'error');
+                    if (typeof this.toast === 'function') this.toast(`${f.label} export failed`, { type: 'error' });
                 });
                 ran.push(f.label);
             } catch (err) {
