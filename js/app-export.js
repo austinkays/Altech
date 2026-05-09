@@ -5,6 +5,22 @@
 'use strict';
 
 Object.assign(App, {
+    /**
+     * Sanitize a string for safe inclusion in a download filename.
+     * Strips Windows reserved characters (< > : " | ? * \ /) plus control bytes,
+     * collapses whitespace, and trims trailing dots/spaces (Windows rejects them).
+     * Falls back to `fallback` if the result is empty.
+     */
+    _safeFileNamePart(value, fallback = 'Client') {
+        const cleaned = String(value == null ? '' : value)
+            .replace(/[<>:"|?*\\/]/g, '_')                       // path / reserved
+            .replace(/[\u0000-\u001f]/g, '')             // strip control bytes
+            .replace(/\s+/g, ' ')
+            .replace(/^[\s.]+|[\s.]+$/g, '')              // no leading/trailing dot or space
+            .slice(0, 80);                                 // keep filenames sane
+        return cleaned || fallback;
+    },
+
     exportText() {
         const result = this.buildText(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
@@ -14,7 +30,7 @@ Object.assign(App, {
 
     buildText(data) {
         const content = this.getNotesForData(data);
-        const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.txt`;
+        const fileName = `Insurance_Application_${this._safeFileNamePart(data.lastName, 'Client')}_${new Date().toISOString().split('T')[0]}.txt`;
         return { content, filename: fileName, mime: 'text/plain;charset=utf-8' };
     },
 

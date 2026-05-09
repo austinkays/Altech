@@ -44,6 +44,32 @@ const ComplianceDashboard = {
     _printMode: false,
     _selectedForPrint: new Set(),
     _openNoteRows: new Set(),  // policy numbers with expanded note rows — restored across re-renders
+    _quotaToastShown: false,   // de-dupe: only show the localStorage-full toast once per session
+
+    /**
+     * Write to localStorage with surfaced error handling.
+     * On QuotaExceededError, shows a one-time toast (IDB has the same data so
+     * it's not data loss — just stale fast-path until the user clears space).
+     * Returns true on success, false on any failure.
+     */
+    _safeLSWrite(key, value) {
+        try {
+            localStorage.setItem(key, value);
+            return true;
+        } catch (e) {
+            const isQuota = e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014);
+            if (isQuota && !this._quotaToastShown) {
+                this._quotaToastShown = true;
+                console.warn('[CGL] localStorage quota exceeded for', key, '— falling back to IndexedDB only.');
+                if (window.App && typeof App.toast === 'function') {
+                    App.toast('Browser storage is full — CGL data is kept in IndexedDB but the fast-path cache is disabled. Clear site data to restore.', { type: 'warning', duration: 6000 });
+                }
+            } else if (!isQuota) {
+                console.warn('[CGL] localStorage write failed for', key, ':', e && e.message);
+            }
+            return false;
+        }
+    },
 
     // --- Vercel KV helpers ---
 
@@ -162,8 +188,9 @@ const ComplianceDashboard = {
             this._updateSaveStatus('error');
         });
 
-        // 2. BACKUP: localStorage (survives page reload)
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj));
+        // 2. BACKUP: localStorage (survives page reload). _safeLSWrite surfaces
+        // quota errors via toast and won't throw out of this dispatch path.
+        this._safeLSWrite(STORAGE_KEY, JSON.stringify(stateObj));
 
         // 3. BACKUP: Linked disk file (File System Access API)
         if (this.fileHandle) {
@@ -240,8 +267,8 @@ const ComplianceDashboard = {
                 }
                 this._stateLoaded = true;
                 console.log('[CGL] Merged disk state: verified=' + Object.keys(this.verifiedPolicies).length + ', dismissed=' + Object.keys(this.dismissedPolicies).length + ', notes=' + Object.keys(this.policyNotes).length);
-                // Save merged result back
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                // Save merged result back via the quota-aware writer.
+                this._safeLSWrite(STORAGE_KEY, JSON.stringify({
                     verifiedPolicies: this.verifiedPolicies,
                     dismissedPolicies: this.dismissedPolicies,
                     policyNotes: this.policyNotes,
@@ -499,8 +526,8 @@ const ComplianceDashboard = {
 
             this.fileHandle = handle;
 
-            // Sync to localStorage as backup
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            // Sync to localStorage as backup (quota-aware).
+            this._safeLSWrite(STORAGE_KEY, JSON.stringify({
                 verifiedPolicies: this.verifiedPolicies,
                 dismissedPolicies: this.dismissedPolicies,
                 lastSaved: new Date().toISOString()
@@ -741,7 +768,7 @@ const ComplianceDashboard = {
             this._stateLoaded = true;
             const snapshot = this._getStateSnapshot();
             CglIDB.setAnnotations(snapshot).catch(() => {});
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); } catch (e) {}
+            this._safeLSWrite(STORAGE_KEY, JSON.stringify(snapshot));
             console.log('[CGL] 🔓 Annotations loaded — V:' +
                 Object.keys(this.verifiedPolicies).length + ' D:' +
                 Object.keys(this.dismissedPolicies).length + ' N:' +
@@ -936,7 +963,7 @@ const ComplianceDashboard = {
 
         // Promote to IDB + localStorage in background
         CglIDB.set(IDB_POLICY_KEY, cached).catch(() => {});
-        try { localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cached)); } catch (e) {}
+        this._safeLSWrite(CGL_CACHE_KEY, JSON.stringify(cached));
 
         // If cache is stale AND we're NOT on localhost, refresh in background
         // (On localhost, HawkSoft API is never reachable — skip to avoid console errors)
@@ -1240,7 +1267,7 @@ const ComplianceDashboard = {
                     console.log('[CGL] Cache loaded from disk:', cached.policies.length, 'CGL +', cached.allPolicies.length, 'total policies');
                     // Restore to IndexedDB + localStorage
                     CglIDB.set(IDB_POLICY_KEY, cached).catch(() => {});
-                    try { localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cached)); } catch (e) {}
+                    this._safeLSWrite(CGL_CACHE_KEY, JSON.stringify(cached));
                     return cached;
                 }
             }
@@ -1931,7 +1958,7 @@ const ComplianceDashboard = {
             <div class="cgl-note-entry">
                 <span class="cgl-note-entry-text">${iconHtml}${Utils.escapeHTML(entry.text)}</span>
                 <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
-                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${Utils.escapeHTML(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
+                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${Utils.escapeAttr(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
             </div>
         `;
         }).join('');
@@ -2172,13 +2199,18 @@ const ComplianceDashboard = {
             const logEl = noteRow.querySelector('.cgl-note-log');
             if (logEl) logEl.innerHTML = this.renderNoteLog(policyNumber);
         }
-        // Update renewed badge
+        // Update renewed badge. Use escapeAttr inside attribute-context strings
+        // (single-quoted onclick) so embedded apostrophes/quotes can't break out;
+        // escapeHTML only escapes < > & and is unsafe inside attribute values.
         const badgeEl = document.getElementById('renewed-badge-' + policyNumber);
         if (badgeEl && data && data.renewedTo) {
             badgeEl.style.display = 'inline-flex';
             badgeEl.style.alignItems = 'center';
             badgeEl.style.gap = '4px';
-            badgeEl.innerHTML = `<span onclick="ComplianceDashboard.searchForPolicy('${data.renewedTo}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${data.renewedTo}</span><span onclick="ComplianceDashboard.clearRenewed('${policyNumber}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>`;
+            const renewedToAttr = Utils.escapeAttr(data.renewedTo);
+            const renewedToText = Utils.escapeHTML(data.renewedTo);
+            const pnAttr = Utils.escapeAttr(policyNumber);
+            badgeEl.innerHTML = `<span onclick="ComplianceDashboard.searchForPolicy('${renewedToAttr}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${renewedToText}</span><span onclick="ComplianceDashboard.clearRenewed('${pnAttr}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>`;
         } else if (badgeEl) {
             badgeEl.style.display = 'none';
             badgeEl.innerHTML = '';
@@ -2415,7 +2447,12 @@ const ComplianceDashboard = {
             const pType = (policy.policyType || 'cgl');
 
             const rowClass = isHidden ? 'hidden-row' : (needsStateUpdate ? 'cgl-needs-state-row' : (isAnyUpdateDone ? 'cgl-state-updated-row' : ''));
-            const pn = policy.policyNumber.replace(/'/g, "\\\\'");
+            // Escape for safe interpolation inside `onclick="fn('${pn}')"` patterns.
+            // The previous \\\\' replacement was broken — Utils.escapeAttr converts
+            // ' → &#39; and " → &quot;, which neutralizes attribute breakout. (Policy
+            // numbers with apostrophes will trip a JS syntax error in the resulting
+            // onclick rather than execute attacker payload — non-exploitable failure.)
+            const pn = Utils.escapeAttr(policy.policyNumber);
 
             const verifiedTitle = isVerified
                 ? 'Verified on ' + new Date(this.verifiedPolicies[policy.policyNumber].updatedAt).toLocaleDateString()
@@ -2469,8 +2506,8 @@ const ComplianceDashboard = {
                         <div>${Utils.escapeHTML(policy.policyNumber)}</div>
                         ${renewedTo
                             ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
-                                <span onclick="ComplianceDashboard.searchForPolicy('${Utils.escapeHTML(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
-                                <span onclick="ComplianceDashboard.clearRenewed('${pn}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
+                                <span onclick="ComplianceDashboard.searchForPolicy('${Utils.escapeAttr(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
+                                <span onclick="ComplianceDashboard.clearRenewed('${Utils.escapeAttr(pn)}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
                                </span>`
                             : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
                     </td>
@@ -2826,7 +2863,8 @@ const ComplianceDashboard = {
     renderLICCBBadges(policy) {
         if (!this._isLICCBApplicableType(policy)) return '';
         const c = this.getClientCompliance(policy.clientNumber);
-        const cn = String(policy.clientNumber || '').replace(/'/g, "\\'");
+        // escapeAttr neutralizes attribute-breakout (' → &#39;, " → &quot;).
+        const cn = Utils.escapeAttr(String(policy.clientNumber || ''));
         const exp = policy.expirationDate || '';
         if (!c || !c.classification || c.classification === 'unverified') {
             return `<span class="cgl-li-badge unverified" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Verify against WA L&amp;I and OR CCB">❓ Verify</span>`;
@@ -2858,7 +2896,8 @@ const ComplianceDashboard = {
     renderClassificationOverride(policy) {
         if (!this._isLICCBApplicableType(policy)) return '';
         const c = this.getClientCompliance(policy.clientNumber) || {};
-        const cn = String(policy.clientNumber || '').replace(/'/g, "\\'");
+        // escapeAttr neutralizes attribute-breakout in the onclick interpolations below.
+        const cn = Utils.escapeAttr(String(policy.clientNumber || ''));
         const cls = c.classification || 'unverified';
         const src = c.classificationSource || 'auto';
         const opt = (val, label) => `<button class="cgl-class-btn ${cls === val ? 'active' : ''}" onclick="ComplianceDashboard.setClientClassification('${cn}', '${val}')">${label}</button>`;

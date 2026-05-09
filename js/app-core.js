@@ -438,8 +438,17 @@ Object.assign(App, {
             this.data.multiPolicy = mpVal;
         }
 
-        // Reset step if out of bounds
-        if (this.step >= this.flow.length) this.step = 0;
+        // Keep the user on a sensible step after a workflow swap. If the step
+        // they were on still exists in the new flow (matched by step ID, not
+        // index), stay there. Otherwise clamp to the closest valid index so we
+        // don't yank them back to step 0 mid-intake.
+        const prevStepId = prevFlow[this.step];
+        const newIdx = prevStepId ? this.flow.indexOf(prevStepId) : -1;
+        if (newIdx >= 0) {
+            this.step = newIdx;
+        } else if (this.step >= this.flow.length) {
+            this.step = this.flow.length - 1;
+        }
         this.updateUI();
         this.save({ target: document.querySelector('input[name="qType"]:checked') });
     },

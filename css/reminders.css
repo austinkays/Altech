@@ -919,12 +919,12 @@ body.dark-mode .rem-field textarea:focus {
 }
 
 body.dark-mode .rem-action-btn:hover {
-    background: #2C2C2E;
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
 
 body.dark-mode .rem-snooze-btn:hover {
-    background: #2C2C2E;
+    background: rgba(255, 255, 255, 0.08);
     color: #fff;
 }
 

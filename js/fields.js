@@ -199,7 +199,7 @@ window.FIELDS = [
     { id: 'homePriorExp',         label: 'Home Prior Exp.',     type: 'date',   section: 'prior-insurance', ezlynxRequired: true }, // PDF only — not in HawkSoft FSC
     { id: 'homePriorLiability',   label: 'Home Prior Liability',type: 'text',   section: 'prior-insurance' }, // PDF only — not in HawkSoft FSC
     { id: 'homePriorPolicyStatus', label: 'Home Prior Policy Status', type: 'select', section: 'prior-insurance' }, // PDF only — underwriting risk flag (non-renewal/cancellation)
-    { id: 'creditCheckAuth',      label: 'Credit Check Authorization', type: 'checkbox', section: 'prior-insurance', ezlynxRequired: true }, // note: uses checkbox-row in quoting.html — DOM pass cannot auto-stamp
+    { id: 'creditCheckAuth',      label: 'Credit Check Authorization', type: 'checkbox', section: 'prior-insurance', ezlynxRequired: true },
 
     // ── Notes / Contact ────────────────────────────────────────────────────
     { id: 'referralSource', label: 'Referral Source',    type: 'select',   section: 'notes' },

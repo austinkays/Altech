@@ -780,7 +780,20 @@ Object.assign(App, {
         // ════════════════════════════════════════════════════════════════
         drawPageFooter();
 
-        const fileName = `Insurance_Application_${data.lastName||'Client'}_${new Date().toISOString().split('T')[0]}.pdf`;
-        return { blob: doc.output('blob'), filename: fileName };
+        const fileName = `Insurance_Application_${this._safeFileNamePart(data.lastName, 'Client')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        // doc.output('blob') can throw OutOfMemory on very large PDFs (50+ drivers/
+        // vehicles or huge note bodies). Surface a user-visible message rather than
+        // letting the unhandled exception crash the session.
+        let blob;
+        try {
+            blob = doc.output('blob');
+        } catch (err) {
+            console.error('[ExportPDF] blob output failed:', err);
+            if (typeof this.toast === 'function') {
+                this.toast('PDF too large to render — try removing some drivers/vehicles or shortening notes.', { type: 'error', duration: 6000 });
+            }
+            throw err;
+        }
+        return { blob, filename: fileName };
     },
 });

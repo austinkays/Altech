@@ -296,11 +296,17 @@ Object.assign(App, {
         if (data.additionalInsureds) notesParts.push(`Additional Insureds: ${data.additionalInsureds}`);
         if (data.pdfNotes) notesParts.push(`Notes: ${data.pdfNotes}`);
 
-        lines.push(_line('gen_sClientNotes', notesParts.join(' | ')));
+        // Truncate runaway notes — HawkSoft's gen_sClientNotes buffer caps out
+        // and oversized values can corrupt the import file. 2KB is generous.
+        const joinedNotes = notesParts.join(' | ');
+        const trimmedNotes = joinedNotes.length > 2000 ? joinedNotes.slice(0, 1997) + '...' : joinedNotes;
+        lines.push(_line('gen_sClientNotes', trimmedNotes));
 
-        // Filter empty lines and join
-        const content = lines.filter(l => l).join('\n');
+        // Filter empty lines and join with CRLF — HawkSoft's CMSMTF import is a
+        // Windows tagged-file format that expects CRLF line endings (matches the
+        // dec-import generator at js/dec-import.js).
+        const content = lines.filter(l => l).join('\r\n') + '\r\n';
 
-        return { content, filename: `Lead_${data.lastName || 'Export'}.cmsmtf`, mime: 'text/plain;charset=utf-8' };
+        return { content, filename: `Lead_${this._safeFileNamePart(data.lastName, 'Export')}.cmsmtf`, mime: 'text/plain;charset=utf-8' };
     },
 });

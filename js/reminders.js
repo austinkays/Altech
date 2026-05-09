@@ -99,13 +99,19 @@ window.Reminders = (() => {
                     changed = true;
                 }
             } else if (freq === 'monthly') {
-                // Monthly — advance to current month if past
-                const thisMonth = new Date(today.getFullYear(), today.getMonth(), due.getDate());
+                // Monthly — advance to current month if past. Clamp the day to
+                // the target month's last day so e.g. a "31st" task falls on
+                // Feb 28/29 instead of overflowing to March 3 via Date rollover.
+                const targetDay = due.getDate();
+                const buildClamped = (year, monthIndex) => {
+                    const lastDay = new Date(year, monthIndex + 1, 0).getDate();
+                    return new Date(year, monthIndex, Math.min(targetDay, lastDay));
+                };
+                const thisMonth = buildClamped(today.getFullYear(), today.getMonth());
                 if (thisMonth >= today) {
                     task.dueDate = _toDateStr(thisMonth);
                 } else {
-                    // Already past this month's date — advance to next month
-                    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, due.getDate());
+                    const nextMonth = buildClamped(today.getFullYear(), today.getMonth() + 1);
                     task.dueDate = _toDateStr(nextMonth);
                 }
                 changed = true;
@@ -213,14 +219,28 @@ window.Reminders = (() => {
     /** Check if a task's snooze is still active. Cleans up expired snoozes. */
     function _isSnoozeActive(task) {
         if (!task.snooze) return false;
-        const now = _nowPST();
-        const until = new Date(task.snooze.until);
-        if (now > until) {
-            // Snooze expired — clean up
-            _clearExpiredSnooze(task);
-            return false;
+        // Newer snooze records carry untilPSTDate (YYYY-MM-DD); compare PST date
+        // strings so the expiry rolls over cleanly at PST midnight regardless of
+        // the device's local timezone.
+        if (task.snooze.untilPSTDate) {
+            if (_todayPST() > task.snooze.untilPSTDate) {
+                _clearExpiredSnooze(task);
+                return false;
+            }
+            return true;
         }
-        return true;
+        // Legacy snooze records used a UTC ISO instant — fall back to the old
+        // moment-based comparison so previously-stored snoozes don't get stuck.
+        if (task.snooze.until) {
+            const now = _nowPST();
+            const until = new Date(task.snooze.until);
+            if (Number.isNaN(until.getTime()) || now > until) {
+                _clearExpiredSnooze(task);
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     function _clearExpiredSnooze(task) {
@@ -274,7 +294,15 @@ window.Reminders = (() => {
                 next.setDate(next.getDate() + daysUntilMon);
             }
             else if (freq === 'biweekly') next.setDate(next.getDate() + 14);
-            else if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
+            else if (freq === 'monthly') {
+                // Clamp the day so e.g. Jan 31 advances to Feb 28/29 instead of
+                // overflowing to March 3 via Date's silent rollover.
+                const targetDay = next.getDate();
+                const lastOfNext = new Date(next.getFullYear(), next.getMonth() + 2, 0).getDate();
+                next.setDate(1);                 // pin to a safe day before changing month
+                next.setMonth(next.getMonth() + 1);
+                next.setDate(Math.min(targetDay, lastOfNext));
+            }
             else break; // 'once' — don't advance
         }
         return _toDateStr(next);
@@ -555,18 +583,23 @@ window.Reminders = (() => {
 
     // ── Snooze / Defer Actions ──
 
-    /** Snooze until 11:59 PM PST tonight */
+    /** Snooze until end-of-day PST tonight (re-armed when PST date rolls over) */
     function snoozeUntilTonight(id) {
         const task = _state.tasks.find(t => t.id === id);
         if (!task) return;
         const todayStr = _todayPST();
-        const [y, m, d] = todayStr.split('-').map(Number);
-        // Create a timestamp for 11:59 PM PST today
-        // We store as ISO string but the check uses PST comparison
-        const endOfDay = new Date(y, m - 1, d, 23, 59, 59);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(todayStr)) {
+            console.warn('[Reminders] _todayPST returned unexpected value:', todayStr);
+            return;
+        }
+        // Store the PST date string the snooze should expire AFTER. Avoids
+        // constructing a timezone-aware moment in non-PST locales (the previous
+        // approach built endOfDay in the user's *local* timezone, which expired
+        // hours early for EST/CST users). _isSnoozeActive compares PST date
+        // strings instead of UTC moments.
         task.snooze = {
             type: 'snooze-tonight',
-            until: endOfDay.toISOString(),
+            untilPSTDate: todayStr,
             originalDueDate: task.dueDate
         };
         _save();
@@ -584,10 +617,11 @@ window.Reminders = (() => {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
         const originalDue = task.dueDate;
-        task.dueDate = _toDateStr(tomorrow);
+        const tomorrowStr = _toDateStr(tomorrow);
+        task.dueDate = tomorrowStr;
         task.snooze = {
             type: 'push-tomorrow',
-            until: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59).toISOString(),
+            untilPSTDate: tomorrowStr,
             originalDueDate: originalDue
         };
         _save();
@@ -602,9 +636,13 @@ window.Reminders = (() => {
         const task = _state.tasks.find(t => t.id === id);
         if (!task) return;
         const nextMon = _getNextMonday();
+        // Active through Sunday inclusive; expires when PST date rolls into
+        // Monday. Storing the Sunday date string keeps the comparison TZ-safe.
+        const sunday = new Date(nextMon);
+        sunday.setDate(sunday.getDate() - 1);
         task.snooze = {
             type: 'skip-week',
-            until: new Date(nextMon.getFullYear(), nextMon.getMonth(), nextMon.getDate(), 0, 0, 1).toISOString(),
+            untilPSTDate: _toDateStr(sunday),
             originalDueDate: task.dueDate
         };
         _save();
@@ -985,16 +1023,25 @@ window.Reminders = (() => {
     }
 
     function saveEdit() {
-        const title = document.getElementById('remEditTitle').value.trim();
+        const titleEl = document.getElementById('remEditTitle');
+        const dueDateEl = document.getElementById('remEditDueDate');
+        const title = titleEl.value.trim();
         if (!title) {
-            document.getElementById('remEditTitle').focus();
+            titleEl.focus();
+            if (typeof App !== 'undefined' && App.toast) App.toast('Reminder title is required', 'warning');
+            return;
+        }
+        const dueDate = dueDateEl.value;
+        if (!dueDate || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+            dueDateEl.focus();
+            if (typeof App !== 'undefined' && App.toast) App.toast('Pick a due date for this reminder', 'warning');
             return;
         }
         const data = {
             title,
             notes: document.getElementById('remEditNotes').value.trim(),
             frequency: document.getElementById('remEditFrequency').value,
-            dueDate: document.getElementById('remEditDueDate').value,
+            dueDate,
             category: document.getElementById('remEditCategory').value,
             priority: document.getElementById('remEditPriority').value
         };

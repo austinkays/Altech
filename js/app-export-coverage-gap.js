@@ -198,22 +198,20 @@ Focus on:
                     }
                 }
             } else {
-                // Fall back to Gemini (or whatever provider is configured)
-                const resp = await fetch('/api/property-intelligence?mode=listing-search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query: '__coverage_gap_analysis__' })
-                }).catch(() => null);
-
-                // Actually use the AI provider directly for coverage analysis
-                if (typeof AIProvider !== 'undefined') {
+                // Fall back to whatever provider AIProvider is configured for.
+                // (Removed an old call to /api/property-intelligence?mode=listing-search
+                // that was a leftover from a different feature — the response was
+                // discarded and only AIProvider.ask() actually drove the analysis.)
+                if (typeof AIProvider !== 'undefined' && AIProvider.isConfigured && AIProvider.isConfigured()) {
                     const result = await AIProvider.ask(systemPrompt, userMessage, { temperature: 0.3, maxTokens: 4096 });
                     responseText = result?.text || result || '';
+                } else {
+                    throw new Error('No AI provider configured. Add a Gemini or Anthropic key in Settings → AI Provider.');
                 }
             }
 
             if (!responseText) {
-                throw new Error('No response from AI. Check your AI provider settings.');
+                throw new Error('No response from AI — check your AI provider key and rate limits, then try again.');
             }
 
             // Parse JSON from response

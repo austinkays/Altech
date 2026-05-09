@@ -34,7 +34,7 @@ Object.assign(App, {
         // If state is set but not in the supported list, the engine returns
         // nothing useful — surface a hint instead of an empty card.
         if (state && supported.length && !supported.includes(state)) {
-            container.innerHTML = `<div style="font-size:13px;color:var(--text-secondary);padding:8px 0;">Carrier rules currently cover ${supported.join(', ')}. No carriers evaluated for <strong>${Utils.escapeHTML(state)}</strong>.</div>`;
+            container.innerHTML = `<div style="font-size:13px;color:var(--text-secondary);padding:8px 0;">Carrier rules currently cover ${supported.join(', ')}. No carriers evaluated for <strong>${Utils.escapeHTML(state)}</strong>. <a href="#carrier-match" onclick="App.navigateTo('broadform');return false;" style="color:var(--apple-blue);">Add ${Utils.escapeHTML(state)} rules in Carrier Match →</a></div>`;
             return;
         }
 

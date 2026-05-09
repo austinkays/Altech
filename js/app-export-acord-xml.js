@@ -458,7 +458,7 @@ Object.assign(App, {
             + assignmentsXml
             + '</EZAUTO>';
 
-        const fileName = `EZLynx_Import_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.xml`;
+        const fileName = `EZLynx_Import_${this._safeFileNamePart(data.lastName, 'Client')}_${new Date().toISOString().split('T')[0]}.xml`;
         return { content: xml, filename: fileName, mime: 'application/xml;charset=utf-8' };
     },
 
@@ -766,7 +766,7 @@ Object.assign(App, {
             + lossInfo
             + '</EZHOME>';
 
-        const fileName = `EZLynx_Home_Import_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.xml`;
+        const fileName = `EZLynx_Home_Import_${this._safeFileNamePart(data.lastName, 'Client')}_${new Date().toISOString().split('T')[0]}.xml`;
         return { content: xml, filename: fileName, mime: 'application/xml;charset=utf-8' };
     },
 });
