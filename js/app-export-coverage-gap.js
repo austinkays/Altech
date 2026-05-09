@@ -16,6 +16,14 @@ Object.assign(App, {
         const hasProperty = d.qType === 'home' || d.qType === 'both';
         const hasAuto = d.qType === 'auto' || d.qType === 'both';
 
+        // Pre-flight: refuse to call the AI on a near-empty form. Without at
+        // least a state and a coverage type, the model has nothing to chew on
+        // and just returns generic boilerplate (or "no response" errors).
+        if (!d.qType || (!d.addrState && !d.firstName)) {
+            this.toast('Pick a coverage type and add at least a name or address before running coverage analysis.', { type: 'warning', duration: 5000 });
+            return;
+        }
+
         // Build context string for AI
         const lines = [];
         lines.push(`Insurance Type: ${d.qType || 'unknown'}`);

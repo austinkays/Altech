@@ -796,12 +796,16 @@ const ComplianceDashboard = {
             this.renderNotifyTypeToggles();
 
             if (searchInput) {
-                searchInput.addEventListener('input', () => {
+                // Debounce the filter so fast typing doesn't trigger a full
+                // table re-render on every keystroke (which collapses any
+                // expanded note rows and steals focus mid-stream).
+                const debouncedFilter = Utils.debounce(() => {
                     this.savedSearch = searchInput.value;
                     this._visibleCount = this._pageSize;
                     this.saveState();
                     this.filterPolicies();
-                });
+                }, 150);
+                searchInput.addEventListener('input', debouncedFilter);
             }
             if (filterSelect) {
                 filterSelect.addEventListener('change', () => {
@@ -2477,7 +2481,7 @@ const ComplianceDashboard = {
 
             return `
                 <tr class="${rowClass}${printRowClass}">
-                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${Utils.escapeHTML(policy.policyNumber)}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
+                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${Utils.escapeAttr(policy.policyNumber)}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
                     <td>
                         <label class="cgl-toggle" title="${verifiedTitle}">
                             <input type="checkbox" ${isVerified ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyVerified('${pn}')">
