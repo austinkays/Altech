@@ -31,8 +31,22 @@ const Auth = (() => {
     // Promise that resolves once Firebase auth state is first known (signed in or out)
     let _authReadyResolve;
     const _authReady = new Promise(resolve => { _authReadyResolve = resolve; });
-    // Safety timeout: resolve _authReady after 5s even if Firebase never fires onAuthStateChanged
-    setTimeout(() => { if (_authReadyResolve) { _authReadyResolve(null); _authReadyResolve = null; } }, 5000);
+    // Safety timeout: resolve _authReady after 15s even if Firebase never fires
+    // onAuthStateChanged. Previously 5s, which was too tight on slow cellular
+    // networks — callers awaiting ready() saw `null` and skipped the initial
+    // sync even though Firebase eventually came online seconds later. The
+    // _onAuthStateChanged listener still fires whenever Firebase responds, so
+    // long-running tasks can subscribe via Auth.onAuthChange / whenSignedIn for
+    // a real "signed in" signal rather than a "status known" signal.
+    const READY_TIMEOUT_MS = 15000;
+    let _authTimedOut = false;
+    setTimeout(() => {
+        if (_authReadyResolve) {
+            _authTimedOut = true;
+            _authReadyResolve(null);
+            _authReadyResolve = null;
+        }
+    }, READY_TIMEOUT_MS);
 
     // ── Auth state change callback ──
     function _onAuthStateChanged(user) {
@@ -288,6 +302,42 @@ const Auth = (() => {
 
         /** Promise that resolves once the initial auth state is known (user or null). */
         ready() { return _authReady; },
+
+        /** True if ready() resolved via the safety timeout rather than a real Firebase event. */
+        get readyTimedOut() { return _authTimedOut; },
+
+        /**
+         * Resolve once the user is actually signed in (non-null user).
+         * Use this instead of ready() when the caller specifically needs an
+         * authenticated user — e.g. pulling cloud data on slow networks where
+         * ready() may have timed out before Firebase responded.
+         *
+         * @param {number} [timeoutMs=30000] returns null if no sign-in by then.
+         * @returns {Promise<object|null>}
+         */
+        whenSignedIn(timeoutMs = 30000) {
+            if (_user) return Promise.resolve(_user);
+            return new Promise(resolve => {
+                let settled = false;
+                function detach() {
+                    const idx = _listeners.indexOf(handler);
+                    if (idx >= 0) _listeners.splice(idx, 1);
+                }
+                const handler = (u) => {
+                    if (settled || !u) return;
+                    settled = true;
+                    detach();
+                    resolve(u);
+                };
+                _listeners.push(handler);
+                setTimeout(() => {
+                    if (settled) return;
+                    settled = true;
+                    detach();
+                    resolve(null);
+                }, timeoutMs);
+            });
+        },
 
         /**
          * Get the current user's Firebase ID token for authenticating API calls.

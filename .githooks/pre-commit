@@ -1,11 +1,38 @@
 #!/usr/bin/env bash
-# Altech pre-commit hook — rebuilds the extension zip whenever
-# any chrome-extension/* file is staged for commit.
+# Altech pre-commit hook —
+#   1. Rebuilds the extension zip whenever any chrome-extension/* file is staged.
+#   2. Bumps CACHE_VERSION in sw.js when any cached source file (js/, css/,
+#      plugins/, index.html, sw.js itself) is staged AND the same commit
+#      doesn't already touch CACHE_VERSION. Without this, deploys ship JS/CSS
+#      against a stale service-worker cache and users serve old assets until
+#      they hard-refresh.
 
 set -e
 
 STAGED=$(git diff --cached --name-only)
 
+# ── 2. Service worker cache version auto-bump ────────────────────────────
+# Trigger paths: anything the SW caches OR anything the SW itself depends on.
+# Skip if the staged sw.js already changes CACHE_VERSION (the dev did it manually).
+if echo "$STAGED" | grep -qE "^(js/|css/|plugins/|api/|index\.html$|manifest\.json$|sw\.js$)"; then
+    SW_ALREADY_BUMPED=0
+    if echo "$STAGED" | grep -q "^sw\.js$"; then
+        # Check the staged sw.js diff for a CACHE_VERSION change.
+        if git diff --cached -- sw.js | grep -qE "^\+const CACHE_VERSION"; then
+            SW_ALREADY_BUMPED=1
+        fi
+    fi
+    if [ "$SW_ALREADY_BUMPED" -eq 0 ]; then
+        if command -v node &>/dev/null; then
+            node scripts/bump-sw-version.mjs
+            git add sw.js
+        else
+            echo "[Altech] WARNING: node not on PATH — skipping SW version bump." >&2
+        fi
+    fi
+fi
+
+# ── 1. Chrome extension zip rebuild ──────────────────────────────────────
 if echo "$STAGED" | grep -q "^chrome-extension/"; then
     echo "[Altech] chrome-extension/* changed — rebuilding altech-ezlynx-extension.zip..."
 
