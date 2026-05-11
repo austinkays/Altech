@@ -23,7 +23,7 @@ Object.assign(App, {
         ].map(v => `"${v||''}"`).join(',');
 
         const csv = h.join(',') + "\n" + row;
-        return { content: csv, filename: `Lead_${data.lastName || 'Export'}.csv`, mime: 'text/csv' };
+        return { content: csv, filename: `Lead_${App._safeFileNamePart(data.lastName, 'Export')}.csv`, mime: 'text/csv' };
     },
 
     getCSVHeaders() {

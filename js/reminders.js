@@ -61,6 +61,22 @@ window.Reminders = (() => {
     }
 
     /**
+     * Advance a date forward by n months, clamping the day to the target
+     * month's last day. Avoids the JS pitfall where Jan 31 + 1 month rolls
+     * over to Mar 3 instead of Feb 28 (or Feb 29 in a leap year).
+     */
+    function _addMonthsClamped(date, n) {
+        const y = date.getFullYear();
+        const m = date.getMonth() + n;
+        const targetDay = date.getDate();
+        // Anchor on day 1 so the intermediate Date never overflows the month.
+        const tmp = new Date(y, m, 1);
+        const lastDay = new Date(tmp.getFullYear(), tmp.getMonth() + 1, 0).getDate();
+        tmp.setDate(Math.min(targetDay, lastDay));
+        return tmp;
+    }
+
+    /**
      * Auto-advance stale recurring task dueDates to the current cycle.
      * Called once on load — if a daily/weekday task's dueDate is in the past,
      * advance it to today (or next weekday) so it shows "Due today" instead of "Missed".
@@ -99,14 +115,17 @@ window.Reminders = (() => {
                     changed = true;
                 }
             } else if (freq === 'monthly') {
-                // Monthly — advance to current month if past
-                const thisMonth = new Date(today.getFullYear(), today.getMonth(), due.getDate());
-                if (thisMonth >= today) {
-                    task.dueDate = _toDateStr(thisMonth);
+                // Monthly — advance to current month if past. Use clamped
+                // arithmetic so a task scheduled on the 31st survives Feb / Apr / etc.
+                // Anchor a fresh Date on day 1 of "this month" to avoid the JS
+                // overflow that turns Feb 31 into Mar 3 silently.
+                const tmp = new Date(today.getFullYear(), today.getMonth(), 1);
+                const lastThis = new Date(tmp.getFullYear(), tmp.getMonth() + 1, 0).getDate();
+                tmp.setDate(Math.min(due.getDate(), lastThis));
+                if (tmp >= today) {
+                    task.dueDate = _toDateStr(tmp);
                 } else {
-                    // Already past this month's date — advance to next month
-                    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, due.getDate());
-                    task.dueDate = _toDateStr(nextMonth);
+                    task.dueDate = _toDateStr(_addMonthsClamped(tmp, 1));
                 }
                 changed = true;
             }
@@ -213,10 +232,19 @@ window.Reminders = (() => {
     /** Check if a task's snooze is still active. Cleans up expired snoozes. */
     function _isSnoozeActive(task) {
         if (!task.snooze) return false;
+        // Prefer the PST date-string field when present — TZ-independent.
+        // The legacy ISO `until` was constructed in the user's *local* tz,
+        // so for an EST/CST agent it expired 3 hours early.
+        if (task.snooze.untilDateStr) {
+            if (_todayPST() > task.snooze.untilDateStr) {
+                _clearExpiredSnooze(task);
+                return false;
+            }
+            return true;
+        }
         const now = _nowPST();
         const until = new Date(task.snooze.until);
         if (now > until) {
-            // Snooze expired — clean up
             _clearExpiredSnooze(task);
             return false;
         }
@@ -274,7 +302,13 @@ window.Reminders = (() => {
                 next.setDate(next.getDate() + daysUntilMon);
             }
             else if (freq === 'biweekly') next.setDate(next.getDate() + 14);
-            else if (freq === 'monthly') next.setMonth(next.getMonth() + 1);
+            else if (freq === 'monthly') {
+                // Clamp day-of-month so Jan 31 → Feb 28 (not Mar 3). The
+                // intermediate Date is anchored on day 1 to avoid the JS
+                // setMonth() overflow.
+                const advanced = _addMonthsClamped(next, 1);
+                next.setFullYear(advanced.getFullYear(), advanced.getMonth(), advanced.getDate());
+            }
             else break; // 'once' — don't advance
         }
         return _toDateStr(next);
@@ -561,12 +595,14 @@ window.Reminders = (() => {
         if (!task) return;
         const todayStr = _todayPST();
         const [y, m, d] = todayStr.split('-').map(Number);
-        // Create a timestamp for 11:59 PM PST today
-        // We store as ISO string but the check uses PST comparison
+        // `until` is the local-tz instant (kept for back-compat with old saved
+        // snoozes), but `untilDateStr` is the authoritative PST calendar day —
+        // _isSnoozeActive prefers the string so EST/CST agents don't expire early.
         const endOfDay = new Date(y, m - 1, d, 23, 59, 59);
         task.snooze = {
             type: 'snooze-tonight',
             until: endOfDay.toISOString(),
+            untilDateStr: todayStr,
             originalDueDate: task.dueDate
         };
         _save();
@@ -588,6 +624,7 @@ window.Reminders = (() => {
         task.snooze = {
             type: 'push-tomorrow',
             until: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 23, 59, 59).toISOString(),
+            untilDateStr: _toDateStr(tomorrow),
             originalDueDate: originalDue
         };
         _save();
@@ -605,6 +642,10 @@ window.Reminders = (() => {
         task.snooze = {
             type: 'skip-week',
             until: new Date(nextMon.getFullYear(), nextMon.getMonth(), nextMon.getDate(), 0, 0, 1).toISOString(),
+            // PST date of the Monday the skip ends on — _isSnoozeActive treats
+            // this as the last day the snooze covers (inclusive), so the task
+            // re-emerges on that Monday in PST regardless of agent timezone.
+            untilDateStr: _toDateStr(new Date(nextMon.getFullYear(), nextMon.getMonth(), nextMon.getDate() - 1)),
             originalDueDate: task.dueDate
         };
         _save();
@@ -990,11 +1031,22 @@ window.Reminders = (() => {
             document.getElementById('remEditTitle').focus();
             return;
         }
+        const dueDateEl = document.getElementById('remEditDueDate');
+        const dueDate = dueDateEl?.value || '';
+        // Reject empty or malformed dueDate — every downstream helper assumes
+        // YYYY-MM-DD and silently misbehaves on garbage (NaN compares, etc.).
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast('Pick a due date before saving.', 'warn');
+            }
+            if (dueDateEl) dueDateEl.focus();
+            return;
+        }
         const data = {
             title,
             notes: document.getElementById('remEditNotes').value.trim(),
             frequency: document.getElementById('remEditFrequency').value,
-            dueDate: document.getElementById('remEditDueDate').value,
+            dueDate,
             category: document.getElementById('remEditCategory').value,
             priority: document.getElementById('remEditPriority').value
         };

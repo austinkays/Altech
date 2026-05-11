@@ -780,7 +780,20 @@ Object.assign(App, {
         // ════════════════════════════════════════════════════════════════
         drawPageFooter();
 
-        const fileName = `Insurance_Application_${data.lastName||'Client'}_${new Date().toISOString().split('T')[0]}.pdf`;
-        return { blob: doc.output('blob'), filename: fileName };
+        const fileName = `Insurance_Application_${App._safeFileNamePart(data.lastName, 'Client')}_${new Date().toISOString().split('T')[0]}.pdf`;
+        // Large PDFs (50+ vehicles, embedded images, etc.) can exhaust the
+        // browser's blob memory. Surface a user-visible toast instead of
+        // crashing the session so the producer knows to slim the export.
+        let blob;
+        try {
+            blob = doc.output('blob');
+        } catch (e) {
+            console.error('[exportPDF] doc.output(blob) failed:', e);
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast('PDF too large to assemble in this browser — try fewer vehicles or attached photos.', 'error', 5000);
+            }
+            throw e;
+        }
+        return { blob, filename: fileName };
     },
 });
