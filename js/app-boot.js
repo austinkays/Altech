@@ -196,6 +196,14 @@ window.onload = async () => {
         if (typeof SecureStorage !== 'undefined') await SecureStorage.init();
     } catch (e) { console.error('[Boot] SecureStorage init error:', e); }
 
+    // Idle-lock: clear the v2 vault key after 15 min of inactivity. This is
+    // the "unattended workstation" control E&O cyber underwriters and most
+    // agency security audits expect. Configurable per device via
+    // STORAGE_KEYS.IDLE_TIMEOUT_MS (default 15 min, 0 = disabled).
+    try {
+        if (typeof IdleLock !== 'undefined') IdleLock.init();
+    } catch (e) { console.error('[Boot] IdleLock init error:', e); }
+
     // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
     try {
         if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
