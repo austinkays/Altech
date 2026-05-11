@@ -597,6 +597,36 @@
     margin-bottom: 5px;
 }
 
+/* Inline hint inside a field label — "(optional)", "days", etc. */
+.rem-field-hint {
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--text-tertiary, var(--text-secondary));
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+/* Undo button inside the post-completion toast. The toast is HTML-rendered
+   (see Reminders._showUndoToast → App.toast(..., useHtml=true)) and the
+   button sits inline next to the "✓ Done" text. */
+.rem-undo-btn {
+    margin-left: 8px;
+    padding: 2px 10px;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    background: transparent;
+    color: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.rem-undo-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
 .rem-field input,
 .rem-field select,
 .rem-field textarea {

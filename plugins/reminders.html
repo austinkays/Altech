@@ -93,14 +93,25 @@
                 </div>
                 <div class="rem-field">
                     <label>Frequency</label>
-                    <select id="remEditFrequency">
+                    <select id="remEditFrequency" onchange="Reminders._syncFreqDependentFields()">
                         <option value="once">One-time</option>
                         <option value="daily">Daily</option>
                         <option value="weekdays">Weekdays (Mon–Fri)</option>
                         <option value="weekly" selected>Weekly</option>
                         <option value="biweekly">Biweekly</option>
                         <option value="monthly">Monthly</option>
+                        <option value="every-n-days">Every N days…</option>
                     </select>
+                </div>
+            </div>
+            <div class="rem-field-row">
+                <div class="rem-field">
+                    <label>Time of day <span class="rem-field-hint">(optional)</span></label>
+                    <input type="time" id="remEditDueTime">
+                </div>
+                <div class="rem-field" id="remEditEveryNRow" style="display:none;">
+                    <label>Every <span class="rem-field-hint">days</span></label>
+                    <input type="number" id="remEditEveryN" min="1" step="1" placeholder="3">
                 </div>
             </div>
             <div class="rem-field-row">

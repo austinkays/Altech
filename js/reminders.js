@@ -121,6 +121,15 @@ window.Reminders = (() => {
                 }
                 // On weekends, leave stale — _getStatus already returns 'overdue'
                 // which shows "Missed — resets tonight at midnight" (correct for sat/sun)
+            } else if (freq === 'every-n-days') {
+                // Custom cadence — bring the dueDate forward by N until it's
+                // >= today. Avoids a 30-day-cycle task showing 25 stale states.
+                const n = (Number.isFinite(task.everyNDays) && task.everyNDays >= 1)
+                    ? Math.floor(task.everyNDays) : 1;
+                const tmp = new Date(due);
+                while (tmp < today) tmp.setDate(tmp.getDate() + n);
+                task.dueDate = _toDateStr(tmp);
+                changed = true;
             } else if (freq === 'weekly' || freq === 'biweekly') {
                 // Weekly tasks have grace period logic in _getStatus, but still
                 // advance dueDate to this week's Monday if it's from a prior week
@@ -317,6 +326,12 @@ window.Reminders = (() => {
                 next.setDate(next.getDate() + daysUntilMon);
             }
             else if (freq === 'biweekly') next.setDate(next.getDate() + 14);
+            else if (freq === 'every-n-days') {
+                // Custom cadence — defaults to 1 (= daily) when unset/invalid.
+                const n = (Number.isFinite(task.everyNDays) && task.everyNDays >= 1)
+                    ? Math.floor(task.everyNDays) : 1;
+                next.setDate(next.getDate() + n);
+            }
             else if (freq === 'monthly') {
                 // Clamp day-of-month so Jan 31 → Feb 28 (not Mar 3). The
                 // intermediate Date is anchored on day 1 to avoid the JS
@@ -395,11 +410,37 @@ window.Reminders = (() => {
             return 'overdue';
         }
 
-        // Daily tasks during the current day  — never "overdue" until midnight PST passes
+        // Daily tasks during the current day  — never "overdue" until midnight PST passes,
+        // unless a time-of-day was set on the task. With dueTime, "overdue" can
+        // trip earlier in the day (e.g. a 9 AM task at 10 AM PST).
         if (diff < 0) return 'overdue';
-        if (diff === 0) return 'due-today';
+        if (diff === 0) {
+            if (task.dueTime && _isTimePassedToday(task.dueTime)) return 'overdue';
+            return 'due-today';
+        }
         if (diff <= 2) return 'due-soon';
         return 'upcoming';
+    }
+
+    /** Format an HH:MM string as 12-hour with AM/PM ("13:30" → "1:30 PM"). */
+    function _format12hour(timeStr) {
+        const t = _normalizeTime(timeStr);
+        if (!t) return '';
+        const [h, m] = t.split(':').map(Number);
+        const period = h >= 12 ? 'PM' : 'AM';
+        const hh = h === 0 ? 12 : (h > 12 ? h - 12 : h);
+        return `${hh}:${String(m).padStart(2, '0')} ${period}`;
+    }
+
+    /** True if `HH:MM` PST has already passed in the current PST day. */
+    function _isTimePassedToday(timeStr) {
+        const t = _normalizeTime(timeStr);
+        if (!t) return false;
+        const [h, m] = t.split(':').map(Number);
+        const now = _nowPST();
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const targetMinutes = h * 60 + m;
+        return nowMinutes > targetMinutes;
     }
 
     /** Get user-friendly status text for a task */
@@ -411,12 +452,15 @@ window.Reminders = (() => {
         const snoozeLabel = _getSnoozeLabel(task);
         if (snoozeLabel) return snoozeLabel;
 
+        // When a task has a dueTime, surface "@ 3:00 PM" alongside the date label.
+        const atTime = task.dueTime ? ` @ ${_format12hour(task.dueTime)}` : '';
+
         switch (status) {
         case 'completed': return 'Completed';
         case 'due-today':
             if ((task.frequency === 'weekly' || task.frequency === 'biweekly') && _nowPST().getDay() === 5)
-                return 'Due today — last chance!';
-            return 'Due today';
+                return 'Due today — last chance!' + atTime;
+            return 'Due today' + atTime;
         case 'due-soon':
             if (task.frequency === 'weekly' || task.frequency === 'biweekly') {
                 const daysToFri = (5 - _nowPST().getDay() + 7) % 7;
@@ -458,6 +502,15 @@ window.Reminders = (() => {
             frequency: options.frequency || 'weekly',
             dueDate: options.dueDate || _toDateStr(nextWeek),
             dueDay: options.dueDay || null, // e.g. 5 for Friday (weekly tasks)
+            // Optional time-of-day (HH:MM, 24h). When set, _getStatus keeps the
+            // task in "due today" rather than "overdue" until the time passes.
+            dueTime: _normalizeTime(options.dueTime) || null,
+            // For frequency='every-n-days' — N defaults to 1 (= daily), but
+            // the schema preserves the explicit number so 3-day / 14-day
+            // cadences work the same way.
+            everyNDays: (options.frequency === 'every-n-days' && Number.isFinite(options.everyNDays))
+                ? Math.max(1, Math.floor(options.everyNDays))
+                : null,
             category: options.category || 'Admin',
             priority: options.priority || 'normal',
             completions: [],
@@ -467,9 +520,47 @@ window.Reminders = (() => {
         return id;
     }
 
+    /**
+     * Normalize a time string to HH:MM (24h) or null. Accepts:
+     *   '13:45', '1:45 PM', '01:45', '', null, 'garbage'
+     */
+    function _normalizeTime(value) {
+        if (value == null) return null;
+        const s = String(value).trim();
+        if (!s) return null;
+        // 24-hour HH:MM
+        let m = s.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+        if (m) {
+            const h = String(m[1]).padStart(2, '0');
+            return `${h}:${m[2]}`;
+        }
+        // 12-hour with AM/PM
+        m = s.match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s*(am|pm)$/i);
+        if (m) {
+            let h = Number(m[1]);
+            if (m[3].toLowerCase() === 'pm' && h !== 12) h += 12;
+            else if (m[3].toLowerCase() === 'am' && h === 12) h = 0;
+            return `${String(h).padStart(2, '0')}:${m[2]}`;
+        }
+        return null;
+    }
+
     function updateTask(id, updates) {
         const task = _state.tasks.find(t => t.id === id);
         if (!task) return;
+        // Normalize the optional time field if it's part of the update.
+        if (Object.prototype.hasOwnProperty.call(updates, 'dueTime')) {
+            updates.dueTime = _normalizeTime(updates.dueTime);
+        }
+        // Clamp everyNDays to a positive integer when present. Set to null when
+        // the frequency moves off 'every-n-days' so stale values don't linger.
+        if (Object.prototype.hasOwnProperty.call(updates, 'everyNDays') && updates.everyNDays != null) {
+            const n = Math.max(1, Math.floor(Number(updates.everyNDays) || 0));
+            updates.everyNDays = Number.isFinite(n) && n > 0 ? n : null;
+        }
+        if (updates.frequency && updates.frequency !== 'every-n-days') {
+            updates.everyNDays = null;
+        }
         Object.assign(task, updates);
         _save();
     }
@@ -570,6 +661,62 @@ window.Reminders = (() => {
             container.remove();
             toast.classList.remove('celebrate');
         }, 1800);
+    }
+
+    // ── Undo toast ────────────────────────────────────────────────────────
+    // Remembers the most recent (id, pre-completion dueDate) so the undo
+    // toast's button — which fires through onclick="Reminders.undoComplete(id)"
+    // — can restore the cycle even if the user fired multiple completions in
+    // quick succession (most recent wins, others are ignored). Cleared after
+    // ~5 seconds or after an undo, whichever comes first.
+    let _pendingUndo = null; // { id, preCompleteDueDate, expiresAt }
+
+    function _showUndoToast(id, title, preCompleteDueDate) {
+        if (typeof App === 'undefined' || !App.toast) return;
+        _pendingUndo = {
+            id,
+            preCompleteDueDate,
+            expiresAt: Date.now() + 5000,
+        };
+        const safeTitle = title.length > 30 ? title.slice(0, 30) + '…' : title;
+        // The toast() helper takes HTML when useHtml=true. App.toast is also
+        // queued + dedupes by message+type — see app-ui-utils.js. Escape the
+        // title via Utils.escapeHTML so a title containing markup can't break
+        // out of the toast.
+        const escaped = (window.Utils && Utils.escapeHTML)
+            ? Utils.escapeHTML(safeTitle)
+            : safeTitle;
+        const msg = `✓ ${escaped} — done! ` +
+            `<button class="rem-undo-btn" type="button" onclick="Reminders.undoComplete('${id}')">Undo</button>`;
+        App.toast(msg, { duration: 5000, type: 'success' }, true);
+    }
+
+    /**
+     * Undo the most recent completion of `id`. Restores the pre-completion
+     * dueDate (so a recurring task's cycle isn't accidentally advanced)
+     * and pops the completion entry. Safe to call after the 5s window —
+     * it just no-ops if there's no pending undo for this id.
+     */
+    function undoComplete(id) {
+        if (!_pendingUndo || _pendingUndo.id !== id) return;
+        if (Date.now() > _pendingUndo.expiresAt) {
+            _pendingUndo = null;
+            return;
+        }
+        const task = _state.tasks.find(t => t.id === id);
+        if (!task) { _pendingUndo = null; return; }
+        if (task.completions && task.completions.length) {
+            task.completions.pop();
+        }
+        if (_pendingUndo.preCompleteDueDate) {
+            task.dueDate = _pendingUndo.preCompleteDueDate;
+        }
+        _pendingUndo = null;
+        _save();
+        render();
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast('Undone', { duration: 1500, type: 'info' });
+        }
     }
 
     /** "I did it!" from snooze menu — explode menu, then celebrate */
@@ -1012,6 +1159,10 @@ window.Reminders = (() => {
         document.getElementById('remEditNotes').value = '';
         document.getElementById('remEditFrequency').value = 'weekly';
         document.getElementById('remEditPriority').value = 'normal';
+        const timeEl = document.getElementById('remEditDueTime');
+        if (timeEl) timeEl.value = '';
+        const everyEl = document.getElementById('remEditEveryN');
+        if (everyEl) everyEl.value = '';
 
         // Default due date: next Monday (PST)
         const today = _todayDate();
@@ -1021,6 +1172,7 @@ window.Reminders = (() => {
         document.getElementById('remEditDueDate').value = _toDateStr(nextMonday);
 
         _renderCategoryOptions('remEditCategory', 'Admin');
+        _syncFreqDependentFields();
         document.getElementById('remEditTitle').focus();
     }
 
@@ -1037,7 +1189,22 @@ window.Reminders = (() => {
         document.getElementById('remEditFrequency').value = task.frequency;
         document.getElementById('remEditDueDate').value = task.dueDate;
         document.getElementById('remEditPriority').value = task.priority;
+        const timeEl = document.getElementById('remEditDueTime');
+        if (timeEl) timeEl.value = task.dueTime || '';
+        const everyEl = document.getElementById('remEditEveryN');
+        if (everyEl) everyEl.value = task.everyNDays || '';
         _renderCategoryOptions('remEditCategory', task.category);
+        _syncFreqDependentFields();
+    }
+
+    /**
+     * Show/hide the "every N days" companion input based on the current
+     * frequency selection. Called on modal open + frequency change.
+     */
+    function _syncFreqDependentFields() {
+        const freq = document.getElementById('remEditFrequency')?.value;
+        const everyRow = document.getElementById('remEditEveryNRow');
+        if (everyRow) everyRow.style.display = (freq === 'every-n-days') ? '' : 'none';
     }
 
     function saveEdit() {
@@ -1057,11 +1224,31 @@ window.Reminders = (() => {
             if (dueDateEl) dueDateEl.focus();
             return;
         }
+        const frequency = document.getElementById('remEditFrequency').value;
+        const dueTimeRaw = document.getElementById('remEditDueTime')?.value || '';
+        const everyNRaw = document.getElementById('remEditEveryN')?.value || '';
+
+        // Every-N-days requires a positive integer. Reject empty / zero / non-numeric.
+        if (frequency === 'every-n-days') {
+            const n = Number(everyNRaw);
+            if (!Number.isFinite(n) || n < 1 || Math.floor(n) !== n) {
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast('Pick a whole number ≥ 1 for "Every N days".', 'warn');
+                }
+                document.getElementById('remEditEveryN')?.focus();
+                return;
+            }
+        }
+
         const data = {
             title,
             notes: document.getElementById('remEditNotes').value.trim(),
-            frequency: document.getElementById('remEditFrequency').value,
+            frequency,
             dueDate,
+            // _normalizeTime() inside addTask/updateTask handles HH:MM vs 12h
+            // strings vs garbage — pass the raw value through.
+            dueTime: dueTimeRaw,
+            everyNDays: frequency === 'every-n-days' ? Number(everyNRaw) : null,
             category: document.getElementById('remEditCategory').value,
             priority: document.getElementById('remEditPriority').value
         };
@@ -1088,8 +1275,13 @@ window.Reminders = (() => {
         if (status === 'completed') {
             uncompleteTask(id);
         } else {
+            // Snapshot the pre-complete dueDate so undo can restore the
+            // original cycle (completeTask mutates dueDate for recurring tasks).
+            const preCompleteDueDate = task.dueDate;
+            const title = task.title;
             completeTask(id);
-            _celebrate(task.title);
+            _celebrate(title);
+            _showUndoToast(id, title, preCompleteDueDate);
         }
         render();
     }
@@ -1177,7 +1369,9 @@ window.Reminders = (() => {
         saveEdit,
         closeEdit,
         toggle,
+        undoComplete,
         remove,
+        _syncFreqDependentFields,
         setFilter,
         addCategory,
         checkAlerts,
