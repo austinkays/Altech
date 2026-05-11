@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # node server.js — port 8000 (override with PORT env)
-npm test                  # 33 test suites
+npm test                  # ~56 suites, ~2280 tests (Jest + JSDOM)
 npx jest --no-coverage    # faster
 ```
 
@@ -24,6 +24,10 @@ npx jest --no-coverage    # faster
 | `window.STORAGE_KEYS` | `js/storage-keys.js` | Frozen map of ~62 localStorage keys |
 | `window.Utils` | `js/utils.js` | `escapeHTML`, `escapeAttr`, `tryParseLS`, `debounce` |
 | `window.FIELDS` / `window.FIELD_BY_ID` | `js/fields.js` | ~160 intake form field definitions with id/label/type/section |
+| `window.ActivityLog` | `js/activity-log.js` | Local-only ring buffer (cap 100) of save/sync/export/AI/error events. API: `add({type,area,message,ok,detail})`, `list()`, `lastStatus()`, `subscribe(fn)`, `openPanel()`, `clear()`. Header status pill flips red on `ok:false`. **Never synced.** |
+| `window.CommandPalette` | `js/command-palette.js` | Cmd/Ctrl+K palette. API: `open()`, `close()`, `toggle()`, `register({id,label,hint,icon,run})`. Built-ins: New quote, Add reminder, Phonetic speller, Today view, Open activity log, Toggle dark mode, Go to dashboard, Export files. Auto-includes every `App.toolConfig` tool + last ~30 clients from `CLIENT_HISTORY`. |
+| `window.PhoneticSpeller` | `js/phonetic-speller.js` | APCO alphabet popup. `open(seed?)` — pre-fills with any text (name, email, VIN). Globally accessible via Cmd+K. |
+| `window.MigrationBackup` | `js/migration-backup.js` | Pre-Firebase-→-Supabase localStorage snapshot + restore. `snapshot()`, `restore()`, `exists()`, `ageMs()`, `clear()`. 30-day TTL with auto-clean. |
 
 ### App Assembly — `Object.assign` Pattern
 
@@ -98,7 +102,7 @@ App core (Object.assign extends App in order):
   → app-quotes.js
 
 Shared services:
-  ai-provider.js, dashboard-widgets.js
+  ai-provider.js, activity-log.js, command-palette.js, dashboard-widgets.js
 
 Plugin IIFEs (in load order):
   prospect-formatters.js, prospect.js, quick-ref.js, accounting-export.js,
@@ -169,6 +173,7 @@ Key entries (see `js/storage-keys.js` for full list):
 | `MIGRATION_STATE` | `altech_migration_state` | Resume-on-crash state for the Phase 4 pipeline |
 | `MIGRATION_DRY_RUN` | `altech_migration_dry_run` | `'1'` = Session 2 pipeline copies but doesn't flip backend |
 | `PRE_MIGRATION_BACKUP` | `altech_pre_migration_backup` | Snapshot taken before Session 2 runs; 30-day TTL, auto-clean |
+| `ACTIVITY_LOG` | `altech_activity_log` | `ActivityLog` ring buffer (cap 100 entries). **Local-only — never synced** (would bloat sync without benefit and would leak per-device activity to other devices). |
 
 ---
 
@@ -311,7 +316,7 @@ Test all three workflows when changing step logic or conditions.
 ## Testing
 
 ```bash
-npm test                          # 33 test suites under tests/ (Jest + JSDOM)
+npm test                          # ~56 suites, ~2280 tests under tests/ (Jest + JSDOM)
 npx jest --no-coverage            # faster
 npx jest tests/app.test.js        # single suite
 npm run test:ext                  # chrome-extension-v2 suite (separate jest config)
@@ -438,6 +443,59 @@ The analysis uses the existing `property-intelligence.js` endpoint with `?mode=c
 
 ---
 
+## Reliability features (May 2026 — PRs #69, #72, #74, #76, #77)
+
+| Feature | Where | What it does |
+|---|---|---|
+| **Toast queue** | `js/app-ui-utils.js` `App.toast()` | Toasts queue + dedupe (collapses identical consecutive messages) instead of clobbering each other. Errors default to 3500 ms (vs 2500 ms). `App.toast(msg, { type, duration, dedupe }, useHtml)` signature; legacy `toast(msg, duration, useHtml)` still works. |
+| **AI error decoder** | `js/ai-provider.js` `_decodeApiError()` | Every AI HTTP error (Gemini/Anthropic/OpenAI/OpenRouter, ask + chat paths) maps `401/403/404/408/413/429/500/502/503/504` to a fix-pointing message. Unknown statuses fall back to upstream message. |
+| **ActivityLog** | `js/activity-log.js` | See Global Singletons. Hooked into `App.save`, `App.logExport`, `CloudSync.pushToCloud`, `SupabaseSync._pushAll`, `Reminders._save`, `ComplianceDashboard.saveState`, `App._parkCiphertextForRecovery`, and sync-conflict detection. |
+| **Header status pill** | `js/dashboard-widgets.js` `_renderSyncStatusButton()` | "Activity ●" pill in the header. Green = last event ok, red = last error, gray = no activity. Click opens `ActivityLog.openPanel()`. |
+| **Today widget** | `js/dashboard-widgets.js` `renderTodayWidget()` | Bento-grid card at the top with three sections: overdue/due-today reminders, policies expiring in the next 14 days, last 5 ActivityLog events. Each section "View all →" links to the source plugin. Live-updates on `ActivityLog.subscribe`. |
+| **Push-side sync conflict UI** | `js/cloud-sync.js` `_pushDoc` + `_buildConflictDiffHTML` | Before writing, fetches remote `updatedAt`; if newer than `lastSync_<docType>` AND payloads differ, returns a conflict descriptor instead of overwriting. `pushToCloud` collects all conflicts and routes them to a single `_showConflictDialog` with an expandable per-field diff. Generic resolution via `DOC_LOCAL_KEYS` map covers every doc with a localStorage slot. |
+| **MigrationBackup** | `js/migration-backup.js` | Wired in `runMigration()` — snapshots before Session 2, restores on hard failure, honors `MIGRATION_DRY_RUN`. Resume-on-crash via `open()`. |
+
+**Add a new ActivityLog hook in 3 lines:**
+
+```js
+if (window.ActivityLog) {
+    window.ActivityLog.add({
+        type: 'save', area: 'my-feature', ok: true,
+        message: 'My thing saved',
+    });
+}
+```
+
+Types: `save | sync | export | import | ai | error`. Always feature-detect — ActivityLog isn't loaded in some test paths.
+
+---
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+|---|---|
+| `Cmd/Ctrl + K` | Toggle command palette |
+| `Cmd/Ctrl + /` | Open command palette pre-filled to "Add reminder" |
+| `↑ / ↓` | Move palette selection |
+| `Enter` | Run selected command |
+| `Esc` | Close palette / activity panel / open modals |
+
+**Register a custom command** (from any plugin or the console):
+
+```js
+CommandPalette.register({
+    id: 'my-plugin:do-thing',
+    label: 'My plugin — do the thing',
+    hint: 'Action · what it does',
+    icon: '⚡',
+    run: () => { /* ... */ },
+});
+```
+
+Registrations are idempotent on `id` (re-registering replaces). The palette automatically includes every entry in `App.toolConfig` + the last ~30 clients from `CLIENT_HISTORY`.
+
+---
+
 ## Plugins (`plugins/*.html`)
 
 Lazy-loaded HTML fragments injected into a container `<div>` by `App.navigateTo(key)`. Tool registry lives in `App.toolConfig[]` (`js/app-init.js`) — adding a tool requires both an entry there and a matching plugin HTML file + IIFE in `js/`.
@@ -451,6 +509,11 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 ## Compliance Plugin Storage
 
 `js/compliance-dashboard.js` writes to `STORAGE_KEYS.CGL_STATE` (cloud-synced via `cglState`). Heavy state (parsed policy rows from HawkSoft uploads) is offloaded to IndexedDB through `js/compliance-idb.js` to keep the synced doc small. The `clientCompliance` annotation dict tracks WA L&I / OR CCB classification per HawkSoft `clientNumber` and reuses `_smartMergeDict` for safe multi-device merges.
+
+**Two private helpers live at the top of `js/compliance-dashboard.js`:**
+
+- `escJsAttr(s)` — dual-escape (JS-string layer + HTML-attr layer) for any value interpolated into `onclick="X('${escJsAttr(v)}')"`. Don't use `Utils.escapeAttr` directly here — that only handles the HTML layer; an apostrophe in a policy number would still break out of the JS string. The `pn` binding in `renderTable` routes through this helper; use the same pattern for any new interpolation.
+- `_safeLSWrite(key, value)` — quota-tolerant `localStorage.setItem`. Surfaces a one-time toast on `QuotaExceededError` instead of silently swallowing. IndexedDB is the master source of truth for CGL state, so a quota miss just loses the fast cache. Replace every `localStorage.setItem(STORAGE_KEY, ...)` for user state with this helper; cache-only writes (`CGL_CACHE_KEY`) can stay silent.
 
 ---
 
@@ -480,3 +543,10 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 | Load `app-boot.js` before plugins | It must always be the last `<script>` tag |
 | Remove a `/* no var */` comment if you encounter one | Leave it — it marks tokenization work still to be done |
 | Reference step-2 in workflows | It was removed — flows go 0 → 1 → 3 → … |
+| Pass a string to `App.toast` as the 2nd arg (`toast('hi', 'success')`) | The 2nd arg is `duration` or `{ type, duration, dedupe }`. Use `App.toast('hi', { type: 'success' })`. The string-arg shape silently ignores the type. |
+| Add a new `onclick="..."` to a CGL render with raw `policyNumber` interpolation | Use `data-cgl-action` delegation OR route the value through `escJsAttr()` (defined at the top of `js/compliance-dashboard.js`) — the broken legacy `replace(/'/g, "\\\\'")` was a 4-backslash typo that produced `\\'` not `\'`. |
+| Hardcode `CACHE_VERSION = 'altech-v17'` in `sw.js` | Let the `.githooks/pre-commit` hook bump it automatically via `scripts/bump-sw-version.mjs`. Running `node scripts/bump-sw-version.mjs --dry-run` shows what it'd do. |
+| Sync `ACTIVITY_LOG` to Firebase / Supabase | It's local-only by design — would bloat sync and leak per-device activity to other devices. Don't add it to `SYNC_DOCS`. |
+| Skip an `ActivityLog.add` hook on a new save / sync / export site | The header status pill + Today widget + Recent column all depend on it. Three lines (feature-detected) is the cost of a green/red dot in the header that surfaces failures the user would otherwise miss. |
+| Call `Auth.ready()` and assume a non-null user on slow networks | `ready()` can resolve with `null` if Firebase takes > 15s. Use `await Auth.whenSignedIn(timeoutMs)` for code that needs an actual signed-in user (e.g. cloud-pull bootstrap). |
+| Use `localStorage.setItem(STORAGE_KEY, ...)` for CGL state | Use `this._safeLSWrite(STORAGE_KEY, ...)` (defined in `js/compliance-dashboard.js`) — surfaces a one-time toast on `QuotaExceededError` instead of silently swallowing. |

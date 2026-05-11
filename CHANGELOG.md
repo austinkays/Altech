@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **docs(claude-md): refresh for the May 11 rollouts** (May 11, 2026):
+  - Global Singletons table — added rows for `window.ActivityLog`, `window.CommandPalette`, `window.PhoneticSpeller`, `window.MigrationBackup` (all shipped since the previous cold-start guide was written).
+  - Storage Keys table — added `STORAGE_KEYS.ACTIVITY_LOG` (local-only, never synced).
+  - Script Load Order — added `activity-log.js` + `command-palette.js` to the Shared services line.
+  - New **Reliability features** section — toast queue, AI error decoder, ActivityLog, header status pill, Today widget, push-side sync conflict UI, MigrationBackup wiring. Includes a 3-line "add a hook" snippet.
+  - New **Keyboard shortcuts** section — Cmd+K, Cmd+/, ↑↓, Enter, Esc + a `CommandPalette.register({...})` example.
+  - Compliance Plugin Storage — added the `escJsAttr` + `_safeLSWrite` helper documentation.
+  - What NOT To Do — 8 new rows covering: string-arg toasts, CGL onclick interpolation, manual sw.js `CACHE_VERSION` bumps, syncing ACTIVITY_LOG, skipping ActivityLog hooks, `Auth.ready()` on slow networks, raw setItem for CGL state.
+  - Test count line updated `33 suites` → `~56 suites, ~2280 tests`.
+  - Closes PR #71 (which described future state across #68/#69/#70 — that PR's content is now mostly stale since #68 was superseded by #72 with different module names; this refresh reflects what actually shipped).
+
 ### Added
 - **feat(sync): push-side conflict resolution UI with field-level diff** (May 11, 2026):
   - **Closes a real silent-data-loss vector** — multi-device editing of the same record was last-writes-wins on push. Now: before writing, `_pushDoc` fetches the remote doc and checks if its `updatedAt` is newer than our `lastSync_<docType>`. If so AND the payloads actually differ (a same-payload echo from another device is not a real conflict), the push is aborted and a conflict descriptor is returned instead of a blind overwrite. ([js/cloud-sync.js](js/cloud-sync.js))
