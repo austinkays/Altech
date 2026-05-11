@@ -611,6 +611,17 @@ Object.assign(App, {
             if (bucket.length > this.RECOVERY_CAP) bucket.length = this.RECOVERY_CAP;
             localStorage.setItem(STORAGE_KEYS.DECRYPTION_RECOVERY, JSON.stringify(bucket));
             console.warn(`[Recovery] Parked ciphertext from ${originalKey} (reason: ${reason}). Bucket now has ${bucket.length} entr${bucket.length === 1 ? 'y' : 'ies'}.`);
+            // Surface to the new ActivityLog so the header status pill turns
+            // red and the user has a single place to find out their key/
+            // fingerprint changed silently. Without this, decryption failures
+            // were invisible outside of DevTools and a tiny inline toast.
+            if (window.ActivityLog && typeof window.ActivityLog.add === 'function') {
+                window.ActivityLog.add({
+                    type: 'error', area: 'crypto', ok: false,
+                    message: 'Decryption failed — ciphertext parked for recovery',
+                    detail: `${originalKey} · ${reason} · ${bucket.length} blob${bucket.length === 1 ? '' : 's'} in recovery bucket. Inspect via App.getRecoveryBlobs().`,
+                });
+            }
         } catch (e) {
             console.error('[Recovery] Failed to park ciphertext:', e);
         }
