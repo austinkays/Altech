@@ -18,11 +18,33 @@ globalThis.STORAGE_KEYS = Object.freeze({
     E2E_CRYPTO_V2:    'altech_e2e_crypto_v2',
     ENCRYPTION_SALT:  'altech_encryption_salt',
     DEVICE_ID:        'altech_device_id',
+    // Original 5 sensitive keys:
     CGL_STATE:        'altech_cgl_state',
     CLIENT_HISTORY:   'altech_client_history',
     REMINDERS:        'altech_reminders',
     AGENCY_GLOSSARY:  'altech_agency_glossary',
     CARRIER_OVERRIDES:'altech_carrier_overrides',
+    // Expanded sensitive keys (May 11 2026 "alllll encrypted" pass):
+    CGL_CACHE:        'altech_cgl_cache',
+    CALL_LOGGER:      'altech_call_logger',
+    RETURNED_MAIL:    'altech_returned_mail',
+    SAVED_PROSPECTS:  'altech_saved_prospects',
+    VIN_HISTORY:      'altech_vin_history',
+    INTAKE_ASSIST:    'altech_intake_assist',
+    HAWKSOFT_HISTORY: 'altech_hawksoft_history',
+    HAWKSOFT_SETTINGS:'altech_hawksoft_settings',
+    EZLYNX_FORMDATA:  'altech_ezlynx_formdata',
+    EZLYNX_INCIDENTS: 'altech_ezlynx_incidents',
+    DRIVERS:          'altech_drivers',
+    VEHICLES:         'altech_vehicles',
+    DOC_INTEL:        'altech_v6_docintel',
+    QUOTE_COMPARISONS:'altech_v6_quote_comparisons',
+    EMAIL_CUSTOM_PROMPT:'altech_email_custom_prompt',
+    EXPORT_HISTORY:   'altech_export_history',
+    AGENCY_PROFILE:   'altech_agency_profile',
+    AI_SETTINGS:      'altech_ai_settings',
+    GEMINI_KEY:       'gemini_api_key',
+    BSB_API_KEY:      'altech_bsb_apikey',
     DARK_MODE:        'altech_dark_mode',
     // Non-sensitive (must pass through):
     THEME:            'altech_theme',
@@ -160,6 +182,7 @@ describe('SecureStorage — at-rest encryption', () => {
 
     test('SENSITIVE_KEYS exposes the right list and isSensitive() works', () => {
         const SS = loadSecureStorage();
+        // Original 5 sensitive keys:
         expect(SS.isSensitive('altech_cgl_state')).toBe(true);
         expect(SS.isSensitive('altech_reminders')).toBe(true);
         expect(SS.isSensitive('altech_client_history')).toBe(true);
@@ -168,6 +191,62 @@ describe('SecureStorage — at-rest encryption', () => {
         // Not sensitive:
         expect(SS.isSensitive('altech_theme')).toBe(false);
         expect(SS.isSensitive('altech_dark_mode')).toBe(false);
+    });
+
+    test('expanded sensitive coverage — every PII-bearing key is encrypted', () => {
+        // Regression guard for the "alllll encrypted" expansion. Adding a
+        // key here when extending coverage is a one-line change; this test
+        // forces a deliberate decision when removing a key.
+        const SS = loadSecureStorage();
+        const expectedSensitive = [
+            'altech_cgl_state', 'altech_reminders', 'altech_client_history',
+            'altech_agency_glossary', 'altech_carrier_overrides',
+            'altech_cgl_cache', 'altech_call_logger', 'altech_returned_mail',
+            'altech_saved_prospects', 'altech_vin_history', 'altech_intake_assist',
+            'altech_hawksoft_history', 'altech_hawksoft_settings',
+            'altech_ezlynx_formdata', 'altech_ezlynx_incidents',
+            'altech_drivers', 'altech_vehicles', 'altech_v6_docintel',
+            'altech_v6_quote_comparisons', 'altech_email_custom_prompt',
+            'altech_export_history', 'altech_agency_profile', 'altech_ai_settings',
+            'gemini_api_key', 'altech_bsb_apikey',
+        ];
+        for (const key of expectedSensitive) {
+            expect(SS.isSensitive(key)).toBe(true);
+        }
+    });
+
+    test('newly-added sensitive keys round-trip via the proxy', async () => {
+        // Sanity check that the proxy actually encrypts each expanded key.
+        // Pick a representative subset (one from each category):
+        //   PII data:    altech_call_logger, altech_ezlynx_formdata
+        //   API token:   gemini_api_key, altech_hawksoft_settings
+        //   Operational: altech_export_history
+        _store.set('altech_call_logger',     JSON.stringify([{ id: 1, notes: 'spoke to client' }]));
+        _store.set('altech_ezlynx_formdata', JSON.stringify({ firstName: 'Sam' }));
+        _store.set('gemini_api_key',         'AIzaSy-mock-key');
+        _store.set('altech_hawksoft_settings', JSON.stringify({ apiToken: 'secret-token' }));
+        _store.set('altech_export_history',  JSON.stringify([{ ts: 1, name: 'Smith export' }]));
+
+        const SS = loadSecureStorage();
+        await SS.init();
+
+        for (const key of [
+            'altech_call_logger', 'altech_ezlynx_formdata', 'gemini_api_key',
+            'altech_hawksoft_settings', 'altech_export_history',
+        ]) {
+            // Disk holds the v=1 envelope.
+            expect(_store.get(key)).toMatch(/^altech-sec:v1:/);
+            // Cache returns plaintext for plugin readers (the proxy makes it transparent).
+            const plain = localStorage.getItem(key);
+            expect(plain).toBeTruthy();
+            // For raw-string keys (gemini_api_key), the cache returns the string.
+            // For JSON keys, parsing the returned string yields the original.
+            if (key === 'gemini_api_key') {
+                expect(plain).toBe('AIzaSy-mock-key');
+            } else {
+                expect(() => JSON.parse(plain)).not.toThrow();
+            }
+        }
     });
 });
 

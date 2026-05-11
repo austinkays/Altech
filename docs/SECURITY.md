@@ -20,11 +20,19 @@ encrypted).
 
 | Surface | Technology | Key source | Status |
 |---|---|---|---|
-| **Local form data, quotes, vaults** (browser localStorage) | AES-256-GCM via Web Crypto API | User passphrase → Argon2id → master key | Encrypted |
-| **Compliance state, reminders, client history, glossary, carrier overrides** (browser localStorage) | AES-256-GCM via Web Crypto API | Same key as above | Encrypted ([js/secure-storage.js](../js/secure-storage.js)) |
+| **Form data, quotes, vaults, commercial drafts, email drafts** (browser localStorage) | AES-256-GCM via Web Crypto API | User passphrase → Argon2id → master key | Encrypted |
+| **All other client PII + agency operational data** in localStorage (25 keys — CGL state, reminders, client history, agency glossary, carrier overrides, HawkSoft cache + history + settings, call logger, returned mail, saved prospects, VIN history, intake assist, eZlynx form data + incidents, drivers, vehicles, doc intel, quote comparisons, email custom prompt, export history, agency profile, AI settings, Gemini API key, BSB API key) | AES-256-GCM via Web Crypto API | Same key as above | Encrypted ([js/secure-storage.js](../js/secure-storage.js)) |
 | **HawkSoft policy rows, compliance annotations** (browser IndexedDB) | AES-256-GCM | Same key as above | Encrypted ([js/compliance-idb.js](../js/compliance-idb.js)) |
 | **Supabase `user_blobs` / `user_quotes` / `user_crypto_meta`** (Postgres) | AES-256-GCM with AAD (Additional Authenticated Data) binding to `(table, row id, user id)` | Same key | Encrypted ([js/supabase-sync.js](../js/supabase-sync.js)) |
 | **Supabase Postgres disk** | At-rest encryption (AWS RDS / GCP, AES-256) | Provider-managed | Encrypted by provider |
+
+**Excluded from encryption (by design):**
+- **Bootstrap keys** that must be readable before the vault is unlocked: `ENCRYPTION_SALT`, `PASSPHRASE_SALT`, `AI_SALT`, `E2E_CRYPTO_V2` flag, `VAULT_LOCAL_META`, `DEVICE_ID`, `SYNC_BACKEND`.
+- **UI preferences** with no client data: dark mode, theme, sidebar state, idle-lock timeout, export picker last-checked.
+- **Sync metadata** (last-pushed timestamps, opt-out flags).
+- **Reference data** with no client PII: quick-ref cards / numbers / emojis (carrier contact lists).
+- **Activity log** — local-only ring buffer of save / sync / export events. Contains plugin names + timestamps, no raw client data. Never synced.
+- **Payment information** — never stored locally. Card numbers, CVV, and expiration dates are entered directly on Stripe's hosted Checkout page. Altech only retains the user's email (used to look up the Stripe customer record).
 
 **Key derivation.** The master key is derived from the user's chosen
 passphrase via **Argon2id** (memory-hard, 64 MiB memory cost, 3 iterations,
@@ -170,7 +178,7 @@ The current single-user-per-agency model simplifies the incident response:
 
 | Claim | Verify by |
 |---|---|
-| All NPI is encrypted at rest in localStorage | `grep -n 'SecureStorage' js/secure-storage.js` — look at `SENSITIVE` array; open any sensitive key in browser DevTools → Application → Local Storage and confirm the value is base64 (not JSON). |
+| All NPI is encrypted at rest in localStorage | Open any sensitive key in browser DevTools → Application → Local Storage and confirm the value starts with `altech-sec:v1:` followed by base64 ciphertext (not JSON). The `SENSITIVE` array in [js/secure-storage.js](../js/secure-storage.js) lists every covered key — pinned by [tests/secure-storage.test.js](../tests/secure-storage.test.js) `expanded sensitive coverage` test. |
 | All NPI is encrypted at rest in IndexedDB | DevTools → Application → IndexedDB → `altech_cgl` → `cache` / `annotations` → values should be `{ __sec: 'v1', ct: '<base64>' }`. |
 | Server cannot decrypt | In Supabase Dashboard, open the `public.user_blobs` table. The `ciphertext` column is the v=2 envelope `{v, iv, ct}` JSON or legacy base64 — neither readable without the user's master key. |
 | RLS is on every public table | Run [scripts/verify-rls.mjs](../scripts/verify-rls.mjs) against the live project. It anon-connects, tries cross-user reads/writes, and reports any successes (should be zero). |

@@ -43,16 +43,59 @@
 window.SecureStorage = (() => {
     'use strict';
 
-    // The set of localStorage keys whose value carries client NPI and must be
-    // encrypted at rest. Add new keys here ONLY if their value contains PII —
-    // every entry adds an encrypt/decrypt cost on every read/write.
+    // The set of localStorage keys whose value carries client NPI, agency
+    // operational data, or stored credentials and must be encrypted at rest.
+    //
+    // Inclusion criteria — add a key here if its plaintext value would be
+    // problematic in any of these scenarios:
+    //   • laptop stolen with browser logged-out → attacker dumps localStorage
+    //   • malicious browser extension reads localStorage during a session
+    //   • the user's browser profile gets cloud-synced (Chrome Sync, etc.)
+    //
+    // Exclusion criteria — keys NOT in this list:
+    //   • already-encrypted-by-their-module: FORM (App.save), QUOTES, ACCT_VAULT,
+    //     COMMERCIAL_DRAFT / COMMERCIAL_QUOTES, EMAIL_DRAFTS, DECRYPTION_RECOVERY.
+    //     Adding these would double-encrypt.
+    //   • bootstrap-required (must be readable BEFORE the vault is unlocked):
+    //     ENCRYPTION_SALT, PASSPHRASE_SALT, AI_SALT, E2E_CRYPTO_V2, VAULT_LOCAL_META,
+    //     DEVICE_ID, SYNC_BACKEND, MIGRATION_*.
+    //   • UI prefs with no PII: DARK_MODE, THEME, SIDEBAR_COLLAPSED, IDLE_TIMEOUT_MS,
+    //     EXPORT_PICKER_LAST, ONBOARDED.
+    //   • non-PII operational state: SYNC_META, SYNC_META_SUPABASE,
+    //     CLOUD_SYNC_DISABLED, ACTIVITY_LOG (local-only ring buffer),
+    //     WEATHER_CACHE / WEATHER_LOCATION (geography only), BSB_CACHE.
+    //   • agency-business info without client PII: USER_NAME (the agent's own
+    //     name), QUICKREF_CARDS / NUMBERS / EMOJIS / SECTIONS (carrier contact
+    //     reference data).
     const SENSITIVE = Object.freeze([
+        // Original 5 (May 11 2026):
         STORAGE_KEYS.CGL_STATE,
         STORAGE_KEYS.REMINDERS,
         STORAGE_KEYS.CLIENT_HISTORY,
         STORAGE_KEYS.AGENCY_GLOSSARY,
         STORAGE_KEYS.CARRIER_OVERRIDES,
-    ]);
+        // Expanded coverage (May 11 2026, "alllll encrypted" pass):
+        STORAGE_KEYS.CGL_CACHE,            // HawkSoft policy cache — client PII
+        STORAGE_KEYS.CALL_LOGGER,          // call notes — client name/matter
+        STORAGE_KEYS.RETURNED_MAIL,        // returned mail entries — name/address
+        STORAGE_KEYS.SAVED_PROSPECTS,      // prospect names/addresses/phones
+        STORAGE_KEYS.VIN_HISTORY,          // VINs from the decoder tool
+        STORAGE_KEYS.INTAKE_ASSIST,        // intake scratch / chat history
+        STORAGE_KEYS.HAWKSOFT_HISTORY,     // policy interaction log
+        STORAGE_KEYS.HAWKSOFT_SETTINGS,    // contains the HawkSoft API token
+        STORAGE_KEYS.EZLYNX_FORMDATA,      // eZlynx intake — full client form data
+        STORAGE_KEYS.EZLYNX_INCIDENTS,     // accidents / tickets
+        STORAGE_KEYS.DRIVERS,              // legacy driver array
+        STORAGE_KEYS.VEHICLES,             // legacy vehicle array
+        STORAGE_KEYS.DOC_INTEL,            // document-intelligence results — PII
+        STORAGE_KEYS.QUOTE_COMPARISONS,    // saved quote comparisons — client info
+        STORAGE_KEYS.EMAIL_CUSTOM_PROMPT,  // user's custom AI prompt — could contain names
+        STORAGE_KEYS.EXPORT_HISTORY,       // export log — references to clients
+        STORAGE_KEYS.AGENCY_PROFILE,       // agency contact info
+        STORAGE_KEYS.AI_SETTINGS,          // contains API keys + agent prefs
+        STORAGE_KEYS.GEMINI_KEY,           // raw Gemini API key (BYO)
+        STORAGE_KEYS.BSB_API_KEY,          // BSB API key
+    ].filter(Boolean)); // drop undefined entries when STORAGE_KEYS is partial (tests)
     const SENSITIVE_SET = new Set(SENSITIVE);
 
     // Plaintext cache: key → JS value. Populated by init(); kept in sync by
