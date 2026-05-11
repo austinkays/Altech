@@ -1766,6 +1766,10 @@ const ComplianceDashboard = {
     },
 
     dismissPolicy(policyNumber) {
+        // Reject empty/nullish keys — Firestore rejects empty field names with
+        // an `invalid-argument` error that takes down the whole cglState push.
+        // Was reproduced when a malformed onclick interpolation passed `''`.
+        if (!policyNumber || typeof policyNumber !== 'string') return;
         const policy = this.policies.find(p => p.policyNumber === policyNumber);
         this.dismissedPolicies[policyNumber] = {
             dismissedAt: new Date().toISOString(),
@@ -1778,6 +1782,7 @@ const ComplianceDashboard = {
     },
 
     snoozePolicy(policyNumber) {
+        if (!policyNumber || typeof policyNumber !== 'string') return;
         const existing = this.snoozedPolicies[policyNumber];
         const count = existing ? (existing.count || 1) + 1 : 1;
         const now = new Date();
@@ -2810,9 +2815,12 @@ const ComplianceDashboard = {
     },
 
     /**
-     * Recursively replace `undefined` with `null` in an object/array tree.
-     * Firestore rejects payloads containing `undefined` with an
-     * `invalid-argument` error. Returns a new object — does not mutate.
+     * Recursively replace `undefined` with `null` in an object/array tree
+     * AND drop entries whose key is an empty string. Firestore rejects both
+     * `undefined` values AND empty field names with an `invalid-argument`
+     * error, and an empty-string key reproduced from a malformed onclick
+     * interpolation that called `dismissPolicy('')`. Returns a new object —
+     * does not mutate.
      */
     _scrubUndefined(obj) {
         if (obj === undefined) return null;
@@ -2821,7 +2829,8 @@ const ComplianceDashboard = {
         const out = {};
         for (const k of Object.keys(obj)) {
             const v = obj[k];
-            if (v === undefined) continue; // drop the key entirely
+            if (v === undefined) continue;
+            if (k === '') continue; // Firestore rejects empty field names
             out[k] = this._scrubUndefined(v);
         }
         return out;

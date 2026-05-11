@@ -73,7 +73,14 @@ window.VaultMeta = (() => {
         const out = {};
         for (const [jsKey, val] of Object.entries(jsObj)) {
             const dbKey = JS_TO_DB[jsKey];
-            if (dbKey != null) out[dbKey] = val;
+            if (dbKey == null) continue;
+            // Skip null values — Supabase's upsert sends them as explicit
+            // NULL, which violates NOT NULL columns like pbkdf2_iterations.
+            // The column either has a default (kept) or stores NULL (also
+            // fine when nullable, since we just don't write the field).
+            // Argon2id vaults intentionally leave pbkdf2_iterations unset.
+            if (val == null) continue;
+            out[dbKey] = val;
         }
         return out;
     }

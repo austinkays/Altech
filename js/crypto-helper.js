@@ -452,7 +452,26 @@ const CryptoHelper = (() => {
                     } catch (e) { /* fall through */ }
                 }
                 try { return JSON.parse(encryptedData); } catch (e) {
-                    console.error('Decryption failed:', firstErr);
+                    // Quiet path: the input clearly wasn't ciphertext (atob
+                    // refused, JSON.parse refused). Most likely a string-typed
+                    // localStorage value the caller speculatively tried to
+                    // decrypt — e.g. AGENCY_GLOSSARY (raw text), or anything
+                    // in the migration pipeline's _normalizeToPlaintext probe.
+                    // A console.error would mislead the user into thinking
+                    // data is corrupt when the helper is just declining gracefully.
+                    const isNotBase64 = firstErr
+                        && (firstErr.name === 'InvalidCharacterError'
+                            || /atob/i.test(String(firstErr.message || '')));
+                    if (!isNotBase64) {
+                        console.error('Decryption failed:', firstErr);
+                    } else {
+                        // Keep a verbose breadcrumb available without spamming
+                        // the default error level — agents can flip on debug
+                        // logging to surface this.
+                        if (typeof console.debug === 'function') {
+                            console.debug('[CryptoHelper] decrypt skipped (not base64)');
+                        }
+                    }
                     return null;
                 }
             }
