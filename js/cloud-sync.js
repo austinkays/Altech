@@ -304,6 +304,26 @@ const CloudSync = (() => {
         return remoteUpdatedAt > lastSync;
     }
 
+    /**
+     * Recursively replace `undefined` with `null` and drop undefined keys.
+     * Firestore's set/update reject any payload containing `undefined` with
+     * an `invalid-argument` error — this is the last-mile defense before
+     * the actual write. Returns a new value; does not mutate.
+     */
+    function _scrubUndefined(value) {
+        if (value === undefined) return null;
+        if (value === null || typeof value !== 'object') return value;
+        if (value instanceof Date) return value;
+        if (Array.isArray(value)) return value.map(_scrubUndefined);
+        const out = {};
+        for (const k of Object.keys(value)) {
+            const v = value[k];
+            if (v === undefined) continue;
+            out[k] = _scrubUndefined(v);
+        }
+        return out;
+    }
+
     function _markSynced(docType) {
         const meta = _getSyncMeta();
         meta[`lastSync_${docType}`] = Date.now();
@@ -366,8 +386,13 @@ const CloudSync = (() => {
         }
 
         try {
+            // Firestore rejects payloads containing `undefined` with an
+            // `invalid-argument` error. Scrub the local payload before push
+            // so any sneak from a caller doesn't blow up the entire sync run.
+            // _markSynced is still called on success either way.
+            const scrubbed = _scrubUndefined(localData);
             await ref.set({
-                data: localData,
+                data: scrubbed,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 deviceId: DEVICE_ID,
                 docType

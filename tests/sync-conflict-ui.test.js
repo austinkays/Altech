@@ -65,8 +65,12 @@ describe('push-side conflict detection in _pushDoc', () => {
         const fnBlock = SRC.slice(fnStart, fnStart + 3500);
         // The catch block must NOT throw — comment says "fall through to the write".
         expect(fnBlock).toMatch(/console\.warn\(`\[CloudSync\] Pre-push conflict check failed/);
-        // The success-path write still runs below the catch.
-        expect(fnBlock).toMatch(/await ref\.set\(\{[\s\S]*?data:\s*localData/);
+        // The success-path write still runs below the catch. (Hotfix
+        // May 11 evening: the actual write uses `data: scrubbed` where
+        // scrubbed comes from _scrubUndefined(localData) — the original
+        // `data: localData` would now match the rejection too.)
+        expect(fnBlock).toMatch(/const scrubbed = _scrubUndefined\(localData\)/);
+        expect(fnBlock).toMatch(/await ref\.set\(\{[\s\S]*?data:\s*scrubbed/);
     });
 });
 

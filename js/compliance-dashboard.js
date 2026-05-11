@@ -342,7 +342,12 @@ const ComplianceDashboard = {
     },
 
     _getStateSnapshot() {
-        return {
+        // Scrub any `undefined` values across the entire tree before this is
+        // handed to CloudSync._pushDoc — Firestore rejects payloads containing
+        // undefined with an `invalid-argument` error, and the older Socrata
+        // summarizers (waLicense/orLicense) can leak undefineds through.
+        // _scrubUndefined is defined alongside verifyClient further down.
+        const raw = {
             verifiedPolicies: this.verifiedPolicies,
             dismissedPolicies: this.dismissedPolicies,
             snoozedPolicies: this.snoozedPolicies,
@@ -356,6 +361,7 @@ const ComplianceDashboard = {
             notifyTypes: this.notifyTypes,
             lastSaved: new Date().toISOString()
         };
+        return this._scrubUndefined ? this._scrubUndefined(raw) : raw;
     },
 
     async _writeAnnotationsToIDB() {
@@ -2728,19 +2734,50 @@ const ComplianceDashboard = {
             && existing.verifiedAt
             && (Date.now() - new Date(existing.verifiedAt).getTime() < VERIFY_RETRY_AFTER_MS)) return;
 
+        // If we're currently rate-limited, don't issue more requests. The
+        // _drainVerifyQueue loop also honors this and stops draining; the
+        // request that would have fired here is parked in the queue.
+        if (this._verify429Until && Date.now() < this._verify429Until) {
+            return;
+        }
+
         const encName = encodeURIComponent(businessName);
-        let waResult = null, orResult = null;
+        let waRes = null, orRes = null;
         try {
-            const [waRes, orRes] = await Promise.all([
+            [waRes, orRes] = await Promise.all([
                 Auth.apiFetch(`/api/prospect-lookup?type=li&name=${encName}`, { signal: AbortSignal.timeout(8000) }).catch(() => null),
                 Auth.apiFetch(`/api/prospect-lookup?type=or-ccb&name=${encName}`, { signal: AbortSignal.timeout(8000) }).catch(() => null)
             ]);
-            if (waRes && waRes.ok) waResult = await waRes.json().catch(() => null);
-            if (orRes && orRes.ok) orResult = await orRes.json().catch(() => null);
         } catch (e) {
             console.warn('[CGL] verifyClient lookup error', e?.message || e);
             return;
         }
+
+        // 429 handling — if either upstream rate-limited us, stop the whole
+        // drain queue and back off exponentially (60s → 5min → 30min, cap).
+        // Without this, the queue would re-fire immediately on the next
+        // render and flood the console with errors.
+        if ((waRes && waRes.status === 429) || (orRes && orRes.status === 429)) {
+            this._verify429Count = (this._verify429Count || 0) + 1;
+            const backoffMs = Math.min(30 * 60 * 1000, 60 * 1000 * Math.pow(5, this._verify429Count - 1));
+            this._verify429Until = Date.now() + backoffMs;
+            console.warn(`[CGL] L&I/CCB rate-limited — pausing verify queue for ${Math.round(backoffMs / 1000)}s`);
+            if (window.ActivityLog) {
+                window.ActivityLog.add({
+                    type: 'error', area: 'cgl', ok: false,
+                    message: `L&I/CCB rate limit hit — verification paused for ${Math.round(backoffMs / 60000)}m`,
+                    detail: `${this._verify429Count} consecutive 429${this._verify429Count === 1 ? '' : 's'}; backs off automatically`,
+                });
+            }
+            return;
+        }
+        // Successful or non-429 response — reset the consecutive-429 counter
+        // so the next rate-limit hit starts at the lowest backoff again.
+        this._verify429Count = 0;
+
+        let waResult = null, orResult = null;
+        if (waRes && waRes.ok) waResult = await waRes.json().catch(() => null);
+        if (orRes && orRes.ok) orResult = await orRes.json().catch(() => null);
 
         // Treat available:false as transient — leave for later retry
         const waUsable = waResult && waResult.available !== false;
@@ -2754,24 +2791,56 @@ const ComplianceDashboard = {
         else if (waFound) classification = 'wa-contractor';
         else if (orFound) classification = 'or-contractor';
 
-        this.clientCompliance[clientNumber] = {
+        // _scrubUndefined removes any `undefined` from the summarized license
+        // results so Firestore doesn't reject the cglState push with an
+        // 'invalid-argument' error. The summarizers can return undefined for
+        // missing fields (license expiration, etc.) and those bubble up here.
+        this.clientCompliance[clientNumber] = this._scrubUndefined({
             ...(existing || {}),
             classification,
             classificationSource: 'auto',
             verifiedAt: new Date().toISOString(),
             waLicense: waFound ? this._summarizeLILookup(waResult) : null,
             orLicense: orFound ? this._summarizeCCBLookup(orResult) : null
-        };
+        });
         this.saveState();
         // Re-render so badges appear (filterPolicies re-runs with current search/filter)
         this.filterPolicies();
         this.updateStats();
     },
 
+    /**
+     * Recursively replace `undefined` with `null` in an object/array tree.
+     * Firestore rejects payloads containing `undefined` with an
+     * `invalid-argument` error. Returns a new object — does not mutate.
+     */
+    _scrubUndefined(obj) {
+        if (obj === undefined) return null;
+        if (obj === null || typeof obj !== 'object') return obj;
+        if (Array.isArray(obj)) return obj.map(v => this._scrubUndefined(v));
+        const out = {};
+        for (const k of Object.keys(obj)) {
+            const v = obj[k];
+            if (v === undefined) continue; // drop the key entirely
+            out[k] = this._scrubUndefined(v);
+        }
+        return out;
+    },
+
     // Throttled batch verification — kicks off after policies load.
     _verifyQueue: null,
     _verifyRunning: 0,
-    _verifyConcurrency: 3,
+    // Lowered from 3 → 1 (sequential). Socrata's per-app-token quota is
+    // tighter than the previous assumption — 3 concurrent burns through
+    // the budget in seconds with a busy dashboard.
+    _verifyConcurrency: 1,
+    // Backoff state for 429 responses. Both fields are set/read by
+    // verifyClient + _drainVerifyQueue; default-falsy means "no active 429".
+    _verify429Until: 0,
+    _verify429Count: 0,
+    // Inter-request delay (ms). Even at concurrency=1, hitting both LI and
+    // CCB twice per client (= 2 requests) without a gap can saturate.
+    _verifyMinIntervalMs: 600,
     verifyAllClients() {
         if (!Array.isArray(this.policies) || this.policies.length === 0) return;
         const seen = new Map();
@@ -2797,12 +2866,26 @@ const ComplianceDashboard = {
 
     _drainVerifyQueue() {
         if (!this._verifyQueue) return;
+        // Honor active rate-limit backoff — schedule a single wake-up rather
+        // than spinning. _drainVerifyQueue is idempotent so this is safe.
+        if (this._verify429Until && Date.now() < this._verify429Until) {
+            const waitMs = this._verify429Until - Date.now();
+            if (!this._verify429Timer) {
+                this._verify429Timer = setTimeout(() => {
+                    this._verify429Timer = null;
+                    this._drainVerifyQueue();
+                }, waitMs + 100);
+            }
+            return;
+        }
         while (this._verifyRunning < this._verifyConcurrency && this._verifyQueue.length > 0) {
             const [cn, name] = this._verifyQueue.shift();
             this._verifyRunning++;
             this.verifyClient(cn, name).finally(() => {
                 this._verifyRunning--;
-                this._drainVerifyQueue();
+                // Space subsequent requests by _verifyMinIntervalMs so we don't
+                // saturate the Socrata quota even when the queue is large.
+                setTimeout(() => this._drainVerifyQueue(), this._verifyMinIntervalMs);
             });
         }
     },
