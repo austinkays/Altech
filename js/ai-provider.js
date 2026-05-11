@@ -289,12 +289,54 @@ window.AIProvider = (() => {
 
     function _withTimeout(promise, ms) {
         return new Promise((resolve, reject) => {
-            const timer = setTimeout(() => reject(new Error('AI request timed out')), ms);
+            const timer = setTimeout(() => reject(new Error('AI request timed out — your network or the provider is slow. Try again.')), ms);
             promise.then(
                 val => { clearTimeout(timer); resolve(val); },
                 err => { clearTimeout(timer); reject(err); }
             );
         });
+    }
+
+    /**
+     * Translate an HTTP error response from any AI provider into a
+     * human-readable message that points the user at the cause + fix.
+     * Falls back to the upstream message if the status code is unfamiliar.
+     */
+    function _decodeApiError(provider, status, errBody) {
+        const upstream = (errBody && errBody.error && errBody.error.message) ||
+                         (errBody && errBody.message) || '';
+        const providerLabel = {
+            google: 'Gemini',
+            anthropic: 'Anthropic',
+            openai: 'OpenAI',
+            openrouter: 'OpenRouter',
+        }[provider] || provider;
+
+        switch (status) {
+            case 400:
+                // Most 400s are prompt/schema issues. Surface upstream so the
+                // user can see what the provider didn't like.
+                return `${providerLabel} rejected the request${upstream ? ': ' + upstream : ' — check Settings → AI Provider for model compatibility'}`;
+            case 401:
+                return `${providerLabel} API key is invalid or expired — re-add it in Settings → AI Provider`;
+            case 403:
+                return `${providerLabel} blocked this request — your API key may not have access to this model${upstream ? ' (' + upstream + ')' : ''}`;
+            case 404:
+                return `${providerLabel} model not found — pick a different model in Settings`;
+            case 408:
+            case 504:
+                return `${providerLabel} timed out — try again in a moment`;
+            case 413:
+                return `Request too large for ${providerLabel} — try a smaller/shorter document`;
+            case 429:
+                return `${providerLabel} rate limit hit — wait ~30s and try again, or check your account quota`;
+            case 500:
+            case 502:
+            case 503:
+                return `${providerLabel} is having issues right now (${status}) — try again in a moment`;
+            default:
+                return upstream || `${providerLabel} API error (${status})`;
+        }
     }
 
     async function ask(systemPrompt, userMessage, opts = {}) {
@@ -362,7 +404,7 @@ window.AIProvider = (() => {
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message || `Google API error (${res.status})`);
+            throw new Error(_decodeApiError('google', res.status, err));
         }
 
         const data = await res.json();
@@ -461,7 +503,7 @@ window.AIProvider = (() => {
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message || `OpenRouter API error (${res.status})`);
+            throw new Error(_decodeApiError('openrouter', res.status, err));
         }
 
         const data = await res.json();
@@ -506,7 +548,7 @@ window.AIProvider = (() => {
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message || `OpenAI API error (${res.status})`);
+            throw new Error(_decodeApiError('openai', res.status, err));
         }
 
         const data = await res.json();
@@ -545,7 +587,7 @@ window.AIProvider = (() => {
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message || `Anthropic API error (${res.status})`);
+            throw new Error(_decodeApiError('anthropic', res.status, err));
         }
 
         const data = await res.json();
@@ -688,7 +730,7 @@ window.AIProvider = (() => {
         });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message || `Google API error (${res.status})`);
+            throw new Error(_decodeApiError('google', res.status, err));
         }
         const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
@@ -707,7 +749,7 @@ window.AIProvider = (() => {
         const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message || `${provider} API error (${res.status})`);
+            throw new Error(_decodeApiError(provider, res.status, err));
         }
         const data = await res.json();
         const text = data?.choices?.[0]?.message?.content || '';
@@ -722,7 +764,7 @@ window.AIProvider = (() => {
         const res = await fetchFn(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
-            throw new Error(err?.error?.message || `Anthropic API error (${res.status})`);
+            throw new Error(_decodeApiError('anthropic', res.status, err));
         }
         const data = await res.json();
         const text = data?.content?.[0]?.text || '';

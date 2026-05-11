@@ -788,8 +788,27 @@ Object.assign(App, {
                     setTimeout(() => { ind.style.opacity = 0; }, 1500);
                 }
 
+                // Surface to the activity log so the user can see "yes, your
+                // edit was saved" without staring at the console.
+                if (window.ActivityLog) {
+                    window.ActivityLog.add({ type: 'save', area: 'intake', ok: true, message: 'Form saved' });
+                }
+
                 // Also schedule a debounced client history save on meaningful input
                 this._scheduleClientHistorySave();
+            } catch (err) {
+                console.error('[App.save] flush failed:', err);
+                if (window.ActivityLog) {
+                    window.ActivityLog.add({
+                        type: 'error',
+                        area: 'intake',
+                        ok: false,
+                        message: 'Form save failed',
+                        detail: err && err.message ? err.message : String(err),
+                    });
+                }
+                // Re-throw so callers awaiting save() see the failure.
+                throw err;
             } finally {
                 this._saving = false;
             }
@@ -1369,6 +1388,17 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
         history.unshift(entry);
         history = history.slice(0, 200);
         localStorage.setItem(key, JSON.stringify(history));
+        // Mirror to the activity log so the user can see "yes, that export
+        // happened, here's the file name" without digging through Settings.
+        if (window.ActivityLog) {
+            window.ActivityLog.add({
+                type: 'export',
+                area: type.toLowerCase(),
+                ok: true,
+                message: `${type} exported for ${clientName}`,
+                detail: filename,
+            });
+        }
         // Also save to disk (fire-and-forget)
         fetch('/local/export-history', {
             method: 'POST',

@@ -96,19 +96,68 @@ Object.assign(App, {
     },
 
     // ── Utilities ──
+    // toast() — single-toast UI with a small queue. New messages wait their
+    // turn so important alerts (especially errors) aren't clobbered when
+    // multiple things happen in quick succession (e.g., autosave + AI fail).
+    //
+    // Signature: toast(msg, duration|opts, useHtml)
+    //   duration: number ms, OR { type, duration, dedupe }
+    //     type: 'error' | 'success' | 'info' | 'warning'
+    //     dedupe: false to allow duplicates (default true — same message
+    //             enqueued twice in a row collapses to one entry)
+    //
+    // Errors are guaranteed at least 3500ms; non-errors default to 2500ms.
     toast(msg, duration, useHtml) {
         const t = document.getElementById('toast');
         if (!t) return;
-        // Support 2nd arg as options object: toast('msg', { type: 'error', duration: 4000 })
+
+        // Parse args
         let ms = 2500;
         let type = null;
+        let dedupe = true;
         if (typeof duration === 'object' && duration !== null) {
-            ms = duration.duration || 2500;
             type = duration.type || null;
+            ms = duration.duration || (type === 'error' ? 3500 : 2500);
+            if (duration.dedupe === false) dedupe = false;
         } else if (typeof duration === 'number') {
             ms = duration;
         }
-        t.classList.remove('toast-error', 'toast-success');
+
+        // Lazy-init the queue. Stored on the toast element so multiple App
+        // instances (tests) don't fight over a module-level queue.
+        if (!t._toastQueue) {
+            t._toastQueue = [];
+            t._toastShowing = false;
+        }
+
+        // Skip duplicate consecutive entries — protects against renders that
+        // fire 10× the same "saved" toast in 200ms.
+        if (dedupe) {
+            const last = t._toastQueue[t._toastQueue.length - 1];
+            if (last && last.msg === msg && last.type === type) return;
+            // Also dedupe against the currently-displayed toast.
+            if (t._toastShowing && t._currentMsg === msg && t._currentType === type) return;
+        }
+
+        t._toastQueue.push({ msg, ms, type, useHtml });
+        if (!t._toastShowing) this._toastDrain();
+    },
+
+    _toastDrain() {
+        const t = document.getElementById('toast');
+        if (!t || !t._toastQueue) return;
+        if (t._toastQueue.length === 0) {
+            t._toastShowing = false;
+            t._currentMsg = null;
+            t._currentType = null;
+            return;
+        }
+        t._toastShowing = true;
+        const { msg, ms, type, useHtml } = t._toastQueue.shift();
+        t._currentMsg = msg;
+        t._currentType = type;
+
+        t.classList.remove('toast-error', 'toast-success', 'toast-info', 'toast-warning');
         if (type) t.classList.add(`toast-${type}`);
         if (useHtml) {
             t.innerHTML = msg;
@@ -116,7 +165,12 @@ Object.assign(App, {
             t.innerText = msg;
         }
         t.classList.add('show');
-        setTimeout(() => { t.classList.remove('show', 'toast-error', 'toast-success'); }, ms);
+
+        // Show duration + 200ms hide animation gap before next.
+        setTimeout(() => {
+            t.classList.remove('show', 'toast-error', 'toast-success', 'toast-info', 'toast-warning');
+            setTimeout(() => this._toastDrain(), 200);
+        }, ms);
     },
 
     copyToClipboard(text) {

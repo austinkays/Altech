@@ -35,11 +35,26 @@ window.Reminders = (() => {
     function _save() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(_state));
+            if (window.ActivityLog) {
+                window.ActivityLog.add({
+                    type: 'save', area: 'reminders', ok: true,
+                    message: `Reminders saved (${_state.tasks.length} task${_state.tasks.length === 1 ? '' : 's'})`,
+                });
+            }
         } catch (e) {
             console.error('[Reminders] Save error:', e);
+            if (window.ActivityLog) {
+                window.ActivityLog.add({
+                    type: 'error', area: 'reminders', ok: false,
+                    message: 'Reminders save failed',
+                    detail: e && e.message ? e.message : String(e),
+                });
+            }
         }
-        // Cloud sync
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
+        // Cloud sync — picks up the new state on the next debounced push.
+        if (typeof window.Sync !== 'undefined' && window.Sync.schedulePush) {
+            window.Sync.schedulePush();
+        } else if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
             CloudSync.schedulePush();
         }
         _updateBadge();
