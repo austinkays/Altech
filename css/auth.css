@@ -762,6 +762,54 @@ body.dark-mode .conflict-item {
     border-color: #38383A;
 }
 
+/* ── Conflict per-field diff (collapsible) ──
+   Rendered by _buildConflictDiffHTML — only present when local + remote are
+   shallow objects (currentForm, cglState's annotation dict, etc.). Lets the
+   user see exactly what's different before picking a side. */
+.conflict-diff {
+    margin-top: 10px;
+    border-top: 1px dashed var(--border, #ddd);
+    padding-top: 8px;
+}
+.conflict-diff summary {
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--apple-blue);
+    user-select: none;
+    padding: 4px 0;
+}
+.conflict-diff summary:hover { text-decoration: underline; }
+.conflict-diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+    font-size: 12px;
+    table-layout: fixed;
+}
+.conflict-diff-table th {
+    text-align: left;
+    font-weight: 600;
+    padding: 4px 6px;
+    color: var(--text-secondary, #666);
+    border-bottom: 1px solid var(--border, #eee);
+}
+.conflict-diff-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    vertical-align: top;
+    word-break: break-word;
+}
+body.dark-mode .conflict-diff-table td { border-bottom-color: rgba(255, 255, 255, 0.05); }
+.conflict-diff-key { font-family: ui-monospace, monospace; font-weight: 600; }
+.conflict-diff-remote { color: var(--apple-blue); }
+.conflict-diff-local { color: var(--warning, #FF9500); }
+.conflict-diff-more {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-secondary, #666);
+    font-style: italic;
+}
+
 /* ── Intake Session Dialog ── */
 .intake-session-modal {
     max-width: 380px;
