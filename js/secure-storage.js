@@ -60,16 +60,65 @@ window.SecureStorage = (() => {
     const _cache = new Map();
     let _ready = false;
     let _initPromise = null;
+    // Keys that couldn't be encrypted at init time (e.g., v2 vault locked).
+    // setItemSync attempts to migrate these on every write so we eventually
+    // converge once v2 unlocks. P0 fix May 11 2026 — previously plaintext
+    // could persist on disk forever if the user booted with a locked vault.
+    const _pendingMigration = new Set();
 
-    // A value looks encrypted if it's a long string made of the base64
-    // alphabet (A-Z, a-z, 0-9, +, /, =). CryptoHelper.encrypt produces
-    // base64 of (12-byte IV || AES-GCM ciphertext + tag), so any real
-    // ciphertext fits this character set and is >40 chars. The stricter
-    // regex avoids treating long plaintext (e.g. agency glossary with
-    // spaces, newlines, special characters) as ciphertext.
+    // Magic prefix that marks a SecureStorage-managed ciphertext on disk.
+    // Using an explicit prefix instead of a base64-shape heuristic eliminates
+    // the false-positive class where long alphanumeric plaintext (UUIDs,
+    // API tokens, hex hashes) would have been mis-classified as ciphertext.
+    // The prefix is short, ASCII-only, and unambiguous — no real client NPI
+    // string starts with `altech-sec:v1:`. P1 fix May 11 2026.
+    const ENVELOPE_PREFIX = 'altech-sec:v1:';
+
     function _looksEncrypted(raw) {
-        if (typeof raw !== 'string' || raw.length < 40) return false;
-        return /^[A-Za-z0-9+/=]+$/.test(raw);
+        return typeof raw === 'string' && raw.startsWith(ENVELOPE_PREFIX);
+    }
+
+    // Try to decrypt a possibly-encrypted value. Returns:
+    //   • the plaintext if `raw` is a v1 envelope and decrypt succeeds
+    //   • the original `raw` if it doesn't look like an envelope
+    //   • null if it IS an envelope but decrypt fails (vault locked, key
+    //     mismatch, tampered ciphertext)
+    async function _tryDecryptEnvelope(raw) {
+        if (!_looksEncrypted(raw)) return raw;
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decrypt) return null;
+        const ct = raw.slice(ENVELOPE_PREFIX.length);
+        try { return await CryptoHelper.decrypt(ct); }
+        catch { return null; }
+    }
+
+    // Encrypt a value into a v1 envelope. Returns null on encryption failure
+    // (caller should fall back to writing plaintext + queuing for retry).
+    async function _encryptToEnvelope(value) {
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.encrypt) return null;
+        try {
+            const ct = await CryptoHelper.encrypt(value);
+            // Reject the JSON.stringify fallback that CryptoHelper.encrypt
+            // returns when its WebCrypto path fails. We don't want plaintext
+            // JSON on disk wearing an `altech-sec:v1:` mask.
+            if (typeof ct !== 'string' || ct.length < 20) return null;
+            if (ct.trim().startsWith('{') || ct.trim().startsWith('[')) return null;
+            return ENVELOPE_PREFIX + ct;
+        } catch { return null; }
+    }
+
+    // Migration path for raw values written BEFORE this module shipped or
+    // before the magic-prefix scheme. Tries decrypt-without-prefix first
+    // (legacy base64 ciphertext from earlier SecureStorage versions); if
+    // that fails, returns null so the caller falls through to JSON.parse +
+    // re-encrypt with the new envelope.
+    async function _tryLegacyDecrypt(raw) {
+        if (typeof raw !== 'string' || raw.length < 40) return null;
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decrypt) return null;
+        // CryptoHelper.decrypt returns null on most failure modes; only
+        // unexpected throws bubble up. Treat any non-null parse-able result
+        // as "the bytes decrypted to something legitimate".
+        try { return await CryptoHelper.decrypt(raw); }
+        catch { return null; }
     }
 
     async function init() {
@@ -89,30 +138,39 @@ window.SecureStorage = (() => {
                 if (raw == null) { _cache.set(key, null); continue; }
 
                 if (_looksEncrypted(raw)) {
-                    try {
-                        const plain = await CryptoHelper.decrypt(raw);
-                        _cache.set(key, plain);
-                    } catch (e) {
-                        console.warn('[SecureStorage] decrypt failed at init for', key, '—', (e && e.message) || e);
-                        _cache.set(key, null);
+                    // v1 envelope — decrypt with current key.
+                    const plain = await _tryDecryptEnvelope(raw);
+                    _cache.set(key, plain);
+                    if (plain == null) {
+                        // Decrypt failed (vault locked OR data was encrypted by a
+                        // different key). Don't queue for re-encrypt — we don't
+                        // have the plaintext to write back. The user must unlock
+                        // and reload for the cache to populate.
+                        console.warn('[SecureStorage] decrypt failed at init for', key, '— vault locked or key mismatch');
                     }
                 } else {
-                    // Plaintext on disk (legacy / never-encrypted). Cache the parsed
-                    // JS value, then migrate by encrypting in place. After this one
-                    // boot, the disk version is ciphertext for the rest of the
-                    // device's life.
-                    let parsed = raw;
-                    try { parsed = JSON.parse(raw); } catch { /* leave as raw string */ }
-                    _cache.set(key, parsed);
-                    try {
-                        const enc = await CryptoHelper.encrypt(parsed);
-                        if (enc && _looksEncrypted(enc)) {
-                            localStorage.setItem(key, enc);
-                        }
-                    } catch (e) {
-                        // Most likely CRYPTO_LOCKED — leave plaintext on disk for now;
-                        // the next setItem after unlock will re-encrypt.
-                        console.warn('[SecureStorage] migration encrypt failed for', key, '—', (e && e.message) || e);
+                    // Either legacy ciphertext (no envelope prefix, pre-v1 format)
+                    // OR plaintext JSON. Try legacy decrypt first; if that succeeds
+                    // the value WAS legacy ciphertext and we have the plaintext.
+                    // Otherwise treat as plaintext on disk and migrate to v1.
+                    let plaintext = await _tryLegacyDecrypt(raw);
+                    if (plaintext == null) {
+                        plaintext = raw;
+                        try { plaintext = JSON.parse(raw); } catch { /* leave as raw string */ }
+                    }
+                    _cache.set(key, plaintext);
+
+                    // Migrate to v1 envelope. If encryption fails (CRYPTO_LOCKED),
+                    // queue the key for retry — setItemSync will attempt the
+                    // migration again on every subsequent write once the vault
+                    // unlocks. Plaintext stays on disk in the meantime; the cache
+                    // is still correct so plugin reads keep working.
+                    const env = await _encryptToEnvelope(plaintext);
+                    if (env) {
+                        localStorage.setItem(key, env);
+                    } else {
+                        _pendingMigration.add(key);
+                        console.warn('[SecureStorage] migration encrypt deferred for', key, '— will retry on next write');
                     }
                 }
             }
@@ -202,21 +260,20 @@ window.SecureStorage = (() => {
         }
         const parsed = _toParsed(value);
         _cache.set(key, parsed);
-        try {
-            if (typeof CryptoHelper !== 'undefined' && CryptoHelper.encrypt) {
-                const enc = await CryptoHelper.encrypt(parsed);
-                if (enc && _looksEncrypted(enc)) {
-                    _ls().setItem(key, enc);
-                    return;
-                }
-            }
-        } catch (e) {
-            console.warn('[SecureStorage] encrypt failed for', key, '— writing plaintext:', (e && e.message) || e);
+        const env = await _encryptToEnvelope(parsed);
+        if (env) {
+            _ls().setItem(key, env);
+            _pendingMigration.delete(key);
+            // Best-effort retry for any other still-plaintext keys.
+            _retryPendingMigration();
+            return;
         }
-        // Fallback: encryption unavailable (e.g., CRYPTO_LOCKED at init) — write
-        // plaintext so we don't lose the user's data. The next successful init()
-        // call after unlock will migrate it.
+        // Fallback: encryption unavailable (e.g., CRYPTO_LOCKED) — write
+        // plaintext so we don't lose the user's data, and queue the key for
+        // retry on the next setItem after the vault unlocks.
+        console.warn('[SecureStorage] encrypt unavailable for', key, '— writing plaintext, queuing for retry');
         _ls().setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
+        _pendingMigration.add(key);
     }
 
     // Sync setter — for callers that can't await (legacy `_save` / event
@@ -233,19 +290,53 @@ window.SecureStorage = (() => {
         const parsed = _toParsed(value);
         _cache.set(key, parsed);
         const serialized = typeof value === 'string' ? value : JSON.stringify(value);
+        // Write plaintext immediately for durability — the async encrypt
+        // below replaces it within a few ms. P0 acceptable per threat model.
         _ls().setItem(key, serialized);
 
-        if (typeof CryptoHelper !== 'undefined' && CryptoHelper.encrypt) {
-            CryptoHelper.encrypt(parsed)
-                .then(enc => {
-                    // Race-safe: only flush this ciphertext if the cache still
-                    // holds the value WE just wrote. A newer setItem replaces.
-                    if (enc && _looksEncrypted(enc) && _cache.get(key) === parsed) {
-                        _ls().setItem(key, enc);
-                    }
+        // Mark this key as pending and kick off encryption. The retry sweep
+        // also tries any OTHER keys that failed at init.
+        _pendingMigration.add(key);
+        _retryPendingMigration();
+    }
+
+    // Fire-and-forget retry sweep — tries to encrypt every still-pending
+    // key with the CURRENT cache value. Race-safe: only flushes a
+    // ciphertext when the cache hasn't moved on. Called from setItem(Sync)
+    // so the system converges as soon as the vault is unlocked.
+    function _retryPendingMigration() {
+        if (_pendingMigration.size === 0) return;
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.encrypt) return;
+        for (const key of Array.from(_pendingMigration)) {
+            const snapshot = _cache.get(key);
+            if (snapshot == null) { _pendingMigration.delete(key); continue; }
+            _encryptToEnvelope(snapshot)
+                .then(env => {
+                    if (!env) return; // still failing — leave queued
+                    if (_cache.get(key) !== snapshot) return; // newer write — let its own flush win
+                    _ls().setItem(key, env);
+                    _pendingMigration.delete(key);
                 })
-                .catch(e => console.warn('[SecureStorage] async encrypt failed for', key, '—', (e && e.message) || e));
+                .catch(e => console.warn('[SecureStorage] retry encrypt failed for', key, '—', (e && e.message) || e));
         }
+    }
+
+    // Public API for hooks (vault-ui unlock flow, manual sweeps). Resolves
+    // when every pending migration has been attempted at least once.
+    async function migrate() {
+        if (_pendingMigration.size === 0) return { migrated: 0, pending: 0 };
+        const before = _pendingMigration.size;
+        const tasks = Array.from(_pendingMigration).map(async (key) => {
+            const snapshot = _cache.get(key);
+            if (snapshot == null) { _pendingMigration.delete(key); return; }
+            const env = await _encryptToEnvelope(snapshot);
+            if (env && _cache.get(key) === snapshot) {
+                _ls().setItem(key, env);
+                _pendingMigration.delete(key);
+            }
+        });
+        await Promise.allSettled(tasks);
+        return { migrated: before - _pendingMigration.size, pending: _pendingMigration.size };
     }
 
     function removeItem(key) {
@@ -259,9 +350,11 @@ window.SecureStorage = (() => {
     }
 
     return Object.freeze({
-        init, getItem, getParsed, setItem, setItemSync, removeItem,
+        init, getItem, getParsed, setItem, setItemSync, removeItem, migrate,
         isReady: () => _ready,
         isSensitive: (key) => SENSITIVE_SET.has(key),
+        // Inspection — tests verify pending state after a CRYPTO_LOCKED scenario.
+        pendingMigrationCount: () => _pendingMigration.size,
         SENSITIVE_KEYS: SENSITIVE.slice(),
     });
 })();

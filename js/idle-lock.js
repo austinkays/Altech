@@ -81,7 +81,14 @@ window.IdleLock = (() => {
                 App.toast('Vault locked — please re-enter passphrase to continue.', { type: 'info', duration: 5000 });
             }
         } catch (e) { /* ignore — best-effort UI */ }
-        _running = false;
+        // Important: do NOT set _running = false here. After lock fires the
+        // user typically types their passphrase to unlock — those keystrokes
+        // are activity events that should reset a fresh timer. If _running
+        // were false, _resetTimer would early-return and the vault would
+        // never auto-lock again in this session (P0 bug fixed May 11 2026).
+        // The previous setTimeout has already fired, so the timer slot is
+        // free; the next activity event sets a new one via _resetTimer.
+        _timer = null;
     }
 
     function _resetTimer() {

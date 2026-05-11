@@ -78,15 +78,29 @@ window.CglIDB = {
         return value;
     },
 
+    // Sentinel returned when a wrapped value EXISTS in IDB but can't be
+    // decrypted (vault locked, key mismatch). Distinct from `undefined`
+    // (the row doesn't exist at all) so callers can choose to throw vs
+    // treat as cache miss. Callers that don't check just see falsy and
+    // fall through to refetch — that's the safe default.
+    DECRYPT_FAILED: Object.freeze({ __cglIdbError: 'decrypt-failed' }),
+
     async _unwrap(stored) {
         if (!this._looksWrapped(stored)) return stored;
-        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decrypt) return null;
-        try { return await CryptoHelper.decrypt(stored.ct); }
-        catch (e) {
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decrypt) {
+            return this.DECRYPT_FAILED;
+        }
+        try {
+            const plain = await CryptoHelper.decrypt(stored.ct);
+            if (plain == null) return this.DECRYPT_FAILED;
+            return plain;
+        } catch (e) {
             console.warn('[CGL IDB] decrypt-at-rest failed:', (e && e.message) || e);
-            return null;
+            return this.DECRYPT_FAILED;
         }
     },
+
+    isDecryptError(v) { return v === this.DECRYPT_FAILED; },
 
     async get(key, storeName) {
         const db = await this.open();
@@ -97,8 +111,12 @@ window.CglIDB = {
             req.onsuccess = () => resolve(req.result);
             req.onerror = () => reject(req.error);
         });
-        if (raw === undefined) return undefined;
-        return await this._unwrap(raw);
+        if (raw === undefined) return undefined; // row truly missing
+        const unwrapped = await this._unwrap(raw);
+        // Pass DECRYPT_FAILED through so callers that want to discriminate
+        // can; ones that don't will get a non-null sentinel that fails their
+        // shape check and naturally fall to refetch.
+        return unwrapped;
     },
 
     async set(key, value, storeName) {

@@ -82,13 +82,13 @@ describe('SecureStorage — at-rest encryption', () => {
 
         // Cache holds plaintext.
         expect(SS.getParsed('altech_reminders')).toEqual([{ id: 1, text: 'call client' }]);
-        // Disk holds ciphertext — looks like base64, NOT JSON.
+        // Disk holds the v=1 envelope — explicit magic prefix, NOT raw JSON.
         const raw = _store.get('altech_reminders');
-        expect(raw[0]).not.toBe('[');
-        expect(raw[0]).not.toBe('{');
-        expect(raw.length).toBeGreaterThan(40);
-        // Round-trip: decrypt manually with CryptoHelper matches the cached value.
-        const decoded = await CryptoHelper.decrypt(raw);
+        expect(raw).toMatch(/^altech-sec:v1:/);
+        expect(raw.length).toBeGreaterThan('altech-sec:v1:'.length + 40);
+        // Round-trip: strip prefix and decrypt with CryptoHelper.
+        const ct = raw.slice('altech-sec:v1:'.length);
+        const decoded = await CryptoHelper.decrypt(ct);
         expect(decoded).toEqual([{ id: 1, text: 'call client' }]);
     });
 
@@ -129,7 +129,7 @@ describe('SecureStorage — at-rest encryption', () => {
         // Wait one tick for the async encrypt to land on disk.
         await new Promise(r => setTimeout(r, 5));
         const raw = _store.get('altech_reminders');
-        expect(raw[0]).not.toBe('[');
+        expect(raw).toMatch(/^altech-sec:v1:/);
         expect(raw.length).toBeGreaterThan(40);
     });
 
@@ -154,8 +154,8 @@ describe('SecureStorage — at-rest encryption', () => {
         // The proxy returns the original text (cache stores it as a raw string,
         // not a JSON-parsed value, because JSON.parse refuses non-JSON input).
         expect(localStorage.getItem('altech_agency_glossary')).toBe(text);
-        // On-disk is ciphertext.
-        expect(_store.get('altech_agency_glossary')[0]).not.toBe(text[0]);
+        // On-disk is the v=1 envelope.
+        expect(_store.get('altech_agency_glossary')).toMatch(/^altech-sec:v1:/);
     });
 
     test('SENSITIVE_KEYS exposes the right list and isSensitive() works', () => {
@@ -178,7 +178,7 @@ describe('SecureStorage — explicit API', () => {
 
         await SS.setItem('altech_client_history', [{ id: 'c1', name: 'Smith' }]);
         const raw = _store.get('altech_client_history');
-        expect(raw[0]).not.toBe('[');
+        expect(raw).toMatch(/^altech-sec:v1:/);
         expect(SS.getParsed('altech_client_history')).toEqual([{ id: 'c1', name: 'Smith' }]);
     });
 
@@ -191,5 +191,81 @@ describe('SecureStorage — explicit API', () => {
         const cipherAfterSecond = _store.get('altech_reminders');
         // Same ciphertext (init didn't re-encrypt with a fresh IV).
         expect(cipherAfterSecond).toBe(cipherAfterFirst);
+    });
+});
+
+describe('SecureStorage — false-positive protection (magic prefix)', () => {
+    test('long alphanumeric plaintext is NOT mis-classified as ciphertext', async () => {
+        // The pre-bugfix heuristic was `length >= 40 && all-base64-chars`,
+        // which false-positived long UUIDs / hex hashes / API tokens. The
+        // magic prefix `altech-sec:v1:` is unambiguous — no plaintext
+        // happens to start with it.
+        const looksLikeBase64 = 'abc' + 'A'.repeat(50) + '1234567890';
+        _store.set('altech_agency_glossary', looksLikeBase64);
+
+        const SS = loadSecureStorage();
+        await SS.init();
+
+        // Treated as plaintext — cache holds the original string.
+        expect(SS.getParsed('altech_agency_glossary')).toBe(looksLikeBase64);
+        // And re-encrypted to a v1 envelope on disk.
+        expect(_store.get('altech_agency_glossary')).toMatch(/^altech-sec:v1:/);
+    });
+});
+
+describe('SecureStorage — pending-migration retry after vault unlock', () => {
+    test('init defers encryption when v2 is locked; setItem retries once unlocked', async () => {
+        // P0 bugfix: previously, a CRYPTO_LOCKED encryption failure at init
+        // left plaintext on disk forever. The fix queues the key for retry
+        // on every subsequent setItem.
+
+        // Pre-stage plaintext.
+        _store.set('altech_reminders', JSON.stringify([{ id: 1, text: 'pending' }]));
+
+        // Lock the vault BEFORE init runs.
+        CryptoHelper.lock();
+
+        const SS = loadSecureStorage();
+        await SS.init();
+
+        // Plaintext stays on disk (encryption was unavailable).
+        expect(_store.get('altech_reminders')).not.toMatch(/^altech-sec:v1:/);
+        expect(SS.pendingMigrationCount()).toBe(1);
+
+        // Cache still has plaintext — plugins can read.
+        expect(SS.getParsed('altech_reminders')).toEqual([{ id: 1, text: 'pending' }]);
+
+        // Now simulate the user unlocking the vault.
+        await CryptoHelper.createVault('after-unlock-passphrase');
+        CryptoHelper.enableV2();
+
+        // Explicit migrate() call — exposes the retry sweep for vault-ui hooks.
+        const result = await SS.migrate();
+        expect(result.migrated).toBe(1);
+        expect(result.pending).toBe(0);
+        expect(_store.get('altech_reminders')).toMatch(/^altech-sec:v1:/);
+        expect(SS.pendingMigrationCount()).toBe(0);
+    });
+
+    test('setItemSync also drains the pending queue (fire-and-forget retry)', async () => {
+        // Stage one key with vault locked.
+        _store.set('altech_cgl_state', JSON.stringify({ deferred: true }));
+        CryptoHelper.lock();
+        const SS = loadSecureStorage();
+        await SS.init();
+        expect(SS.pendingMigrationCount()).toBe(1);
+
+        // Unlock the vault.
+        await CryptoHelper.createVault('test-passphrase');
+        CryptoHelper.enableV2();
+
+        // Writing a DIFFERENT key triggers the retry sweep for cgl_state too.
+        SS.setItemSync('altech_reminders', [{ id: 2 }]);
+        // Wait for the async retry to finish.
+        await new Promise(r => setTimeout(r, 20));
+
+        expect(SS.pendingMigrationCount()).toBe(0);
+        expect(_store.get('altech_cgl_state')).toMatch(/^altech-sec:v1:/);
+        expect(_store.get('altech_reminders')).toMatch(/^altech-sec:v1:/);
     });
 });

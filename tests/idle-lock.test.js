@@ -154,4 +154,34 @@ describe('IdleLock — basic operation', () => {
         jest.advanceTimersByTime(15 * 60 * 1000 + 10);
         expect(cb).toHaveBeenCalledTimes(1);
     });
+
+    test('after lock fires, the timer re-arms on the next activity event (P0 bugfix)', () => {
+        // Original implementation set _running=false after _lockNow, dead-locking
+        // the timer for the rest of the session. The bugfix keeps _running=true
+        // so the next user keystroke / mousemove (during passphrase entry, for
+        // example) starts a fresh 15-min countdown.
+        const IL = loadIdleLock();
+        IL.init();
+
+        // First lock — user goes idle for 15 min.
+        jest.advanceTimersByTime(15 * 60 * 1000 + 10);
+        expect(CryptoHelper.lock).toHaveBeenCalledTimes(1);
+        // _running stays true so the listener still resets on activity.
+        expect(IL.isRunning()).toBe(true);
+
+        // User comes back, types passphrase (mousemove + keydown events).
+        // This must start a NEW timer.
+        globalThis.window._fireEvent('keydown');
+
+        // 14 minutes of intermittent activity — no second lock.
+        for (let i = 0; i < 14; i++) {
+            jest.advanceTimersByTime(60 * 1000);
+            globalThis.window._fireEvent('keydown');
+        }
+        expect(CryptoHelper.lock).toHaveBeenCalledTimes(1);
+
+        // Now idle again — full timeout — second lock fires.
+        jest.advanceTimersByTime(15 * 60 * 1000 + 10);
+        expect(CryptoHelper.lock).toHaveBeenCalledTimes(2);
+    });
 });
