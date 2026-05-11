@@ -333,6 +333,122 @@ body.dark-mode .widget-card:hover {
 /* ═══════════════════════════════════════
    Widget 1: Reminders (compact — 4col × 2row)
    ═══════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   TODAY WIDGET (consolidated day-at-a-glance)
+   ══════════════════════════════════════════ */
+.widget-today {
+    grid-column: span 8;
+    grid-row: span 1;
+    cursor: default;
+}
+.widget-today .today-widget-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 12px;
+}
+.widget-today .today-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+}
+.widget-today .today-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.widget-today .today-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+}
+.widget-today .today-section {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+.widget-today .today-section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+.widget-today .today-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.widget-today .today-section-link {
+    font-size: 11px;
+    color: var(--apple-blue);
+    text-decoration: none;
+}
+.widget-today .today-section-link:hover {
+    text-decoration: underline;
+}
+.widget-today .today-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.widget-today .today-list li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+    color: var(--text);
+    min-width: 0;
+}
+.widget-today .today-item-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.widget-today .today-item-meta {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.widget-today .today-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.widget-today .today-dot-overdue { background: #FF3B30; }
+.widget-today .today-dot-due-today { background: var(--warning, #FF9500); }
+.widget-today .today-dot-policy { background: var(--apple-blue); }
+.widget-today .today-activity-icon { font-size: 14px; flex-shrink: 0; }
+.widget-today .today-activity-fail .today-item-title { color: #FF3B30; }
+.widget-today .today-empty {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 12px;
+}
+@media (max-width: 900px) {
+    .widget-today .today-sections { grid-template-columns: 1fr; }
+}
+
+/* One-shot flash when the Today widget is scrolled into view from the
+   Cmd+K palette ("action:today"). Self-clears after 1.4s. */
+@keyframes widget-today-flash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 122, 255, 0); }
+    50%      { box-shadow: 0 0 0 6px rgba(0, 122, 255, 0.25); }
+}
+.widget-today.widget-flash {
+    animation: widget-today-flash 1.2s ease-out;
+}
+
 .widget-reminders {
     grid-column: span 4;
     grid-row: span 2;

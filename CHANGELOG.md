@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(dashboard): Today widget — single-screen day-at-a-glance** (May 11, 2026):
+  - New `#widgetToday` card at the top of the bento grid (spans 8 cols, pushes existing widgets down by one row). Three sections side-by-side:
+    - **⚠️ Reminders** — overdue + due-today tasks only (top 5). Red/amber dot, status label inline.
+    - **📆 Expiring** — policies expiring in the next 14 days, sorted by date, excluding hidden ones (verified/dismissed/snoozed). Renders "Expires today / tomorrow / In Nd / Expired Nd ago" labels.
+    - **📜 Recent** — last 5 events from `ActivityLog` (saves/syncs/exports/AI/errors) with type icons + relative-time meta. Failed events render in red.
+  - Each section has a "View all →" link that navigates to the source plugin / opens the ActivityLog slide-out.
+  - Live-update: subscribes to `ActivityLog` on first init so an emit from anywhere in the app re-renders the widget. Subscription is one-shot per session via `window._todayActivitySubscribed`.
+  - **Cmd+K command `action:today`** — "Today view" — calls `App.goHome()`, scrolls `#widgetToday` into view, and adds a 1.2s blue-ring flash (`@keyframes widget-today-flash`) so it's easy to spot.
+  - Feature-detected at render time — if `Reminders` / `ComplianceDashboard` / `ActivityLog` aren't loaded, the section gracefully shows an empty-state placeholder instead of throwing.
+  - Tests: new [tests/today-view.test.js](tests/today-view.test.js) — 12 tests covering source-layout guards (HTML position, CSS grid span, public API exposure, refreshAll wiring, ActivityLog subscribe latch), Cmd+K command shape, and JSDOM-driven render behavior (happy path, empty state, reminder filter, policy 14-day window + hidden filter, HTML escaping, feature-detection). **2263/2263 tests pass** across 55 suites (was 2251/54).
+
+### Added
 - **feat(reminders): time-of-day, every-N-days frequency, undo-complete toast** (May 11, 2026):
   - **`dueTime` field** ([js/reminders.js](js/reminders.js), [plugins/reminders.html](plugins/reminders.html)). Optional `HH:MM` (24-hour) field on every task. When set, `_getStatus` keeps the task in `due-today` rather than `overdue` until the PST clock has actually passed the time — so a 9 AM task at 8 AM is "Due today @ 9:00 AM", not "missed". `_normalizeTime()` accepts both 24-hour and 12-hour (`1:30 PM`) input. Renders as " @ 1:30 PM" appended to existing labels.
   - **`every-n-days` frequency** ([js/reminders.js](js/reminders.js), [plugins/reminders.html](plugins/reminders.html)). New option in the frequency dropdown with a companion `everyNDays` integer field (only visible when the option is selected, wired via `Reminders._syncFreqDependentFields()`). `_getNextDueDate` and `_autoAdvanceRecurring` both advance the cycle by N days. Defaults to 1 (= daily) if N is missing; `updateTask` scrubs `everyNDays` when the frequency moves off this option so stale values don't linger.

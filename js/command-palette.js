@@ -155,6 +155,33 @@
                 },
             },
             {
+                id: 'action:today',
+                label: 'Today view',
+                hint: 'Action · Reminders + expiring policies + recent activity',
+                icon: '📅',
+                run: () => {
+                    // Navigate home so the dashboard is visible, then scroll
+                    // the Today widget into view + give it a one-shot flash so
+                    // it's easy to spot in the bento grid.
+                    if (window.App && typeof window.App.goHome === 'function') {
+                        window.App.goHome();
+                    }
+                    setTimeout(() => {
+                        const el = document.getElementById('widgetToday');
+                        if (!el) return;
+                        // Re-render so the data reflects whatever just happened
+                        // (e.g. user opened the palette after completing a task).
+                        if (window.DashboardWidgets && typeof window.DashboardWidgets.renderTodayWidget === 'function') {
+                            try { window.DashboardWidgets.renderTodayWidget(); } catch (_) { /* ignore */ }
+                        }
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        // One-shot focus ring so it's visually salient.
+                        el.classList.add('widget-flash');
+                        setTimeout(() => el.classList.remove('widget-flash'), 1400);
+                    }, 200);
+                },
+            },
+            {
                 id: 'action:add-reminder',
                 label: 'Add reminder',
                 hint: 'Action · Reminders',

@@ -1368,10 +1368,178 @@ window.DashboardWidgets = (() => {
         }
     }
 
+    // ── Today widget ─────────────────────────────────────────────────────
+    //
+    // Consolidates the day's actionable surfaces into a single card at the
+    // top of the bento grid: overdue/due-today reminders + policies expiring
+    // in the next 14 days + recent ActivityLog events. Each section links to
+    // its source plugin, and the whole widget re-renders on ActivityLog change
+    // so a save/sync/export emitted from another tab reflects here.
+    //
+    // Data sources are feature-detected at render time so a missing module
+    // collapses to a "—" placeholder rather than throwing.
+
+    const TODAY_EXPIRING_WINDOW_DAYS = 14;
+    const TODAY_SECTION_LIMIT = 5;
+
+    function _todayMidnight() {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }
+
+    function _formatExpiringLabel(p) {
+        const exp = new Date(p.expirationDate);
+        const days = Math.round((exp - _todayMidnight()) / 86400000);
+        if (days === 0) return 'Expires today';
+        if (days === 1) return 'Expires tomorrow';
+        if (days < 0) return `Expired ${-days}d ago`;
+        return `In ${days}d`;
+    }
+
+    function _todayEsc(s) {
+        if (s == null) return '';
+        // Re-use Utils.escapeHTML if loaded; fallback to inline div trick.
+        if (window.Utils && typeof Utils.escapeHTML === 'function') return Utils.escapeHTML(s);
+        const div = document.createElement('div');
+        div.textContent = String(s);
+        return div.innerHTML;
+    }
+
+    function _todayRelativeTime(ts) {
+        const diff = Date.now() - ts;
+        if (diff < 60_000) return 'just now';
+        if (diff < 3600_000) return Math.round(diff / 60_000) + 'm';
+        if (diff < 86_400_000) return Math.round(diff / 3600_000) + 'h';
+        return Math.round(diff / 86_400_000) + 'd';
+    }
+
+    function _collectTodayReminders() {
+        if (typeof Reminders === 'undefined' || typeof Reminders.getUpcomingTasks !== 'function') return [];
+        // Pull a generous slice and filter to the two urgent buckets.
+        return Reminders.getUpcomingTasks(50)
+            .filter(t => t.status === 'overdue' || t.status === 'due-today')
+            .slice(0, TODAY_SECTION_LIMIT);
+    }
+
+    function _collectTodayExpiring() {
+        if (typeof ComplianceDashboard === 'undefined' || !Array.isArray(ComplianceDashboard.policies)) return [];
+        const today = _todayMidnight();
+        const horizon = new Date(today);
+        horizon.setDate(horizon.getDate() + TODAY_EXPIRING_WINDOW_DAYS);
+        return ComplianceDashboard.policies
+            .filter(p => {
+                if (!p || !p.expirationDate) return false;
+                const exp = new Date(p.expirationDate);
+                if (!Number.isFinite(exp.getTime())) return false;
+                if (typeof ComplianceDashboard.isHidden === 'function'
+                        && ComplianceDashboard.isHidden(p.policyNumber)) return false;
+                return exp <= horizon; // includes already-expired ones (negative days)
+            })
+            .sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate))
+            .slice(0, TODAY_SECTION_LIMIT);
+    }
+
+    function _collectTodayActivity() {
+        if (typeof ActivityLog === 'undefined' || typeof ActivityLog.list !== 'function') return [];
+        return ActivityLog.list().slice(0, TODAY_SECTION_LIMIT);
+    }
+
+    function renderTodayWidget() {
+        const container = document.getElementById('widgetToday');
+        if (!container) return;
+
+        const reminders = _collectTodayReminders();
+        const expiring = _collectTodayExpiring();
+        const activity = _collectTodayActivity();
+
+        const remindersHtml = reminders.length === 0
+            ? `<li class="today-empty">No urgent reminders 🎉</li>`
+            : reminders.map(t => {
+                const dotClass = t.status === 'overdue' ? 'today-dot-overdue' : 'today-dot-due-today';
+                return `<li>
+                    <span class="today-dot ${dotClass}"></span>
+                    <span class="today-item-title">${_todayEsc(t.title)}</span>
+                    <span class="today-item-meta">${_todayEsc(t.statusLabel || t.status)}</span>
+                </li>`;
+            }).join('');
+
+        const expiringHtml = expiring.length === 0
+            ? `<li class="today-empty">No policies expiring in the next ${TODAY_EXPIRING_WINDOW_DAYS} days</li>`
+            : expiring.map(p => {
+                const clientName = (p.firstName || p.lastName)
+                    ? `${p.firstName || ''} ${p.lastName || ''}`.trim()
+                    : (p.name || p.policyNumber || 'Unknown');
+                return `<li>
+                    <span class="today-dot today-dot-policy"></span>
+                    <span class="today-item-title">${_todayEsc(clientName)}</span>
+                    <span class="today-item-meta">${_todayEsc(_formatExpiringLabel(p))}</span>
+                </li>`;
+            }).join('');
+
+        const activityHtml = activity.length === 0
+            ? `<li class="today-empty">No recent activity</li>`
+            : activity.map(e => {
+                const icon = ({ save: '💾', sync: '☁️', export: '📤', import: '📥', ai: '🤖', error: '⚠️' })[e.type] || '•';
+                const failClass = e.ok ? '' : ' today-activity-fail';
+                return `<li class="today-activity${failClass}">
+                    <span class="today-activity-icon">${icon}</span>
+                    <span class="today-item-title">${_todayEsc(e.message)}</span>
+                    <span class="today-item-meta">${_todayRelativeTime(e.ts)}</span>
+                </li>`;
+            }).join('');
+
+        container.innerHTML = `
+            <div class="today-widget-header">
+                <h3 class="today-title">Today</h3>
+                <span class="today-sub">${_todayEsc(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }))}</span>
+            </div>
+            <div class="today-sections">
+                <section class="today-section today-section-reminders">
+                    <div class="today-section-header">
+                        <span class="today-section-title">⚠️ Reminders</span>
+                        <a class="today-section-link" href="#" onclick="App.navigateTo('reminders'); return false;">View all →</a>
+                    </div>
+                    <ul class="today-list">${remindersHtml}</ul>
+                </section>
+                <section class="today-section today-section-expiring">
+                    <div class="today-section-header">
+                        <span class="today-section-title">📆 Expiring</span>
+                        <a class="today-section-link" href="#" onclick="App.navigateTo('compliance'); return false;">View all →</a>
+                    </div>
+                    <ul class="today-list">${expiringHtml}</ul>
+                </section>
+                <section class="today-section today-section-activity">
+                    <div class="today-section-header">
+                        <span class="today-section-title">📜 Recent</span>
+                        <a class="today-section-link" href="#" onclick="window.ActivityLog && window.ActivityLog.openPanel(); return false;">View all →</a>
+                    </div>
+                    <ul class="today-list">${activityHtml}</ul>
+                </section>
+            </div>
+        `;
+    }
+
+    // Live-update on activity (saves/syncs/exports from anywhere in the app).
+    // Wired once per session so reload-without-clear doesn't accumulate listeners.
+    if (typeof window !== 'undefined' && !window._todayActivitySubscribed) {
+        if (window.ActivityLog && typeof window.ActivityLog.subscribe === 'function') {
+            window.ActivityLog.subscribe(() => {
+                // Only re-render when the dashboard is actually visible.
+                const dv = document.getElementById('dashboardView');
+                if (dv && dv.style.display !== 'none') {
+                    try { renderTodayWidget(); } catch (e) { /* ignore */ }
+                }
+            });
+            window._todayActivitySubscribed = true;
+        }
+    }
+
     // ── Refresh All Widgets ──
 
     function refreshAll() {
         try { renderGreeting(); } catch (e) { console.error('[DashboardWidgets] renderGreeting error:', e); }
+        try { renderTodayWidget(); } catch (e) { console.error('[DashboardWidgets] renderTodayWidget error:', e); }
         try { renderWeatherWidget(); } catch (e) { console.error('[DashboardWidgets] renderWeatherWidget error:', e); }
         try { renderRemindersWidget(); } catch (e) { console.error('[DashboardWidgets] renderRemindersWidget error:', e); }
         try { renderClientsWidget(); } catch (e) { console.error('[DashboardWidgets] renderClientsWidget error:', e); }
@@ -1500,6 +1668,7 @@ window.DashboardWidgets = (() => {
         refreshBreadcrumb,
         updateBadges,
         renderHeader,
+        renderTodayWidget,
         icon,
         toolIcon,
         ICONS,
