@@ -60,23 +60,54 @@ window.CglIDB = {
         });
     },
 
+    // Stored shape: { __sec: 'v1', ct: <base64 ciphertext> } when the value
+    // was encrypted at write time, OR the raw JS value when CryptoHelper was
+    // unavailable / locked at write time. .get() handles both transparently.
+    _looksWrapped(v) {
+        return v && typeof v === 'object' && v.__sec === 'v1' && typeof v.ct === 'string';
+    },
+
+    async _wrap(value) {
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.encrypt) return value;
+        try {
+            const ct = await CryptoHelper.encrypt(value);
+            if (typeof ct === 'string' && ct.length > 40) return { __sec: 'v1', ct };
+        } catch (e) {
+            console.warn('[CGL IDB] encrypt-at-rest failed; storing plaintext:', (e && e.message) || e);
+        }
+        return value;
+    },
+
+    async _unwrap(stored) {
+        if (!this._looksWrapped(stored)) return stored;
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decrypt) return null;
+        try { return await CryptoHelper.decrypt(stored.ct); }
+        catch (e) {
+            console.warn('[CGL IDB] decrypt-at-rest failed:', (e && e.message) || e);
+            return null;
+        }
+    },
+
     async get(key, storeName) {
         const db = await this.open();
         const store = storeName || this.STORE;
-        return new Promise((resolve, reject) => {
+        const raw = await new Promise((resolve, reject) => {
             const tx = db.transaction(store, 'readonly');
             const req = tx.objectStore(store).get(key);
             req.onsuccess = () => resolve(req.result);
             req.onerror = () => reject(req.error);
         });
+        if (raw === undefined) return undefined;
+        return await this._unwrap(raw);
     },
 
     async set(key, value, storeName) {
         const db = await this.open();
         const store = storeName || this.STORE;
+        const wrapped = await this._wrap(value);
         return new Promise((resolve, reject) => {
             const tx = db.transaction(store, 'readwrite');
-            tx.objectStore(store).put(value, key);
+            tx.objectStore(store).put(wrapped, key);
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
         });

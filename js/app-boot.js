@@ -188,6 +188,14 @@ window.onload = async () => {
     // Apply theme (e.g. Aurora) after dark mode
     try { App.loadTheme(); } catch (e) { console.error('[Boot] loadTheme error:', e); }
 
+    // Decrypt at-rest store BEFORE plugins read their localStorage state.
+    // SecureStorage migrates any plaintext-on-disk PII (CGL state, reminders,
+    // client history, glossary, carrier overrides) to ciphertext on first run,
+    // and populates the in-memory cache so plugin sync reads keep working.
+    try {
+        if (typeof SecureStorage !== 'undefined') await SecureStorage.init();
+    } catch (e) { console.error('[Boot] SecureStorage init error:', e); }
+
     // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
     try {
         if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {

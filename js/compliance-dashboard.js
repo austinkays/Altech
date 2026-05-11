@@ -163,7 +163,15 @@ const ComplianceDashboard = {
     // Surfaces a one-time toast so the user knows their cache is stale.
     _safeLSWrite(key, value) {
         try {
-            localStorage.setItem(key, value);
+            // Route sensitive keys (CGL_STATE) through SecureStorage so the
+            // disk version is AES-GCM ciphertext at rest. setItemSync hits
+            // localStorage.setItem internally, so quota errors still surface
+            // here and the catch handler below applies.
+            if (typeof SecureStorage !== 'undefined' && SecureStorage.isSensitive(key)) {
+                SecureStorage.setItemSync(key, value);
+            } else {
+                localStorage.setItem(key, value);
+            }
             return true;
         } catch (e) {
             const isQuota = !!e && (
