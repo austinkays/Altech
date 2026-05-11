@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(cgl): 429 storm in L&I/CCB verify + Firestore invalid-argument on cglState push** (May 11, 2026, hotfix):
+  - **429 storm in `verifyClient` / `_drainVerifyQueue`** ([js/compliance-dashboard.js](js/compliance-dashboard.js)). The auto-verify queue against WA L&I + OR CCB Socrata endpoints was running 3 concurrent requests with no rate-limit handling. When Socrata returned 429, `verifyClient` short-circuited but didn't mark the client verified, so the next render re-queued it → instant re-flood. Fix:
+    - Detects 429 from either upstream and pauses the entire queue with exponential backoff (60s → 5min → 30min cap).
+    - Drops concurrency 3 → 1 (sequential) — Socrata's per-app-token quota is tighter than the prior assumption.
+    - Adds `_verifyMinIntervalMs: 600` inter-request delay so successive verifies (each = 2 Socrata calls) don't saturate.
+    - `_drainVerifyQueue` schedules a single wake-up timer during backoff via `_verify429Timer` instead of spinning — multiple render-triggered drains don't stack timers.
+    - Emits an `ActivityLog` error event when rate-limited so the header status pill flips red + a clear message tells the user.
+  - **`cglState: invalid-argument` Firestore rejection** ([js/compliance-dashboard.js](js/compliance-dashboard.js), [js/cloud-sync.js](js/cloud-sync.js)). Firestore rejects any payload containing `undefined` with an `invalid-argument` error. The `clientCompliance` annotation dict was leaking undefineds from `_summarizeLILookup`/`_summarizeCCBLookup` missing-field paths and from `...(existing || {})` spreads. Fix:
+    - New `_scrubUndefined()` helper in both modules — recursively replaces `undefined` with `null` and drops undefined keys. Preserves `Date` instances, arrays, and other primitives.
+    - Applied at the `verifyClient` write site (immediate fix for the failing path), inside `_getStateSnapshot()` (defense for every CGL save path), and inside `_pushDoc()` in `cloud-sync.js` (last-mile defense at the actual Firestore write — protects every doc type, not just CGL state).
+  - **Tests**: new [tests/hotfix-429-and-scrub.test.js](tests/hotfix-429-and-scrub.test.js) — 11 tests across both fixes. Also updated 1 assertion in `tests/sync-conflict-ui.test.js` (the push body now reads `data: scrubbed` instead of `data: localData`). **2295/2295 tests pass** across 57 suites.
+
 ### Changed
 - **docs(claude-md): refresh for the May 11 rollouts** (May 11, 2026):
   - Global Singletons table — added rows for `window.ActivityLog`, `window.CommandPalette`, `window.PhoneticSpeller`, `window.MigrationBackup` (all shipped since the previous cold-start guide was written).
