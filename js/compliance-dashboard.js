@@ -15,6 +15,18 @@ const IDB_ANNOTATIONS_KEY = 'user_annotations';
 // CglIDB is defined in compliance-idb.js and exposed on window
 const CglIDB = window.CglIDB;
 
+// Escape a value for safe insertion inside a JS string literal that itself
+// sits inside an HTML attribute — i.e. <button onclick="X('${escJsAttr(v)}')">.
+// Two layers: first backslash-escape the value for JS string syntax (so a
+// stray apostrophe can't close the quote and inject code), then HTML-encode
+// the result for the attribute (so a stray quote can't close the attribute).
+// JS-layer first; the HTML layer never touches backslashes so order is safe.
+function escJsAttr(s) {
+    if (s == null) return '';
+    const js = String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return Utils.escapeAttr(js);
+}
+
 
 const ComplianceDashboard = {
     policies: [],
@@ -145,6 +157,35 @@ const ComplianceDashboard = {
         this.notifyTypes = this.notifyTypes || ['cgl', 'bond', 'pkg', 'bop', 'commercial'];
     },
 
+    // Quota-tolerant localStorage write. Returns true on success.
+    // IndexedDB is the master source of truth for CGL state (see saveState),
+    // so a localStorage quota miss only loses the fast-path cache — not data.
+    // Surfaces a one-time toast so the user knows their cache is stale.
+    _safeLSWrite(key, value) {
+        try {
+            localStorage.setItem(key, value);
+            return true;
+        } catch (e) {
+            const isQuota = !!e && (
+                e.name === 'QuotaExceededError' ||
+                e.code === 22 || e.code === 1014 ||
+                /quota/i.test(String(e.message || e))
+            );
+            if (isQuota) {
+                if (!this._quotaToastShown) {
+                    this._quotaToastShown = true;
+                    if (typeof App !== 'undefined' && App.toast) {
+                        App.toast('Browser storage is full — CGL changes still saved (IndexedDB), but the fast cache is stale.', 'warn', 5000);
+                    }
+                }
+                console.warn('[CGL] localStorage quota exceeded for', key);
+            } else {
+                console.warn('[CGL] localStorage write failed for', key, e && e.message);
+            }
+            return false;
+        }
+    },
+
     saveState(options) {
         if (!this._stateLoaded && !options?.forceDiskSync) {
             console.warn('[CGL] ⚠️ Blocked save — state not yet loaded');
@@ -176,11 +217,9 @@ const ComplianceDashboard = {
             }
         });
 
-        // 2. BACKUP: localStorage (survives page reload).
-        // Note: `_safeLSWrite` is added by PR #68 — this raw write is the
-        // pre-#68 behavior, kept here so PR #69 doesn't depend on PR #68's
-        // merge order.
-        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(stateObj)); } catch (e) { /* see PR #68 */ }
+        // 2. BACKUP: localStorage (survives page reload) — quota-aware writer
+        // from PR #72 (originally PR #68 content), preferred over a raw setItem.
+        this._safeLSWrite(STORAGE_KEY, JSON.stringify(stateObj));
 
         // 3. BACKUP: Linked disk file (File System Access API)
         if (this.fileHandle) {
@@ -258,7 +297,7 @@ const ComplianceDashboard = {
                 this._stateLoaded = true;
                 console.log('[CGL] Merged disk state: verified=' + Object.keys(this.verifiedPolicies).length + ', dismissed=' + Object.keys(this.dismissedPolicies).length + ', notes=' + Object.keys(this.policyNotes).length);
                 // Save merged result back
-                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                this._safeLSWrite(STORAGE_KEY, JSON.stringify({
                     verifiedPolicies: this.verifiedPolicies,
                     dismissedPolicies: this.dismissedPolicies,
                     policyNotes: this.policyNotes,
@@ -517,7 +556,7 @@ const ComplianceDashboard = {
             this.fileHandle = handle;
 
             // Sync to localStorage as backup
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            this._safeLSWrite(STORAGE_KEY, JSON.stringify({
                 verifiedPolicies: this.verifiedPolicies,
                 dismissedPolicies: this.dismissedPolicies,
                 lastSaved: new Date().toISOString()
@@ -758,7 +797,7 @@ const ComplianceDashboard = {
             this._stateLoaded = true;
             const snapshot = this._getStateSnapshot();
             CglIDB.setAnnotations(snapshot).catch(() => {});
-            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); } catch (e) {}
+            this._safeLSWrite(STORAGE_KEY, JSON.stringify(snapshot));
             console.log('[CGL] 🔓 Annotations loaded — V:' +
                 Object.keys(this.verifiedPolicies).length + ' D:' +
                 Object.keys(this.dismissedPolicies).length + ' N:' +
@@ -2195,7 +2234,7 @@ const ComplianceDashboard = {
             badgeEl.style.display = 'inline-flex';
             badgeEl.style.alignItems = 'center';
             badgeEl.style.gap = '4px';
-            badgeEl.innerHTML = `<span onclick="ComplianceDashboard.searchForPolicy('${data.renewedTo}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${data.renewedTo}</span><span onclick="ComplianceDashboard.clearRenewed('${policyNumber}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>`;
+            badgeEl.innerHTML = `<span onclick="ComplianceDashboard.searchForPolicy('${escJsAttr(data.renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(data.renewedTo)}</span><span onclick="ComplianceDashboard.clearRenewed('${escJsAttr(policyNumber)}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>`;
         } else if (badgeEl) {
             badgeEl.style.display = 'none';
             badgeEl.innerHTML = '';
@@ -2432,7 +2471,7 @@ const ComplianceDashboard = {
             const pType = (policy.policyType || 'cgl');
 
             const rowClass = isHidden ? 'hidden-row' : (needsStateUpdate ? 'cgl-needs-state-row' : (isAnyUpdateDone ? 'cgl-state-updated-row' : ''));
-            const pn = policy.policyNumber.replace(/'/g, "\\\\'");
+            const pn = escJsAttr(policy.policyNumber);
 
             const verifiedTitle = isVerified
                 ? 'Verified on ' + new Date(this.verifiedPolicies[policy.policyNumber].updatedAt).toLocaleDateString()
@@ -2486,7 +2525,7 @@ const ComplianceDashboard = {
                         <div>${Utils.escapeHTML(policy.policyNumber)}</div>
                         ${renewedTo
                             ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
-                                <span onclick="ComplianceDashboard.searchForPolicy('${Utils.escapeHTML(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
+                                <span onclick="ComplianceDashboard.searchForPolicy('${escJsAttr(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
                                 <span onclick="ComplianceDashboard.clearRenewed('${pn}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
                                </span>`
                             : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
@@ -2988,6 +3027,69 @@ const ComplianceDashboard = {
         const n = this._selectedForPrint.size;
         if (countEl) countEl.textContent = n + ' selected';
         if (genBtn) genBtn.disabled = n === 0;
+        // Mirror disabled state to the bulk action buttons.
+        ['cglBulkStateBtn', 'cglBulkHsBtn', 'cglBulkSnoozeBtn', 'cglBulkDismissBtn'].forEach(id => {
+            const b = document.getElementById(id);
+            if (b) b.disabled = n === 0;
+        });
+    },
+
+    /**
+     * Bulk action helper: iterate the selected policies, call `methodName`
+     * for each, then reset selection mode + re-render. Avoids duplicating
+     * the iteration boilerplate across the four bulk handlers.
+     *
+     * @param {string} methodName  the per-policy method to call (must accept policyNumber)
+     * @param {string} verb         human-readable verb for toast/log ("snoozed", "dismissed", …)
+     * @param {boolean} confirmFirst  if true, window.confirm() the destructive op once for all rows
+     */
+    _runBulkAction(methodName, verb, confirmFirst) {
+        const selected = Array.from(this._selectedForPrint);
+        if (selected.length === 0) return;
+        if (confirmFirst) {
+            const ok = window.confirm(`${verb.charAt(0).toUpperCase() + verb.slice(1)} ${selected.length} selected polic${selected.length === 1 ? 'y' : 'ies'}? This affects all of them.`);
+            if (!ok) return;
+        }
+        const fn = this[methodName];
+        if (typeof fn !== 'function') {
+            console.warn('[CGL] Unknown bulk action:', methodName);
+            return;
+        }
+        let processed = 0;
+        for (const pn of selected) {
+            try { fn.call(this, pn); processed++; }
+            catch (err) { console.warn('[CGL] bulk', methodName, 'failed for', pn, err); }
+        }
+        // Exit selection mode + clear set + re-render.
+        this._selectedForPrint.clear();
+        if (this._printMode) this.togglePrintMode();  // toggles off
+        else { this.updatePrintCount(); this.filterPolicies(); }
+
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast(`${verb.charAt(0).toUpperCase() + verb.slice(1)} ${processed} polic${processed === 1 ? 'y' : 'ies'}`, { type: 'success', duration: 3000 });
+        }
+        if (window.ActivityLog) {
+            window.ActivityLog.add({
+                type: 'save', area: 'cgl', ok: true,
+                message: `Bulk ${verb}: ${processed} polic${processed === 1 ? 'y' : 'ies'}`,
+            });
+        }
+    },
+
+    bulkSnooze() {
+        this._runBulkAction('snoozePolicy', 'snoozed', false);
+    },
+
+    bulkDismiss() {
+        this._runBulkAction('dismissPolicy', 'dismissed', true);
+    },
+
+    bulkMarkStateUpdated() {
+        this._runBulkAction('markStateUpdated', 'marked state-updated', false);
+    },
+
+    bulkMarkHawksoftUpdated() {
+        this._runBulkAction('markHawksoftUpdated', 'marked HawkSoft-updated', false);
     },
 
     async generatePrintPDF() {

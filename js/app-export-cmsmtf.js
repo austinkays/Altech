@@ -296,11 +296,20 @@ Object.assign(App, {
         if (data.additionalInsureds) notesParts.push(`Additional Insureds: ${data.additionalInsureds}`);
         if (data.pdfNotes) notesParts.push(`Notes: ${data.pdfNotes}`);
 
-        lines.push(_line('gen_sClientNotes', notesParts.join(' | ')));
+        // HawkSoft caps the client-notes field — long log dumps from a session
+        // can blow past it and corrupt the import. 2KB is the documented limit;
+        // truncate with an ellipsis marker so the producer notices.
+        const NOTES_CAP = 2048;
+        let notes = notesParts.join(' | ');
+        if (notes.length > NOTES_CAP) notes = notes.slice(0, NOTES_CAP - 1) + '…';
+        lines.push(_line('gen_sClientNotes', notes));
 
-        // Filter empty lines and join
-        const content = lines.filter(l => l).join('\n');
+        // Filter empty lines and join with CRLF — HawkSoft's tagged-file
+        // importer expects DOS line endings; LF-only files silently fail
+        // on the first line break.
+        const content = lines.filter(l => l).join('\r\n');
 
-        return { content, filename: `Lead_${data.lastName || 'Export'}.cmsmtf`, mime: 'text/plain;charset=utf-8' };
+        const safeName = App._safeFileNamePart(data.lastName, 'Export');
+        return { content, filename: `Lead_${safeName}.cmsmtf`, mime: 'text/plain;charset=utf-8' };
     },
 });

@@ -1067,9 +1067,27 @@ window.DashboardWidgets = (() => {
             ? `<span class="header-notification-badge">${urgentCount}</span>`
             : '<span class="header-notification-badge"></span>';
 
-        // Sync-status pill — green=ok, red=last activity was an error, gray=no activity yet.
-        // Click opens the activity log slide-out. Live-updates via ActivityLog.subscribe.
+        // Sync-status pill (PR #69) — green=ok, red=last activity was an error,
+        // gray=no activity yet. Click opens the activity log slide-out.
+        // Live-updates via ActivityLog.subscribe.
         const syncStatusHtml = _renderSyncStatusButton();
+
+        // Cmd+K hint (PR #70) — discoverability for the command palette.
+        // Shows "⌘K" on Mac, "Ctrl+K" on PC/Linux. The keyboard handler in
+        // command-palette.js already accepts both metaKey and ctrlKey — this
+        // is purely visual.
+        const isMac = /Mac|iPhone|iPod|iPad/.test(navigator.platform);
+        const cmdKeyLabel = isMac ? '⌘K' : 'Ctrl+K';
+        const cmdKHint = `<button type="button"
+                onclick="window.CommandPalette && window.CommandPalette.open()"
+                class="header-cmdk-hint"
+                title="Open command palette (${cmdKeyLabel})"
+                aria-label="Open command palette"
+                style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--border, #ddd); border-radius:6px; background:transparent; color:var(--text-secondary, #888); font-size:12px; cursor:pointer; font-family:inherit;">
+                ${isMac
+                    ? '<span aria-hidden="true">⌘</span><span>K</span>'
+                    : '<span aria-hidden="true">Ctrl</span><span>+</span><span>K</span>'}
+            </button>`;
 
         header.innerHTML = `
             <div class="header-breadcrumb" id="dashBreadcrumb">
@@ -1081,6 +1099,7 @@ window.DashboardWidgets = (() => {
             <div class="header-actions">
                 ${greetingHtml}
                 ${syncStatusHtml}
+                ${cmdKHint}
                 <button class="header-notification-btn" onclick="App.navigateTo('reminders')" title="Reminders" aria-label="Reminders">
                     ${icon('bell', 18)}
                     ${badgeHtml}
