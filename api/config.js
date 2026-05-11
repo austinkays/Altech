@@ -16,7 +16,7 @@
  *   GITHUB_ISSUES_TOKEN — GitHub PAT with Issues write scope
  */
 
-import { securityMiddleware, verifyFirebaseToken, sanitizeInput } from '../lib/security.js';
+import { securityMiddleware, verifyAuthToken, sanitizeInput } from '../lib/security.js';
 
 // ── Firebase Config ─────────────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ async function handleKeys(req, res) {
     }
 
     // Require Firebase Auth — API keys must not be exposed to unauthenticated callers
-    const user = await verifyFirebaseToken(req);
+    const user = await verifyAuthToken(req);
     if (!user) {
         return res.status(401).json({ error: 'Authentication required.' });
     }
@@ -122,7 +122,7 @@ async function handlePhonetics(req, res) {
     }
 
     // Require authentication to prevent unauthenticated API quota consumption
-    const user = await verifyFirebaseToken(req);
+    const user = await verifyAuthToken(req);
     if (!user) {
         return res.status(401).json({ error: 'Authentication required' });
     }
@@ -236,7 +236,7 @@ async function handleBugReport(req, res) {
     }
 
     // Require auth
-    const user = await verifyFirebaseToken(req);
+    const user = await verifyAuthToken(req);
     if (!user) {
         return res.status(401).json({ error: 'Authentication required.', requestId: req.requestId });
     }

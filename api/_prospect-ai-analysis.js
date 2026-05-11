@@ -7,7 +7,7 @@
  * Uses Google Search grounding when the provider is Google.
  */
 
-import { verifyFirebaseToken } from '../lib/security.js';
+import { verifyAuthToken } from '../lib/security.js';
 import { createRouter, extractJSON } from './_ai-router.js';
 
 export async function handleAIAnalysis(req, res) {
@@ -16,7 +16,7 @@ export async function handleAIAnalysis(req, res) {
   }
 
   // Require auth (AI analysis consumes quota)
-  const user = await verifyFirebaseToken(req);
+  const user = await verifyAuthToken(req);
   if (!user) {
     return { success: false, error: 'Authentication required for AI analysis.' };
   }
