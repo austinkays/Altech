@@ -5,6 +5,25 @@
 'use strict';
 
 Object.assign(App, {
+    // Strip characters that are illegal in filenames on Windows / macOS / Linux,
+    // collapse whitespace, trim trailing dots/spaces, cap at 80 chars. Used by
+    // every exporter when interpolating user-supplied values into filename
+    // templates so an O'Brien / "Smith Jr." doesn't blow up the download.
+    _safeFileNamePart(s, fallback = '') {
+        if (s == null) return fallback;
+        let out = String(s)
+            // eslint-disable-next-line no-control-regex
+            .replace(/[<>:"|?*\\/]/g, '')
+            // Strip C0 control characters separately — keeping them out of the
+            // primary regex literal so the source file stays ASCII-printable.
+            .replace(new RegExp('[\\x00-\\x1F]', 'g'), '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace(/[.\s]+$/, '');
+        if (out.length > 80) out = out.slice(0, 80).replace(/[.\s]+$/, '');
+        return out || fallback;
+    },
+
     exportText() {
         const result = this.buildText(this.data);
         this.downloadFile(result.content, result.filename, result.mime);
@@ -14,7 +33,8 @@ Object.assign(App, {
 
     buildText(data) {
         const content = this.getNotesForData(data);
-        const fileName = `Insurance_Application_${data.lastName || 'Client'}_${new Date().toISOString().split('T')[0]}.txt`;
+        const safe = this._safeFileNamePart(data.lastName, 'Client');
+        const fileName = `Insurance_Application_${safe}_${new Date().toISOString().split('T')[0]}.txt`;
         return { content, filename: fileName, mime: 'text/plain;charset=utf-8' };
     },
 
