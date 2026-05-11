@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **fix(migration aftercare): three bugs surfaced during Austin's first real Firebase → Supabase run** (May 11, 2026, late):
+  - **`VaultMeta._toDbRow` was sending `pbkdf2_iterations: null`** for Argon2id vaults ([js/vault-meta.js](js/vault-meta.js)). Argon2id doesn't use iterations, so the local meta has `passphraseIterations: null`. The original `_toDbRow` preserved null values; Supabase rejected the upsert with `400 Bad Request` because `pbkdf2_iterations` is `NOT NULL` in the schema. `_toDbRow` now drops null values entirely — the column either stays at its default or remains unset (when nullable). `VaultMeta.save` is local-first-best-effort so the migration pipeline didn't abort, but the Supabase mirror was a silent no-op until the user manually upserted via the console.
+  - **`dismissPolicy('')` was reachable via a malformed onclick interpolation**, leaving an empty-string key in `dismissedPolicies` ([js/compliance-dashboard.js](js/compliance-dashboard.js)). Firestore rejects empty field names with `invalid-argument`, taking down every subsequent `cglState` push. Two layers of defense:
+    - `dismissPolicy()` + `snoozePolicy()` now reject empty / non-string keys upfront with an early return.
+    - Both `_scrubUndefined` helpers (in `compliance-dashboard.js` + `cloud-sync.js`) also drop empty-string keys recursively — so any future code path that sneaks a bad key in is caught at the push boundary.
+  - **`CryptoHelper.decrypt()` was logging `Decryption failed: InvalidCharacterError`** at error level whenever an input wasn't base64 ([js/crypto-helper.js](js/crypto-helper.js)). The migration's `_normalizeToPlaintext` speculatively tries to decrypt every localStorage value to handle legacy v1 ciphertext; the noise terrified users into thinking their data was corrupt. The catch path now downgrades `InvalidCharacterError` (and anything mentioning `atob`) to `console.debug` while keeping real decryption failures at `error` level.
+  - Updated 1 assertion in `tests/vault-meta-router.test.js` — round-trip is now asymmetric for null fields (null in → dropped → undefined out, intentional).
+  - **Tests**: new [tests/migration-aftercare.test.js](tests/migration-aftercare.test.js) — 9 tests covering all three fixes including a runnable scrubber that handles a nested empty-key case. **2304/2304 tests pass** across 58 suites (was 2295/57).
+
 - **fix(cgl): 429 storm in L&I/CCB verify + Firestore invalid-argument on cglState push** (May 11, 2026, hotfix):
   - **429 storm in `verifyClient` / `_drainVerifyQueue`** ([js/compliance-dashboard.js](js/compliance-dashboard.js)). The auto-verify queue against WA L&I + OR CCB Socrata endpoints was running 3 concurrent requests with no rate-limit handling. When Socrata returned 429, `verifyClient` short-circuited but didn't mark the client verified, so the next render re-queued it → instant re-flood. Fix:
     - Detects 429 from either upstream and pauses the entire queue with exponential backoff (60s → 5min → 30min cap).

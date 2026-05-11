@@ -305,10 +305,10 @@ const CloudSync = (() => {
     }
 
     /**
-     * Recursively replace `undefined` with `null` and drop undefined keys.
-     * Firestore's set/update reject any payload containing `undefined` with
-     * an `invalid-argument` error — this is the last-mile defense before
-     * the actual write. Returns a new value; does not mutate.
+     * Recursively replace `undefined` with `null` and drop both undefined
+     * values AND empty-string keys. Firestore's set/update reject either of
+     * those with an `invalid-argument` error — this is the last-mile defense
+     * before the actual write. Returns a new value; does not mutate.
      */
     function _scrubUndefined(value) {
         if (value === undefined) return null;
@@ -319,6 +319,7 @@ const CloudSync = (() => {
         for (const k of Object.keys(value)) {
             const v = value[k];
             if (v === undefined) continue;
+            if (k === '') continue; // Firestore rejects empty field names
             out[k] = _scrubUndefined(v);
         }
         return out;

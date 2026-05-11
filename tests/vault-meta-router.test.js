@@ -254,14 +254,23 @@ describe('VaultMeta — field mapping', () => {
         expect(out.user_id).toBeUndefined(); // not in DB_TO_JS map
     });
 
-    test('round-trip: JS → DB → JS preserves all known fields', () => {
+    test('round-trip: JS → DB → JS preserves all non-null known fields', () => {
+        // toDbRow intentionally drops null values now (May 11, 2026 fix) so
+        // Argon2id vaults don't send `pbkdf2_iterations: null` and trip the
+        // NOT NULL constraint on user_crypto_meta. Round-trip is asymmetric
+        // for null fields: they go in as null, get dropped, and come back as
+        // undefined (key absent from server row). That's intentional.
         const original = fullMeta();
         const db = VaultMeta._internals.toDbRow(original);
-        // Simulate what the server stores back (rotated_at added on the wire).
         const serverShape = { ...db, rotated_at: '2026-05-07T12:00:00Z' };
         const back = VaultMeta._internals.fromDbRow(serverShape);
         for (const k of Object.keys(VaultMeta._internals.JS_TO_DB)) {
-            expect(back[k]).toEqual(original[k]);
+            if (original[k] == null) {
+                // Null input → dropped from DB row → undefined on read back.
+                expect(back[k]).toBeUndefined();
+            } else {
+                expect(back[k]).toEqual(original[k]);
+            }
         }
     });
 });
