@@ -160,4 +160,45 @@ describe('CommandPalette', () => {
         expect(sarah.hint).toContain('Client');
         dom.window.close();
     });
+
+    test('Phonetic speller command calls PhoneticSpeller.open', () => {
+        const dom = bootstrap();
+        const open = jest.fn();
+        dom.window.PhoneticSpeller = { open };
+        const item = dom.window.CommandPalette._test._allItems()
+            .find(i => i.id === 'action:phonetic');
+        expect(item).toBeTruthy();
+        expect(item.label).toBe('Phonetic speller');
+        item.run();
+        expect(open).toHaveBeenCalledTimes(1);
+        dom.window.close();
+    });
+
+    test('Phonetic command no-ops when PhoneticSpeller is unavailable', () => {
+        const dom = bootstrap();
+        // PhoneticSpeller intentionally absent.
+        const item = dom.window.CommandPalette._test._allItems()
+            .find(i => i.id === 'action:phonetic');
+        expect(() => item.run()).not.toThrow();
+        dom.window.close();
+    });
+
+    test('"New quote" command navigates to intake AND clears active client', () => {
+        const dom = bootstrap();
+        // Wire startNewClient (it was missing from the default mock; the old
+        // command-palette code looked for startNewIntake which never existed,
+        // so navigation alone left the previous client's data on screen).
+        const startNewClient = jest.fn();
+        dom.window.App.startNewClient = startNewClient;
+        const item = dom.window.CommandPalette._test._allItems()
+            .find(i => i.id === 'action:new-quote');
+        expect(item).toBeTruthy();
+        jest.useFakeTimers();
+        item.run();
+        expect(dom.window.App.navigateTo).toHaveBeenCalledWith('quoting');
+        jest.advanceTimersByTime(250);
+        expect(startNewClient).toHaveBeenCalledTimes(1);
+        jest.useRealTimers();
+        dom.window.close();
+    });
 });

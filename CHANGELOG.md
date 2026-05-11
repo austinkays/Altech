@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(palette + intake): Phonetic command in Cmd+K, fixed New-quote command, Start-fresh button in active-client badge** (May 11, 2026):
+  - **Phonetic speller now globally accessible** ([js/command-palette.js](js/command-palette.js)) — new `action:phonetic` palette entry calls `PhoneticSpeller.open()`. Previously the popup was only reachable from the intake header (Step 0–6) and per-vehicle VIN inputs; now you can pop it open from any page via Cmd/Ctrl+K → type "phonetic".
+  - **Fixed "New quote" palette command** ([js/command-palette.js](js/command-palette.js)) — the pre-existing implementation looked for `App.startNewIntake()` (which never existed) and fell back to a bare `navigateTo('quoting')`. Net effect: hitting "New quote" left the *previous* client's data on screen. Now navigates to intake AND calls the real `App.startNewClient()` after a 200 ms tick so the lazy-loaded plugin HTML is mounted before the form-clearing write.
+  - **"Start fresh client" button in the active-client badge** ([plugins/quoting.html](plugins/quoting.html), [css/layout.css](css/layout.css)) — new `🧹 Start fresh` button next to History/Save inside `.acb-actions`. Wires `App.startNewClient()` directly. Hover uses `var(--warning)` (amber) instead of the default apple-blue to hint at the destructive intent. The action is safe: `_switchToClient(null)` flushes current edits to the active client's record first, then resets the form to step 0.
+  - Tests: 5 new in [tests/command-palette.test.js](tests/command-palette.test.js) (phonetic command + phonetic no-op when module missing + new-quote navigate+clear) and [tests/audit-cleanup-fixes.test.js](tests/audit-cleanup-fixes.test.js) (button HTML wiring + destructive hover style). **2198/2198 tests pass** across 49 suites.
+
 ### Fixed
 - **fix(audit): batch cleanup across CGL / reminders / exports** (May 11, 2026):
   - **CGL — XSS / quote-breakage in onclick attributes** ([js/compliance-dashboard.js](js/compliance-dashboard.js)): the pre-existing `policyNumber.replace(/'/g, "\\\\'")` was a buggy 4-backslash escape that produced `\\'` in the rendered HTML (not `\'`), so a policy number containing an apostrophe broke the inline JS. Replaced with a new `escJsAttr(s)` helper that does both layers — first backslash-escape the value for the JS string, then HTML-attr-encode the result — and rewired the master `pn` binding plus the two live-update sites (`renewedTo` badge in `updateRenewedBadge`, both onclick spans rendered in `renderTable`). Eliminates the syntax-error footgun and removes a small XSS surface for crafted policy numbers.

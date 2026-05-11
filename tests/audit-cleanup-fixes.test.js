@@ -228,3 +228,25 @@ describe('compliance-dashboard guards', () => {
         expect(matches.length).toBeGreaterThanOrEqual(4);
     });
 });
+
+// ── 7. Start-fresh button + palette commands ────────────────────────────
+
+describe('intake "Start fresh" button', () => {
+    const html = readSrc('plugins/quoting.html');
+    const css = readSrc('css/layout.css');
+
+    test('acb-fresh-btn lives inside the active-client badge actions row', () => {
+        // The button must sit next to History/Save in `.acb-actions` so it
+        // only shows when there's something to clear.
+        expect(html).toMatch(/<div class="acb-actions">[\s\S]*acb-fresh-btn[\s\S]*<\/div>/);
+        // Wires App.startNewClient (existing API; clears the form + resets to step 0).
+        expect(html).toContain('onclick="App.startNewClient()"');
+    });
+
+    test('acb-fresh-btn has a hover style that signals the destructive action', () => {
+        // Shares the base style with .acb-history-btn but the hover uses
+        // --warning (amber) instead of --apple-blue to hint at "you're
+        // about to wipe the form".
+        expect(css).toMatch(/\.acb-fresh-btn:hover[\s\S]*--warning/);
+    });
+});

@@ -193,7 +193,8 @@ body.dark-mode .btn-save-client:hover {
 }
 .active-client-badge .acb-status-clean { color: var(--success); }
 .active-client-badge .acb-status-dirty { color: var(--apple-blue); }
-.active-client-badge .acb-history-btn {
+.active-client-badge .acb-history-btn,
+.active-client-badge .acb-fresh-btn {
     padding: 3px 10px;
     border: 1px solid var(--border);
     border-radius: 6px;
@@ -208,6 +209,12 @@ body.dark-mode .btn-save-client:hover {
     background: var(--bg-card);
     color: var(--apple-blue);
     border-color: var(--apple-blue);
+}
+/* Destructive-leaning action — hover hints at "you're about to wipe the form". */
+.active-client-badge .acb-fresh-btn:hover {
+    background: var(--bg-card);
+    color: var(--warning);
+    border-color: var(--warning);
 }
 /* Right-side action group (Save + History) inside the badge */
 .active-client-badge .acb-actions {

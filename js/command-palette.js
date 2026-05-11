@@ -124,15 +124,33 @@
             {
                 id: 'action:new-quote',
                 label: 'New quote',
-                hint: 'Action · Personal Intake',
+                hint: 'Action · Personal Intake — clear current and start fresh',
                 icon: '✏️',
                 run: () => {
-                    if (window.App) {
-                        if (typeof window.App.startNewIntake === 'function') {
-                            window.App.startNewIntake();
-                        } else if (typeof window.App.navigateTo === 'function') {
-                            window.App.navigateTo('quoting');
+                    // Navigate to intake (no-op if already there) then clear
+                    // the active client so the form is genuinely fresh. The
+                    // earlier version only navigated and left the previous
+                    // client's data on screen.
+                    if (window.App && typeof window.App.navigateTo === 'function') {
+                        window.App.navigateTo('quoting');
+                    }
+                    // Defer so the intake plugin's HTML is in the DOM before
+                    // startNewClient writes to it (lazy-loaded plugins).
+                    setTimeout(() => {
+                        if (window.App && typeof window.App.startNewClient === 'function') {
+                            window.App.startNewClient();
                         }
+                    }, 200);
+                },
+            },
+            {
+                id: 'action:phonetic',
+                label: 'Phonetic speller',
+                hint: 'Action · Spell anything in APCO alphabet (Adam · Boy · Charles…)',
+                icon: '📞',
+                run: () => {
+                    if (window.PhoneticSpeller && typeof window.PhoneticSpeller.open === 'function') {
+                        window.PhoneticSpeller.open();
                     }
                 },
             },
