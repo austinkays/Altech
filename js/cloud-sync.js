@@ -47,6 +47,27 @@ const CloudSync = (() => {
         'carrierOverrides',
     ];
 
+    // docType → STORAGE_KEYS slot. Used by _resolveConflict to apply the
+    // user's "Use Cloud" choice for any synced doc generically — without
+    // this, only currentForm and cglState had a write-back path. Keys not
+    // listed here intentionally fall through to a no-op (the cloud version
+    // wins on the *server*, but we don't have a local slot to update — the
+    // next pullFromCloud will fetch the right thing).
+    const DOC_LOCAL_KEYS = Object.freeze({
+        currentForm:      STORAGE_KEYS.FORM,
+        cglState:         STORAGE_KEYS.CGL_STATE,
+        clientHistory:    STORAGE_KEYS.CLIENT_HISTORY,
+        quickRefCards:    STORAGE_KEYS.QUICKREF_CARDS,
+        quickRefNumbers:  STORAGE_KEYS.QUICKREF_NUMBERS,
+        quickRefEmojis:   STORAGE_KEYS.QUICKREF_EMOJIS,
+        reminders:        STORAGE_KEYS.REMINDERS,
+        glossary:         STORAGE_KEYS.AGENCY_GLOSSARY,
+        vaultMeta:        STORAGE_KEYS.ACCT_VAULT_META,
+        commercialDraft:  STORAGE_KEYS.COMMERCIAL_DRAFT,
+        commercialQuotes: STORAGE_KEYS.COMMERCIAL_QUOTES,
+        carrierOverrides: STORAGE_KEYS.CARRIER_OVERRIDES,
+    });
+
     // ── State ──
     let _debouncedPush = null;
     let _syncing = false;
@@ -292,11 +313,57 @@ const CloudSync = (() => {
     // ── Core sync operations ──
 
     /**
-     * Push a single document to Firestore
+     * Push a single document to Firestore.
+     *
+     * Push-side conflict detection (new): before writing, fetch the remote
+     * doc and check whether its updatedAt is newer than our last sync for
+     * this docType. If so — AND the remote data actually differs from what
+     * we're about to write — that means another device wrote since we last
+     * pulled, so a blind overwrite would silently lose their work. Return
+     * a conflict descriptor instead; pushToCloud collects these and routes
+     * them to _showConflictDialog so the user picks remote vs. local.
+     *
+     * Pass options.skipConflictCheck=true to force a push (used by
+     * _resolveConflict after the user has already picked "Keep Local").
      */
-    async function _pushDoc(docPath, localData, docType) {
+    async function _pushDoc(docPath, localData, docType, options = {}) {
         const ref = _userDoc(docPath);
         if (!ref || localData == null) return { ok: true, skipped: true };
+
+        if (!options.skipConflictCheck) {
+            try {
+                const snap = await ref.get();
+                if (snap.exists) {
+                    const remote = snap.data();
+                    const remoteTime = remote.updatedAt?.toMillis?.() || 0;
+                    const remoteDevice = remote.deviceId;
+                    // Other-device write since our last sync? Compare data to
+                    // distinguish a real conflict from a same-payload echo
+                    // (e.g. another device wrote the identical value).
+                    if (remoteDevice !== DEVICE_ID
+                            && _hasConflict(remoteTime, docType)
+                            && JSON.stringify(remote.data) !== JSON.stringify(localData)) {
+                        console.warn(`[CloudSync] Push aborted for ${docPath} — remote newer (device: ${remoteDevice}, time: ${new Date(remoteTime).toISOString()})`);
+                        return {
+                            ok: false,
+                            conflict: true,
+                            docType,
+                            docPath,
+                            remoteData: remote.data,
+                            localData,
+                            remoteTime,
+                            remoteDevice,
+                            localTime: _getSyncMeta()[`lastSync_${docType}`] || 0,
+                        };
+                    }
+                }
+            } catch (e) {
+                // Read failure is non-fatal — fall through to the write. The
+                // worst case is we miss the conflict; the cloud doc gets a
+                // chance to be recovered from the user's other device.
+                console.warn(`[CloudSync] Pre-push conflict check failed for ${docPath}:`, e.code || e.message || e);
+            }
+        }
 
         try {
             await ref.set({
@@ -540,7 +607,50 @@ const CloudSync = (() => {
                     local.quotes?.length ? _pushQuotes(local.quotes) : Promise.resolve()
                 ]);
 
-                const failures = results.filter(r => r.status === 'rejected' || (r.value && r.value.ok === false));
+                // Collect push-side conflicts surfaced by _pushDoc. The user
+                // picks remote vs. local in one consolidated dialog instead of
+                // one popup per conflicted doc.
+                const pushConflicts = results
+                    .filter(r => r.status === 'fulfilled' && r.value && r.value.conflict)
+                    .map(r => r.value);
+                if (pushConflicts.length > 0) {
+                    const labelFor = {
+                        currentForm: '📝 Current Form',
+                        cglState: '🛡️ CGL Compliance State',
+                        clientHistory: '👥 Client History',
+                        reminders: '⏰ Reminders',
+                        quickRefCards: '🗂️ Quick Reference Cards',
+                        quickRefNumbers: '🗂️ Quick Reference Numbers',
+                        quickRefEmojis: '🗂️ Quick Reference Emojis',
+                        glossary: '📚 Glossary',
+                        carrierOverrides: '🎯 Carrier Rules',
+                        commercialDraft: '🏢 Commercial Draft',
+                        vaultData: '🔐 Vault Data',
+                        vaultMeta: '🔐 Vault Meta',
+                    };
+                    const conflictsForDialog = pushConflicts.map(c => ({
+                        type: labelFor[c.docType] || c.docType,
+                        docType: c.docType,
+                        remote: c.remoteData,
+                        local: c.localData,
+                        remoteTime: c.remoteTime,
+                        localTime: c.localTime,
+                        // Tag as push-side so _resolveConflict can route to the
+                        // right write path.
+                        pushSide: true,
+                    }));
+                    if (window.ActivityLog) {
+                        window.ActivityLog.add({
+                            type: 'sync', area: 'firebase', ok: false,
+                            message: `Sync conflict — ${pushConflicts.length} doc${pushConflicts.length === 1 ? '' : 's'} need review`,
+                            detail: pushConflicts.map(c => c.docType).join(', '),
+                        });
+                    }
+                    _notify(`⚠️ ${pushConflicts.length} sync conflict${pushConflicts.length === 1 ? '' : 's'} — review needed`, 'warning');
+                    this._showConflictDialog(conflictsForDialog);
+                }
+
+                const failures = results.filter(r => r.status === 'rejected' || (r.value && r.value.ok === false && !r.value.conflict));
                 if (failures.length > 0) {
                     console.warn(`[CloudSync] ${failures.length}/${results.length} doc(s) failed to push`);
                     failures.forEach(f => {
@@ -899,6 +1009,57 @@ const CloudSync = (() => {
             dialog.className = 'auth-modal-overlay';
             dialog.style.display = 'flex';
 
+            // For currentForm and shallow-object docs, build a per-field diff
+            // so the user can see exactly what's different before picking a
+            // side. Skips noisy/internal keys (anything starting with _).
+            function _buildConflictDiffHTML(c) {
+                const remote = c.remote;
+                const local = c.local;
+                if (!remote || !local || typeof remote !== 'object' || typeof local !== 'object'
+                        || Array.isArray(remote) || Array.isArray(local)) {
+                    return '';
+                }
+                const esc = (window.Utils && Utils.escapeHTML) ? Utils.escapeHTML : (s => String(s ?? ''));
+                const fmt = (v) => {
+                    if (v == null || v === '') return '<em>(empty)</em>';
+                    if (typeof v === 'object') return esc(JSON.stringify(v).slice(0, 80));
+                    return esc(String(v));
+                };
+                const keys = new Set([
+                    ...Object.keys(remote).filter(k => !k.startsWith('_')),
+                    ...Object.keys(local).filter(k => !k.startsWith('_')),
+                ]);
+                const diffs = [];
+                for (const k of keys) {
+                    const rv = remote[k];
+                    const lv = local[k];
+                    // Cheap deep compare via JSON for nested values.
+                    if (JSON.stringify(rv) === JSON.stringify(lv)) continue;
+                    diffs.push({ key: k, local: lv, remote: rv });
+                }
+                if (diffs.length === 0) return '';
+                const MAX = 12;
+                const rows = diffs.slice(0, MAX).map(d => `
+                    <tr>
+                        <td class="conflict-diff-key">${esc(d.key)}</td>
+                        <td class="conflict-diff-remote">${fmt(d.remote)}</td>
+                        <td class="conflict-diff-local">${fmt(d.local)}</td>
+                    </tr>`).join('');
+                const overflowNote = diffs.length > MAX
+                    ? `<div class="conflict-diff-more">… and ${diffs.length - MAX} more field${diffs.length - MAX === 1 ? '' : 's'}</div>`
+                    : '';
+                return `
+                    <details class="conflict-diff">
+                        <summary>Show ${diffs.length} difference${diffs.length === 1 ? '' : 's'}</summary>
+                        <table class="conflict-diff-table">
+                            <thead><tr><th>Field</th><th>☁️ Cloud</th><th>📱 Local</th></tr></thead>
+                            <tbody>${rows}</tbody>
+                        </table>
+                        ${overflowNote}
+                    </details>
+                `;
+            }
+
             // Format timestamps for display
             function _fmtTime(ms) {
                 if (!ms) return 'Unknown';
@@ -930,6 +1091,7 @@ const CloudSync = (() => {
                 const localNewer = (c.localTime || 0) > (c.remoteTime || 0);
                 const cloudBadge = cloudNewer ? '<span class="conflict-newest">✦ Recommended</span>' : '';
                 const localBadge = localNewer ? '<span class="conflict-newest">✦ Recommended</span>' : '';
+                const diffHtml = _buildConflictDiffHTML(c);
                 return `<div class="conflict-item">
                     <div class="conflict-item-header">
                         <span class="conflict-icon">${icon}</span>
@@ -952,6 +1114,7 @@ const CloudSync = (() => {
                             ${localBadge}
                         </button>
                     </div>
+                    ${diffHtml}
                 </div>`;
             }).join('');
 
@@ -984,9 +1147,15 @@ const CloudSync = (() => {
             const conflict = dialog._conflicts[index];
             if (!conflict) return;
 
-            if (conflict.type === 'Current Form') {
+            // docType is set on push-side conflicts (new path); fall back to
+            // the type-label sniff for legacy pull-side conflicts.
+            const docType = conflict.docType
+                || (conflict.type === 'Current Form' ? 'currentForm'
+                  : conflict.type === 'CGL Compliance State' ? 'cglState'
+                  : null);
+
+            if (docType === 'currentForm') {
                 if (choice === 'remote') {
-                    // Encrypt remote plaintext before storing locally
                     const encrypted = await _encryptForStorage(conflict.remote);
                     if (encrypted) localStorage.setItem(STORAGE_KEYS.FORM, encrypted);
                     if (typeof App !== 'undefined') {
@@ -995,19 +1164,28 @@ const CloudSync = (() => {
                     }
                     _markSynced('currentForm');
                 } else {
-                    // Push local (already plaintext from conflict detection) to cloud
-                    _pushDoc('currentForm', conflict.local, 'currentForm');
+                    // Force-push past the conflict check — the user just resolved it.
+                    await _pushDoc('currentForm', conflict.local, 'currentForm', { skipConflictCheck: true });
                 }
-            } else if (conflict.type === 'CGL Compliance State') {
+            } else if (docType === 'cglState') {
                 if (choice === 'remote') {
                     _setLocalData(STORAGE_KEYS.CGL_STATE, conflict.remote);
                     _markSynced('cglState');
-                    // Refresh CGL UI
                     if (typeof ComplianceDashboard !== 'undefined' && ComplianceDashboard.init) {
                         ComplianceDashboard.init();
                     }
                 } else {
-                    _pushDoc('cglState', conflict.local, 'cglState');
+                    await _pushDoc('cglState', conflict.local, 'cglState', { skipConflictCheck: true });
+                }
+            } else if (docType) {
+                // Generic resolution for the other SYNC_DOCS (reminders, glossary,
+                // commercialDraft, carrierOverrides, etc.) — same write semantics.
+                const lsKey = DOC_LOCAL_KEYS[docType];
+                if (choice === 'remote') {
+                    if (lsKey) _setLocalData(lsKey, conflict.remote);
+                    _markSynced(docType);
+                } else {
+                    await _pushDoc(docType, conflict.local, docType, { skipConflictCheck: true });
                 }
             }
 

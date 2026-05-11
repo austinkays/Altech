@@ -10,6 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **feat(sync): push-side conflict resolution UI with field-level diff** (May 11, 2026):
+  - **Closes a real silent-data-loss vector** — multi-device editing of the same record was last-writes-wins on push. Now: before writing, `_pushDoc` fetches the remote doc and checks if its `updatedAt` is newer than our `lastSync_<docType>`. If so AND the payloads actually differ (a same-payload echo from another device is not a real conflict), the push is aborted and a conflict descriptor is returned instead of a blind overwrite. ([js/cloud-sync.js](js/cloud-sync.js))
+  - **One dialog per `pushToCloud`** — all push-side conflicts (across every doc in `SYNC_DOCS`) get collected into a single `_showConflictDialog` call so users see them in one place, not one popup per doc.
+  - **Generic resolution path** — `_resolveConflict` previously only knew how to apply user choices for `currentForm` and `cglState`. New `DOC_LOCAL_KEYS` map covers every doc that has a localStorage slot (reminders, glossary, commercialDraft, carrierOverrides, etc.), so "Use Cloud" generically writes back, and "Keep Local" force-pushes with `skipConflictCheck: true` to bypass the re-detection.
+  - **Inline field-level diff for shallow objects** ([js/cloud-sync.js](js/cloud-sync.js) + [css/auth.css](css/auth.css)). New `_buildConflictDiffHTML` adds a `<details>` expander to each conflict card. Iterates keys in both `local` + `remote`, lists per-field side-by-side comparison (cloud column in apple-blue, local in warning-amber), caps at 12 rows with an overflow note. Skips keys starting with `_` (internal). Escapes values via `Utils.escapeHTML`. Degrades to empty string for arrays / primitives / equal payloads.
+  - **ActivityLog hook** — emits `{ type: 'sync', area: 'firebase', ok: false, message: "Sync conflict — N docs need review" }` when conflicts are detected, so the header status pill flips to red and the activity panel shows the event.
+  - **`_pushDoc` accepts `options.skipConflictCheck`** — needed so `_resolveConflict`'s post-resolution re-push doesn't re-detect what the user just decided.
+  - Read-failure path is non-fatal: if the pre-push read throws (network blip, permissions), `_pushDoc` falls through to the normal write rather than aborting. Worst case: we miss the conflict; the user's other device still has its version.
+  - **Tests**: new [tests/sync-conflict-ui.test.js](tests/sync-conflict-ui.test.js) — 21 tests covering `_pushDoc` shape (skipConflictCheck option, conflict descriptor fields, payload-difference gate, non-fatal read-failure path), `pushToCloud` orchestration (filter for conflict descriptors, ActivityLog emit, dialog dispatch, failure-path exclusion), `_resolveConflict` write paths (currentForm + cglState + generic via DOC_LOCAL_KEYS), DOC_LOCAL_KEYS coverage, diff HTML edge cases (arrays/primitives, underscore-prefixed keys, 12-row cap, HTML escaping), and CSS styling. **2284/2284 tests pass** across 56 suites (was 2263/55).
+
+### Added
 - **feat(dashboard): Today widget — single-screen day-at-a-glance** (May 11, 2026):
   - New `#widgetToday` card at the top of the bento grid (spans 8 cols, pushes existing widgets down by one row). Three sections side-by-side:
     - **⚠️ Reminders** — overdue + due-today tasks only (top 5). Red/amber dot, status label inline.
