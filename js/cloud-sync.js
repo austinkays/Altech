@@ -242,6 +242,93 @@ const CloudSync = (() => {
         return false;
     }
 
+    // ── Phase B (Firestore): AAD-bound row encryption ──────────────────────
+    //
+    // When the v2 vault is unlocked, every Firestore push is wrapped in a
+    // v=2 AAD envelope bound to (table, rowId, userId) — mirroring the
+    // Supabase pushBlob / pushQuote path. Firestore then sees ciphertext
+    // for every doc including the ones that were historically plaintext
+    // (cglState, reminders, clientHistory, quickRef*, glossary,
+    // carrierOverrides, settings). The envelope is stored as a JS object
+    // `{ v: 2, iv, ct }` under the existing `data` field so the outer
+    // `{ data, updatedAt, deviceId, docType }` Firestore shape is unchanged.
+    //
+    // Backward compat on pull: _unwrapFromFirestore returns plain values
+    // (objects, arrays, legacy base64 strings) untouched, so any doc
+    // written before this change still reads fine. v=2 envelopes received
+    // when v2 is locked decrypt to null — the call site treats that as
+    // "no data" and falls through.
+    const FS_SYNC_TABLE = 'firestore_users_sync';
+    const FS_QUOTES_TABLE = 'firestore_users_quotes';
+
+    function _v2Enrolled() {
+        return localStorage.getItem(STORAGE_KEYS.E2E_CRYPTO_V2) === '1';
+    }
+    function _v2Ready() {
+        return typeof CryptoHelper !== 'undefined'
+            && typeof CryptoHelper.isV2Unlocked === 'function'
+            && CryptoHelper.isV2Unlocked();
+    }
+    function _uidForAAD() {
+        try { return (typeof Auth !== 'undefined' && Auth.uid) || null; }
+        catch { return null; }
+    }
+    function _isV2Envelope(val) {
+        return val != null
+            && typeof val === 'object'
+            && !Array.isArray(val)
+            && val.v != null && val.iv != null && val.ct != null;
+    }
+
+    /**
+     * Wrap a plaintext JS value as a v=2 AAD envelope bound to (table, rowId, uid).
+     * Throws `CRYPTO_LOCKED` if v2 is enrolled but locked — callers surface this
+     * as a failed push so the user knows their data didn't leave the device.
+     * When v2 isn't enrolled, returns the payload unchanged (legacy path preserved).
+     */
+    async function _wrapForFirestore(payload, table, rowId) {
+        if (payload == null) return payload;
+        if (!_v2Enrolled()) return payload; // Legacy: not enrolled in E2E — push plaintext as before.
+        if (!_v2Ready()) {
+            const err = new Error('CRYPTO_LOCKED: v2 vault enrolled but locked — refusing to push plaintext');
+            err.code = 'CRYPTO_LOCKED';
+            throw err;
+        }
+        const uid = _uidForAAD();
+        if (!uid) {
+            const err = new Error('NO_UID: cannot build AAD identity');
+            err.code = 'NO_UID';
+            throw err;
+        }
+        const envelopeStr = await CryptoHelper.encryptForRow(payload, { table, rowId, userId: uid });
+        // Store the envelope as a JS object so Firestore renders it as a
+        // nested map rather than a stringified blob.
+        return JSON.parse(envelopeStr);
+    }
+
+    /**
+     * Inverse of _wrapForFirestore. Detects v=2 envelopes by shape and decrypts.
+     * Anything else (plain objects, arrays, legacy base64 strings, primitives)
+     * is returned untouched — downstream code already handles those shapes.
+     * Returns null if the value is a v=2 envelope but v2 is locked / missing uid /
+     * AAD mismatch.
+     */
+    async function _unwrapFromFirestore(value, table, rowId) {
+        if (!_isV2Envelope(value)) return value;
+        if (!_v2Ready()) {
+            console.warn('[CloudSync] v=2 envelope received but v2 vault is locked; skipping');
+            return null;
+        }
+        const uid = _uidForAAD();
+        if (!uid) return null;
+        try {
+            return await CryptoHelper.decryptForRow(value, { table, rowId, userId: uid });
+        } catch (e) {
+            console.warn('[CloudSync] AAD unwrap failed for', rowId, '—', (e && e.message) || e);
+            return null;
+        }
+    }
+
     // ── Read local data (async — decrypts encrypted fields) ──
     async function _getLocalData() {
         const tryParse = (key) => {
@@ -358,19 +445,23 @@ const CloudSync = (() => {
                     const remote = snap.data();
                     const remoteTime = remote.updatedAt?.toMillis?.() || 0;
                     const remoteDevice = remote.deviceId;
+                    // Unwrap remote first — every push produces a fresh IV, so
+                    // raw-envelope comparison would show "conflict" on identical
+                    // data. Compare plaintext to plaintext instead.
+                    const remoteUnwrapped = await _unwrapFromFirestore(remote.data, FS_SYNC_TABLE, docPath);
                     // Other-device write since our last sync? Compare data to
                     // distinguish a real conflict from a same-payload echo
                     // (e.g. another device wrote the identical value).
                     if (remoteDevice !== DEVICE_ID
                             && _hasConflict(remoteTime, docType)
-                            && JSON.stringify(remote.data) !== JSON.stringify(localData)) {
+                            && JSON.stringify(remoteUnwrapped) !== JSON.stringify(localData)) {
                         console.warn(`[CloudSync] Push aborted for ${docPath} — remote newer (device: ${remoteDevice}, time: ${new Date(remoteTime).toISOString()})`);
                         return {
                             ok: false,
                             conflict: true,
                             docType,
                             docPath,
-                            remoteData: remote.data,
+                            remoteData: remoteUnwrapped,
                             localData,
                             remoteTime,
                             remoteDevice,
@@ -392,8 +483,12 @@ const CloudSync = (() => {
             // so any sneak from a caller doesn't blow up the entire sync run.
             // _markSynced is still called on success either way.
             const scrubbed = _scrubUndefined(localData);
+            // Wrap as v=2 AAD envelope when v2 vault is unlocked; throws
+            // CRYPTO_LOCKED if enrolled but locked (we refuse to leak
+            // plaintext). When not enrolled, returns scrubbed unchanged.
+            const wrapped = await _wrapForFirestore(scrubbed, FS_SYNC_TABLE, docPath);
             await ref.set({
-                data: scrubbed,
+                data: wrapped,
                 updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 deviceId: DEVICE_ID,
                 docType
@@ -418,7 +513,9 @@ const CloudSync = (() => {
             if (!snap.exists) return null;
 
             const remote = snap.data();
-            const remoteData = remote.data;
+            // Unwrap v=2 AAD envelopes back to plaintext. Legacy plaintext
+            // docs (object/array/legacy base64 string) pass through unchanged.
+            const remoteData = await _unwrapFromFirestore(remote.data, FS_SYNC_TABLE, docPath);
             const remoteTime = remote.updatedAt?.toMillis?.() || 0;
             const remoteDevice = remote.deviceId;
 
@@ -461,12 +558,31 @@ const CloudSync = (() => {
 
         const batch = FirebaseConfig.db.batch();
         for (const quote of localQuotes) {
-            const ref = col.doc(quote.id || `q_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`);
-            batch.set(ref, {
-                ...quote,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-                deviceId: DEVICE_ID
-            }, { merge: true });
+            const qid = quote.id || `q_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+            const ref = col.doc(qid);
+            const scrubbed = _scrubUndefined(quote);
+            // Wrap throws CRYPTO_LOCKED if v2 is enrolled but locked — let it
+            // bubble so the caller sees the whole quote sync failed loudly,
+            // rather than silently downgrading to a plaintext push.
+            const wrapped = await _wrapForFirestore(scrubbed, FS_QUOTES_TABLE, qid);
+            if (_isV2Envelope(wrapped)) {
+                // E2E path: only the envelope + Firestore metadata at top level.
+                // merge:false so any legacy plaintext fields on the existing
+                // doc are cleared in the same write — no half-encrypted rows.
+                batch.set(ref, {
+                    payload: wrapped,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    deviceId: DEVICE_ID,
+                });
+            } else {
+                // Legacy plaintext path (v2 not enrolled) — preserve existing
+                // top-level shape so older callers/devices keep working.
+                batch.set(ref, {
+                    ...scrubbed,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    deviceId: DEVICE_ID,
+                }, { merge: true });
+            }
         }
         await Promise.race([
             batch.commit(),
@@ -483,17 +599,30 @@ const CloudSync = (() => {
 
         try {
             const snap = await col.orderBy('updatedAt', 'desc').get();
-            const remoteQuotes = [];
-            snap.forEach(doc => {
+            // Collect docs first, then unwrap concurrently. snap.forEach is
+            // synchronous, so we can't await the unwrap inside it.
+            const docs = [];
+            snap.forEach(doc => docs.push(doc));
+            const quotes = await Promise.all(docs.map(async (doc) => {
                 const data = doc.data();
-                remoteQuotes.push({
-                    ...data,
+                let content;
+                if (_isV2Envelope(data.payload)) {
+                    // New v=2 envelope shape: payload field holds the encrypted blob.
+                    content = await _unwrapFromFirestore(data.payload, FS_QUOTES_TABLE, doc.id);
+                    if (content == null) return null; // unwrap failed — drop this quote
+                } else {
+                    // Legacy plaintext shape: top-level fields are the quote.
+                    const { updatedAt, deviceId, ...rest } = data;
+                    content = rest;
+                }
+                return {
+                    ...content,
                     id: doc.id,
                     _remoteUpdatedAt: data.updatedAt?.toMillis?.() || 0,
-                    _remoteDeviceId: data.deviceId
-                });
-            });
-            return remoteQuotes;
+                    _remoteDeviceId: data.deviceId,
+                };
+            }));
+            return quotes.filter(q => q != null);
         } catch (e) {
             console.error('[CloudSync] Pull quotes failed:', e);
             return [];
@@ -1246,3 +1375,9 @@ const CloudSync = (() => {
         }
     };
 })();
+
+// Browser globals: script-tag `const` is implicitly accessible by name, but
+// not as a property of `window`. Attach explicitly so module-style consumers
+// (Node tests, ToolingScripts) can reach it the same way they reach
+// SupabaseSync, AuthFacade, etc.
+if (typeof window !== 'undefined') window.CloudSync = CloudSync;
