@@ -1,0 +1,145 @@
+<!--
+  plugins/intake-v2.html — Personal Intake v2 workspace.
+
+  Single-page workspace (not a wizard). Top bar + left rail (jump anchors)
+  + main scrollable column + right rail (talk track / follow-ups).
+  Sections are <details open> so the agent can collapse anything.
+
+  All renderers (operators, products, coverage, history, review) attach
+  their DOM into the placeholder <div data-render="..."> elements. They
+  read state from IntakeV2.data and write back via IntakeV2.save().
+-->
+
+<section id="iv2Root" class="iv2-workspace" data-mode="quick" data-rails="expanded">
+
+  <!-- ── Sticky top bar: mode toggle + bindability indicator + save status ── -->
+  <header class="iv2-topbar" id="iv2Topbar">
+    <span class="iv2-topbar-title">🧭 Personal Intake v2</span>
+
+    <div class="iv2-mode-toggle" role="group" aria-label="Detail mode">
+      <button type="button" data-mode-set="quick" class="is-active" title="Quick mode — only fields needed to bind">Quick</button>
+      <button type="button" data-mode-set="full"  title="Full mode — every field for post-call cleanup">Full</button>
+    </div>
+
+    <div class="iv2-topbar-spacer"></div>
+
+    <div class="iv2-bindability" id="iv2BindabilityIndicator" aria-live="polite">
+      <span class="iv2-bindability-label">Bindable:</span>
+      <span class="iv2-carrier" data-carrier="progressive"><span class="iv2-carrier-mark"></span>Prog</span>
+      <span class="iv2-carrier" data-carrier="foremost"   ><span class="iv2-carrier-mark"></span>Frmst</span>
+      <span class="iv2-carrier" data-carrier="travelers"  ><span class="iv2-carrier-mark"></span>Trav</span>
+      <span class="iv2-carrier" data-carrier="safeco"     ><span class="iv2-carrier-mark"></span>Safe</span>
+    </div>
+
+    <button type="button" class="iv2-icon-btn" id="iv2RailsToggle" title="Collapse / expand side rails (better for split-screen)">⇆</button>
+    <button type="button" class="iv2-icon-btn" id="iv2HelpBtn"    title="Keyboard shortcuts (press ?)" aria-label="Show keyboard shortcuts">?</button>
+    <span class="iv2-save-status" id="iv2SaveStatus" aria-live="polite">Ready</span>
+  </header>
+
+  <!-- ── Left rail: jump-to anchors + counts ─────────────────────────────── -->
+  <aside class="iv2-left-rail" id="iv2LeftRail" aria-label="Section navigation">
+    <ul class="iv2-jump-list" id="iv2JumpList">
+      <li><button type="button" data-jump="iv2-quick">      <span>Quick Start</span></button></li>
+      <li><button type="button" data-jump="iv2-household">  <span>Household & Operators</span> <span class="iv2-jump-badge" data-count="operators">0</span></button></li>
+      <li><button type="button" data-jump="iv2-properties"> <span>Properties to Insure</span>  <span class="iv2-jump-badge" data-count="products">0</span></button></li>
+      <li><button type="button" data-jump="iv2-coverage">   <span>Coverage</span></button></li>
+      <li><button type="button" data-jump="iv2-history">    <span>History</span></button></li>
+      <li><button type="button" data-jump="iv2-review">     <span>Review & Export</span></button></li>
+    </ul>
+
+    <div class="iv2-shortcut-hint">
+      <div><strong>Follow-up:</strong> <span id="iv2FollowupCount">0</span></div>
+      <div><strong>Errors:</strong> <span id="iv2ErrorCount">0</span></div>
+      <div style="margin-top:8px"><kbd>?</kbd> shortcuts · <kbd>N</kbd> add · <kbd>Alt+L</kbd> defer</div>
+    </div>
+  </aside>
+
+  <!-- ── Main scrollable column ──────────────────────────────────────────── -->
+  <main class="iv2-main" id="iv2Main">
+
+    <details class="iv2-section" id="iv2-quick" open>
+      <summary>
+        <span class="iv2-section-title">⚡ Quick Start</span>
+        <span class="iv2-section-count" id="iv2QuickStatus">Tab through with smart defaults</span>
+      </summary>
+      <div class="iv2-section-body" data-render="quick">
+        <!-- Applicant + address fields rendered by intake-v2-layout.js -->
+      </div>
+    </details>
+
+    <details class="iv2-section" id="iv2-household" open>
+      <summary>
+        <span class="iv2-section-title">👥 Household & Operators</span>
+        <span class="iv2-section-count" data-count="operators-label">0 people</span>
+      </summary>
+      <div class="iv2-section-body" data-render="operators">
+        <!-- Operator pool rendered by intake-v2-operators.js -->
+      </div>
+    </details>
+
+    <details class="iv2-section" id="iv2-properties" open>
+      <summary>
+        <span class="iv2-section-title">🏷️ Properties to Insure</span>
+        <span class="iv2-section-count" data-count="products-label">Nothing added yet</span>
+      </summary>
+      <div class="iv2-section-body">
+        <div class="iv2-product-toolbar">
+          <button type="button" class="iv2-add-btn is-ghost" data-add="home">+ Home</button>
+          <button type="button" class="iv2-add-btn is-ghost" data-add="auto">+ Auto</button>
+          <button type="button" class="iv2-add-btn is-ghost" data-add="boat">+ Boat / PWC</button>
+          <button type="button" class="iv2-add-btn is-ghost" data-add="rv">+ RV / Travel Trailer</button>
+        </div>
+        <div data-render="homes"></div>
+        <div data-render="autos"></div>
+        <div data-render="boats"></div>
+        <div data-render="rvs"></div>
+      </div>
+    </details>
+
+    <details class="iv2-section" id="iv2-coverage" open>
+      <summary>
+        <span class="iv2-section-title">🛡️ Coverage, Prior Insurance & Discounts</span>
+      </summary>
+      <div class="iv2-section-body" data-render="coverage">
+        <!-- Coverage block rendered by intake-v2-coverage.js -->
+      </div>
+    </details>
+
+    <details class="iv2-section" id="iv2-history" open>
+      <summary>
+        <span class="iv2-section-title">📋 Loss & Violation History (last 35 months)</span>
+      </summary>
+      <div class="iv2-section-body" data-render="history">
+        <!-- History block rendered by intake-v2-history.js -->
+      </div>
+    </details>
+
+    <details class="iv2-section" id="iv2-review" open>
+      <summary>
+        <span class="iv2-section-title">✅ Review & Export</span>
+      </summary>
+      <div class="iv2-section-body" data-render="review">
+        <!-- Review summary + export buttons rendered by intake-v2-review.js -->
+      </div>
+    </details>
+
+  </main>
+
+  <!-- ── Right rail: talk track + follow-ups + last entries ──────────────── -->
+  <aside class="iv2-right-rail" id="iv2RightRail" aria-label="Conversation helpers">
+    <h4>Talk Track</h4>
+    <div class="iv2-talk-track" id="iv2TalkTrack">
+      <em style="color:var(--text-secondary)">Suggested asks appear here as the conversation progresses.</em>
+    </div>
+
+    <h4>Follow-up <span class="iv2-section-count" id="iv2FollowupCount2">0</span></h4>
+    <ul class="iv2-followup-list" id="iv2FollowupList">
+      <li class="iv2-followup-empty">Nothing deferred yet. Press <kbd style="font-size:10px">Alt+L</kbd> on any field to add it here.</li>
+    </ul>
+
+    <h4>Last Entries</h4>
+    <div class="iv2-last-entries" id="iv2LastEntries"></div>
+  </aside>
+
+  <button type="button" class="iv2-fab" id="iv2FabAdd" title="Quick add (N) — adds operator / home / auto / boat / RV based on focus">+</button>
+</section>

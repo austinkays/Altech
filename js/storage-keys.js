@@ -10,6 +10,15 @@ window.STORAGE_KEYS = Object.freeze({
     QUOTES:                 'altech_v6_quotes',     // saved drafts (encrypted, cloud-synced)
     DOC_INTEL:              'altech_v6_docintel',   // document intel results
 
+    // ── Personal Intake v2 (phone-first rebuild — Home + Auto + Boat + RV) ──
+    // Lives alongside v1 (`FORM`/`QUOTES`) during rollout. Gated by INTAKE_V2_ENABLED.
+    INTAKE_V2:              'altech_v6_intake_v2',         // IntakeV2.data — live draft (encrypted, cloud-synced)
+    INTAKE_V2_QUOTES:       'altech_v6_intake_v2_quotes',  // saved v2 quotes (encrypted, cloud-synced)
+    INTAKE_V2_ENABLED:      'altech_intake_v2_enabled',    // '1' shows the sidebar tile + lets users opt in
+    INTAKE_V2_MODE:         'altech_intake_v2_mode',       // 'quick' | 'full' — per-device preference
+    INTAKE_V2_RAILS:        'altech_intake_v2_rails',      // 'expanded' | 'collapsed' — workspace chrome state
+    AGENCY_DEFAULTS:        'altech_agency_defaults',      // shared smart-default values (state, deductibles, term) — cloud-synced
+
     // ── Plugin data (cloud-synced) ───────────────────────────────────────────
     COMMERCIAL_DRAFT:       'altech_commercial_v1',      // commercial intake draft (encrypted, cloud-synced)
     COMMERCIAL_QUOTES:      'altech_commercial_quotes',  // saved commercial quotes (encrypted, cloud-synced)

@@ -39,7 +39,8 @@ function loadHTML(indexPath) {
                 remindersTool: 'reminders',
                 intakeTool: 'intake-assist',
                 vinDecoderTool: 'vin-decoder',
-                callLoggerTool: 'call-logger'
+                callLoggerTool: 'call-logger',
+                intakeV2Tool: 'intake-v2'
             };
 
             const pluginName = pluginMap[containerId];
