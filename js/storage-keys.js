@@ -19,6 +19,16 @@ window.STORAGE_KEYS = Object.freeze({
     INTAKE_V2_RAILS:        'altech_intake_v2_rails',      // 'expanded' | 'collapsed' — workspace chrome state
     AGENCY_DEFAULTS:        'altech_agency_defaults',      // shared smart-default values (state, deductibles, term) — cloud-synced
 
+    // ── Biometric / passkey unlock (per-device, never synced) ───────────────
+    // Each entry: { credentialId, prfSaltB64, wrappedMKB64, kdfTree, label,
+    // createdAt }. Wrapped MK is encrypted by a key derived from the
+    // WebAuthn PRF extension output, so the bytes themselves are useless
+    // without the matching authenticator (Touch ID / Face ID / Windows
+    // Hello / hardware key). Per-device because the credential lives on the
+    // authenticator — to unlock from another device, register a passkey
+    // there too.
+    BIOMETRIC_CREDENTIALS:  'altech_biometric_credentials',
+
     // ── Plugin data (cloud-synced) ───────────────────────────────────────────
     COMMERCIAL_DRAFT:       'altech_commercial_v1',      // commercial intake draft (encrypted, cloud-synced)
     COMMERCIAL_QUOTES:      'altech_commercial_quotes',  // saved commercial quotes (encrypted, cloud-synced)

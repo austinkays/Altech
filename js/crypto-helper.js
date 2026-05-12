@@ -501,6 +501,28 @@ const CryptoHelper = (() => {
         },
         lock() { _clearV2MK(); },
 
+        // Install an already-unwrapped master key — used by alternate unlock
+        // paths (biometric / passkey) that derive their own KEK from a
+        // different secret (e.g. WebAuthn PRF output) and unwrap MK with it.
+        // Returns true on success. Caller is responsible for zeroing their
+        // copy of the bytes — _setV2MK clones, so it's safe to do so right
+        // after this resolves.
+        async installMK(mkBytes, kdfTree) {
+            if (!(mkBytes instanceof Uint8Array) || mkBytes.length !== 32) {
+                throw new Error('installMK: expected 32-byte Uint8Array');
+            }
+            await _setV2MK(mkBytes, kdfTree || null);
+            return true;
+        },
+        // Read-only access to the current MK bytes — used by the biometric
+        // setup flow to wrap MK under a PRF-derived KEK while the vault is
+        // unlocked. Returns null when locked. Returns a COPY (callers should
+        // zero their copy after use).
+        getUnlockedMK() {
+            return _v2MKBytes ? new Uint8Array(_v2MKBytes) : null;
+        },
+        getKdfTree() { return _v2KdfTree; },
+
         /**
          * Onboarding: generate a fresh MK, wrap it under the passphrase,
          * cache the MK in memory, and return the pieces the server needs.
