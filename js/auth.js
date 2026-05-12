@@ -599,15 +599,22 @@ const Auth = (() => {
                 _clearErrors();
                 try {
                     await SupabaseAuth.signIn(email, password);
+                    // Synchronously mirror SupabaseAuth.user into auth.js's
+                    // _user BEFORE we close the modal. Without this, there's
+                    // a ~500ms race window where `Auth.user` is still null
+                    // (the SDK's SIGNED_IN event hasn't gone through
+                    // _onAuthChange → _refreshFactors → _listeners yet), and
+                    // clicking any tool tile in that window hits the auth
+                    // gate, sees null, and re-opens the Welcome Back modal —
+                    // exactly the loop the user reported. The deferred event
+                    // path still runs and is idempotent; we just don't wait
+                    // for it.
+                    const sbUser = SupabaseAuth.user;
+                    if (sbUser) _onAuthStateChanged(_normalizeSupabaseUser(sbUser));
+
                     // Always close the Welcome Back modal on a successful sign-in
                     // and surface a confirmation toast so the user has unambiguous
-                    // feedback that it worked. Previously, when MFA enforcement
-                    // fired, we left the Welcome Back modal open and tried to
-                    // layer the MFA modal on top — but if either the MFA modal
-                    // failed to mount or just looked similar enough to the auth
-                    // modal, the user couldn't tell the sign-in succeeded and
-                    // re-clicked Sign In on a loop. Now: close, toast, THEN
-                    // open the MFA modal if needed.
+                    // feedback that it worked.
                     this.closeModal();
                     if (typeof App !== 'undefined' && App.toast) {
                         App.toast(`🔓 Signed in as ${email}`, { type: 'success', duration: 3000 });
