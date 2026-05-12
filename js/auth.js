@@ -81,7 +81,22 @@ const Auth = (() => {
 
     // ── Auth state change callback ──
     function _onAuthStateChanged(user) {
-        if (_authReadyResolve) { _authReadyResolve(user); _authReadyResolve = null; }
+        // Defense-in-depth against the same race the conservative bridge
+        // guard in Auth.init() addresses: only resolve `_authReady` from a
+        // POSITIVE signal (a real user). A null first-event from any source
+        // (Firebase reporting "no Firebase user" for a Supabase-only account,
+        // or a future SDK regression) is a false-negative — every caller
+        // awaiting `Auth.ready()` would see null, the auth gate in
+        // app-navigation would open the Welcome Back modal, even though a
+        // populated user event was arriving a few hundred ms later.
+        //
+        // The 15s safety timeout below still resolves with null for
+        // genuinely unauthenticated cold loads, so callers can't hang
+        // forever — that's the tradeoff. Worst case for an unauthenticated
+        // user is a 15s wait on the first tool-tile click before the
+        // sign-in modal appears; in exchange, authenticated users no longer
+        // get falsely logged out on F5.
+        if (_authReadyResolve && user) { _authReadyResolve(user); _authReadyResolve = null; }
         _user = user;
         _updateHeaderUI(user);
         // Refresh landing greeting with user's name
@@ -418,22 +433,71 @@ const Auth = (() => {
             // signed-in state regardless of backend.
             if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseAuth.addAuthListener === 'function') {
                 SupabaseAuth.addAuthListener((sbUser, event) => {
-                    // SupabaseAuth fires the listener synchronously with
-                    // `(_user, 'INITIAL')` the moment we register — at that
-                    // point SupabaseAuth.init() may not have hydrated the
-                    // persisted session yet, so the user is null even when
-                    // the user IS signed in. Resolving _authReady on that
-                    // premature null means callers (e.g. the auth gate in
-                    // app-navigation) see "not signed in" and open the login
-                    // modal — even though a real INITIAL_SESSION event from
-                    // the Supabase SDK arrives a few hundred ms later with
-                    // the restored user. We skip ONLY the synthetic
-                    // null-INITIAL; every real auth-state event (including
-                    // INITIAL_SESSION, SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
-                    // still flows through.
-                    if (event === 'INITIAL' && !sbUser) return;
+                    // SupabaseAuth's `addAuthListener` fires its OWN synthetic
+                    // event named `'INITIAL'` synchronously at registration
+                    // time, with whatever `_user` is at that instant. The
+                    // Supabase JS v2 SDK fires a DIFFERENT event named
+                    // `'INITIAL_SESSION'` — distinct strings. The previous
+                    // guard `event === 'INITIAL' && !sbUser` only caught the
+                    // synthetic null, missing the SDK's null INITIAL_SESSION
+                    // that fires when the listener is attached BEFORE the
+                    // SDK finishes hydrating from storage. That null leaked
+                    // through and called `_onAuthStateChanged(null)`, which
+                    // (one-shot) resolved `Auth._authReady` with null and
+                    // set `_user = null` — every later `await Auth.ready()`
+                    // returned null, the auth gate in app-navigation saw
+                    // no user, and a real F5 with a valid Supabase session
+                    // landed on the Welcome Back modal anyway.
+                    //
+                    // Conservative guard: a NULL user is only ever a real
+                    // signal when it accompanies an explicit `SIGNED_OUT`
+                    // event. Every other null is either pre-hydration noise
+                    // (`INITIAL`, `INITIAL_SESSION`) or a transient SDK
+                    // re-emit and should be ignored. This is also
+                    // forward-compatible: if supabase-js adds a new event
+                    // type that delivers a null user mid-session, we won't
+                    // accidentally sign the user out.
+                    if (!sbUser && event !== 'SIGNED_OUT') return;
                     _onAuthStateChanged(_normalizeSupabaseUser(sbUser));
                 });
+
+                // Belt-and-suspenders mirror against the cold-load race that
+                // PR #90's bridge listener still loses on some boots:
+                //   1. app-boot.js fires `Auth.init()` BEFORE `SupabaseAuth.init()`.
+                //   2. `addAuthListener` fires `(null, 'INITIAL')` synchronously
+                //      because `SupabaseAuth._user` is still null — the early-
+                //      return guard above swallows it. So far so good.
+                //   3. `SupabaseAuth.init()` runs, awaits `getSession()`,
+                //      populates `_user` from the persisted session, then
+                //      registers `client.auth.onAuthStateChange(_onAuthChange)`.
+                //   4. The Supabase JS v2 SDK is *supposed* to fire
+                //      `INITIAL_SESSION` immediately after step 3 — but in
+                //      practice the listener attached at step 3 sometimes
+                //      misses the synthetic restore event (or `_refreshFactors`
+                //      stalls before the fan-out), so `_onAuthChange` never
+                //      runs the `_listeners.forEach` for the restored session.
+                //   5. Result: `Auth._user` stays null forever despite
+                //      `SupabaseAuth.user` being populated. Every tool tile
+                //      click re-opens the Welcome Back modal, the dashboard
+                //      greeting shows no name, F5 prompts sign-in again.
+                // The fix is to re-read `SupabaseAuth.user` ourselves:
+                //   • If already hydrated, mirror now (no-op if the
+                //     synchronous INITIAL fire already populated us).
+                //   • Otherwise wait for `SupabaseAuth.ready()` (resolves
+                //     when `getSession` settles or via the 5s safety timeout)
+                //     and mirror once. The `!_user` guard inside the deferred
+                //     branch avoids clobbering a real event that arrived in
+                //     between.
+                const _mirrorSb = () => {
+                    if (SupabaseAuth.user && !_user) {
+                        _onAuthStateChanged(_normalizeSupabaseUser(SupabaseAuth.user));
+                    }
+                };
+                if (SupabaseAuth.user) {
+                    _mirrorSb();
+                } else if (typeof SupabaseAuth.ready === 'function') {
+                    Promise.resolve(SupabaseAuth.ready()).then(_mirrorSb).catch(() => {});
+                }
             }
         },
 

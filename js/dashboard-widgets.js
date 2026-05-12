@@ -1339,9 +1339,17 @@ window.DashboardWidgets = (() => {
         const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
         let name = '';
         try {
-            const user = typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser;
+            // `Auth.user` is the backend-agnostic source of truth — Firebase
+            // populates it via onAuthStateChanged; Supabase populates it via
+            // the bridge in Auth.init. Reading firebase.auth().currentUser
+            // alone (the pre-#96 pattern) returned null for Supabase users
+            // and the greeting fell through to the no-name branch even
+            // though the user WAS signed in. PR #96 fixed the dead
+            // updateLandingGreeting; the visible greeting lives here.
+            const user = (typeof Auth !== 'undefined' && Auth.user)
+                || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
             if (user) {
-                const rawName = user.displayName || user.email.split('@')[0];
+                const rawName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
                 name = rawName.charAt(0).toUpperCase() + rawName.slice(1);
             } else if (typeof Onboarding !== 'undefined') {
                 name = Onboarding.getUserName() || '';
