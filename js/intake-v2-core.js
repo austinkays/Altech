@@ -294,6 +294,9 @@
             const item = this.getItem(collKey, itemId);
             if (!item) return;
             setByPath(item, path, value);
+            // Mirror setField — surface the write in the right-rail
+            // "last entries" peek so the agent can verify mid-call.
+            this._pushLastEntry({ path: `${collKey}#${itemId}.${path}`, value });
             this.scheduleSave();
         },
         setField(path, value, opts) {
@@ -446,6 +449,9 @@
                 if (path === 'coApplicant.present') {
                     this.syncApplicantOperators();
                     this.requestRerender('operators');
+                    // Re-render the Quick Start section so the co-applicant
+                    // cluster expands/collapses to match the new toggle state.
+                    this.requestRerender('layout');
                 }
             } else {
                 const [collKey, rest] = path.split('#');

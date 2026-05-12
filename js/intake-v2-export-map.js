@@ -109,7 +109,9 @@ function toLegacyShape(v2) {
         roofYr:             home ? val(home.roof && home.roof.yr) : '',
         roofUpdate:         home ? val(home.roof && home.roof.update) : '',
         heatingType:        home ? val(home.systems && home.systems.heatingType) : '',
-        heatYr:             home ? val(home.systems && home.systems.heatingYr) : '',
+        // heatYr deliberately omitted — v2 schema doesn't capture heating-system
+        // year separately. If the legacy CMSMTF/EZLynx exporter needs it, add a
+        // `systems.heatingYr` field to the v2 home schema first.
         plumbYr:            home ? val(home.systems && home.systems.plumbingYr) : '',
         elecYr:             home ? val(home.systems && home.systems.electricalYr) : '',
         protectionClass:    home ? val(home.hazards && home.hazards.protectionClass) : '',

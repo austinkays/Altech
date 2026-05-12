@@ -77,7 +77,9 @@ const RULES = [
     },
     {
         id: 'boat-hin-defer',
-        when: (d) => d.boats.length > 0 && d.boats.some(b => !b.hin) && !d.deferred.some(p => p.includes('.hin')),
+        when: (d) => d.boats.length > 0
+                  && d.boats.some(b => !b.hin)
+                  && !(d.deferred || []).some(p => /^boats#.+\.hin$/.test(p)),
         render: () => `If the client doesn't have the HIN handy, press <kbd>Alt+L</kbd> in the HIN field to defer — won't block the quote.`,
     },
 

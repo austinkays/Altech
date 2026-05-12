@@ -181,18 +181,24 @@ function renderOperatorPicker(container, item, collKey) {
     container.querySelectorAll('[data-op-id]').forEach(chip => {
         chip.addEventListener('click', (e) => {
             const opId = chip.getAttribute('data-op-id');
+            item.additionalOperatorIds = Array.isArray(item.additionalOperatorIds) ? item.additionalOperatorIds : [];
             if (e.shiftKey) {
-                item.primaryOperatorId = opId;
-                // Clear from additionals
-                if (Array.isArray(item.additionalOperatorIds)) {
-                    item.additionalOperatorIds = item.additionalOperatorIds.filter(x => x !== opId);
+                // Shift+click: set as primary. The previous primary (if any
+                // and different) becomes an additional operator so they
+                // stay linked.
+                const prevPrimary = item.primaryOperatorId;
+                if (prevPrimary && prevPrimary !== opId && !item.additionalOperatorIds.includes(prevPrimary)) {
+                    item.additionalOperatorIds.push(prevPrimary);
                 }
+                item.primaryOperatorId = opId;
+                item.additionalOperatorIds = item.additionalOperatorIds.filter(x => x !== opId);
             } else if (item.primaryOperatorId === opId) {
-                // Toggle: primary → none
+                // Click the existing primary: demote to additional (still linked).
+                // Matches the chip tooltip "Primary operator — click to make additional".
                 item.primaryOperatorId = '';
+                if (!item.additionalOperatorIds.includes(opId)) item.additionalOperatorIds.push(opId);
             } else {
-                // Toggle additional
-                item.additionalOperatorIds = Array.isArray(item.additionalOperatorIds) ? item.additionalOperatorIds : [];
+                // Click another chip: toggle as additional.
                 const i = item.additionalOperatorIds.indexOf(opId);
                 if (i === -1) item.additionalOperatorIds.push(opId);
                 else item.additionalOperatorIds.splice(i, 1);

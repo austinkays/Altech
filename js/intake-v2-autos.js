@@ -117,28 +117,49 @@ function renderAutos() {
     root.innerHTML = `<h4 style="margin:6px 0; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Autos (${autos.length})</h4>${cards}`;
     wireCardActions(root, 'autos');
 
-    // VIN decode on paste/blur
+    // VIN decode on paste/blur via the free NHTSA vPIC API.
+    // (window.VinDecoder.decode is DOM-bound to the VIN Decoder plugin's
+    // own inputs — not usable from here. We fetch the same endpoint directly.)
     root.querySelectorAll('input[data-field-path="vin"]').forEach(inp => {
-        inp.addEventListener('blur', () => decodeVinIntoCard(inp));
-        inp.addEventListener('paste', () => setTimeout(() => decodeVinIntoCard(inp), 100));
+        inp.addEventListener('blur',  () => decodeVinIntoCard(inp));
+        inp.addEventListener('paste', () => setTimeout(() => decodeVinIntoCard(inp), 50));
     });
 }
 
-function decodeVinIntoCard(input) {
-    const vin = (input.value || '').trim().toUpperCase();
+const _vinCache = new Map();
+async function decodeVinIntoCard(input) {
+    const vin = (input.value || '').trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
     if (vin.length !== 17) return;
-    if (!window.VinDecoder || typeof window.VinDecoder.parseVin !== 'function') return;
-    let parsed;
-    try { parsed = window.VinDecoder.parseVin(vin); } catch (_) { return; }
-    if (!parsed) return;
     const itemId = input.getAttribute('data-item-id');
     const item = window.IntakeV2.getItem('autos', itemId);
     if (!item) return;
-    if (parsed.year && !item.year)   { item.year  = parsed.year;   const f = document.querySelector(`#iv2-auto-year-${itemId}`); if (f) f.value = parsed.year; }
-    if (parsed.make && !item.make)   { item.make  = parsed.make;   const f = document.querySelector(`#iv2-auto-make-${itemId}`); if (f) f.value = parsed.make; }
-    if (parsed.model && !item.model) { item.model = parsed.model;  const f = document.querySelector(`#iv2-auto-model-${itemId}`); if (f) f.value = parsed.model; }
+    // Only auto-fill empty fields so we don't overwrite agent edits.
+    if (item.year && item.make && item.model) return;
+
+    let parsed = _vinCache.get(vin);
+    if (!parsed) {
+        try {
+            const resp = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${encodeURIComponent(vin)}?format=json`);
+            if (!resp.ok) return;
+            const json = await resp.json();
+            const map = {};
+            (json.Results || []).forEach(r => { if (r.Variable && r.Value && r.Value !== 'Not Applicable') map[r.Variable] = r.Value; });
+            parsed = {
+                year:  map['Model Year']      || '',
+                make:  map['Make']            || '',
+                model: map['Model']           || '',
+                body:  map['Body Class']      || '',
+            };
+            _vinCache.set(vin, parsed);
+        } catch (_) { return; }
+    }
+    let changed = false;
+    if (parsed.year  && !item.year)  { item.year  = parsed.year;  changed = true; }
+    if (parsed.make  && !item.make)  { item.make  = parsed.make;  changed = true; }
+    if (parsed.model && !item.model) { item.model = parsed.model; changed = true; }
+    if (!changed) return;
     window.IntakeV2.save();
-    window.IntakeV2.requestRerender();
+    window.IntakeV2.requestRerender('autos');
 }
 
 window.IntakeV2.onBoot(function () {

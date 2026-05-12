@@ -20,7 +20,9 @@ const HIN_RE = /^[A-Z0-9]{12}$/;
 
 function decodeHIN(hin) {
     if (!hin) return { ok: false, reason: 'empty' };
-    const v = String(hin).trim().toUpperCase();
+    // Strip spaces, hyphens, and non-alphanumeric chars — agents often
+    // paste HINs with separators ("ABC-1234-5678") from dealer paperwork.
+    const v = String(hin).toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!HIN_RE.test(v)) return { ok: false, reason: 'format', normalized: v };
     return { ok: true, normalized: v, manufacturerCode: v.slice(0, 3) };
 }
