@@ -545,8 +545,24 @@
         const root = this._container;
         if (!root) return;
 
-        // Cold load
-        this.load();
+        // Cold load. `this.load()` returns a Promise (CryptoHelper.decrypt is
+        // async). The boot hook itself is sync — it has to be, every other
+        // module's boot hook expects a synchronous baseline — so we do an
+        // initial paint with defaults, then re-paint once load resolves.
+        // Without this, users with saved data saw the empty default form on
+        // open (until something else triggered a rerender).
+        const _loadPromise = Promise.resolve(this.load()).then((ok) => {
+            if (!ok) return;
+            this.syncApplicantOperators();
+            this.applyData();
+            // applyData runs requestRerender — that fans out to every
+            // registered renderer, which by this point all exist.
+        }).catch(err => {
+            // eslint-disable-next-line no-console
+            console.error('IntakeV2 load promise rejected:', err);
+        });
+        // First-paint with defaults (or with whatever sync-decoded data
+        // happened to land in time on the fast path).
         this.syncApplicantOperators();
 
         // Delegated input listener: every scalar + collection field flows here.
