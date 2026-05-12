@@ -204,7 +204,10 @@ window.onload = async () => {
         if (typeof IdleLock !== 'undefined') IdleLock.init();
     } catch (e) { console.error('[Boot] IdleLock init error:', e); }
 
-    // Initialize cloud sync (non-blocking), then load Places API (needs Auth for key fetch)
+    // Initialize legacy Auth compatibility, then load Places API (needs Auth for key fetch).
+    // In the Phase D Supabase default, Firebase SDK scripts are absent; Auth.init()
+    // still must run because it wires the Supabase -> Auth.user bridge used by
+    // older tool gates and dashboard greeting code.
     try {
         if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
             FirebaseConfig.init().then(async () => {
@@ -218,13 +221,15 @@ window.onload = async () => {
                 if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
             });
         } else {
+            if (typeof Auth !== 'undefined') {
+                try { Auth.init(); } catch (e) { console.warn('[Boot] Auth init skipped:', e && e.message); }
+            }
             if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
         }
     } catch (e) { console.error('[Boot] Firebase/Places init error:', e); }
 
-    // Supabase Auth — only boots when SYNC_BACKEND=supabase. Runs in parallel
-    // with Firebase Auth so neither blocks the other; the login modal picks
-    // whichever backend the flag selects at submit time.
+    // Supabase Auth — default backend as of Phase D. Runs in parallel with
+    // any explicit Firebase fallback so neither blocks the other.
     try {
         if (typeof SupabaseAuth !== 'undefined') {
             SupabaseAuth.init().catch(e => console.warn('[Boot] SupabaseAuth init skipped:', e && e.message));

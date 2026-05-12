@@ -65,9 +65,10 @@ describe('Admin-only cloud sync policy', () => {
             expect(syncFacadeSrc).toMatch(/function policyBlocksSync\(\)/);
         });
 
-        test('policyBlocksSync fails closed when Auth is undefined', () => {
+        test('policyBlocksSync fails closed when active auth backend is undefined', () => {
             const block = syncFacadeSrc.match(/function policyBlocksSync\(\)\s*\{([\s\S]*?)\n\s*\}/);
             expect(block).not.toBeNull();
+            expect(block[1]).toMatch(/backend\(\) === 'supabase' \? window\.SupabaseAuth : window\.Auth/);
             expect(block[1]).toMatch(/if \(!a\) return true/);
             expect(block[1]).toMatch(/isAdmin !== true/);
         });
@@ -100,6 +101,18 @@ describe('Admin-only cloud sync policy', () => {
     });
 
     describe('js/auth.js settings modal', () => {
+        test('Supabase is the default auth backend unless Firebase is explicitly selected', () => {
+            const useSupabase = authSrc.match(/function _useSupabase\(\)\s*\{([\s\S]*?)\n\s*\}/);
+            expect(useSupabase).not.toBeNull();
+            expect(useSupabase[1]).toMatch(/SYNC_BACKEND\) !== 'firebase'/);
+        });
+
+        test('mirrors Supabase admin and blocked claims onto legacy Auth state', () => {
+            expect(authSrc).toMatch(/user\._backend === 'supabase'/);
+            expect(authSrc).toMatch(/_isAdmin = SupabaseAuth\.isAdmin === true/);
+            expect(authSrc).toMatch(/_isBlocked = SupabaseAuth\.isBlocked === true/);
+        });
+
         test('force-disables the sync opt-out toggle for non-admins', () => {
             // A non-admin can't toggle sync on — the checkbox is checked and
             // disabled, with explanatory text swapped in.

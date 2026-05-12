@@ -58,15 +58,15 @@
         return sa.mfaRequired();
     }
 
-    // Agency policy gate: cloud sync is admin-only until Path B Phase 4 ships
-    // E2E encryption. Enforced at the facade layer so both Firebase and
-    // Supabase backends are covered. Defaults to "blocked" if Auth isn't
-    // loaded yet (fail-closed on boot).
+    // Agency policy gate: cloud sync is admin-only. Enforced at the facade
+    // layer so both Firebase and Supabase backends are covered. Defaults to
+    // "blocked" if the active auth backend isn't loaded yet (fail-closed on boot).
     function policyBlocksSync() {
         if (typeof window === 'undefined') return true;
-        const a = window.Auth;
+        const a = backend() === 'supabase' ? window.SupabaseAuth : window.Auth;
         if (!a) return true;
-        return a.isAdmin !== true;
+        const isAdmin = typeof a.isAdmin === 'function' ? a.isAdmin() : a.isAdmin;
+        return isAdmin !== true;
     }
 
     // Combined gate: either MFA missing or non-admin policy. Writes are

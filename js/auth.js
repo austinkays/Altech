@@ -14,17 +14,16 @@ const Auth = (() => {
     let _modalEl = null;
 
     // ── Path B Phase 3 backend routing ──
-    // When SYNC_BACKEND=supabase, the login modal's submit handlers delegate
-    // to window.SupabaseAuth instead of FirebaseConfig.auth. The Firebase
-    // Auth module stays loaded and initialized — users on SYNC_BACKEND=firebase
-    // (the default) see zero change. The migration flow in Phase 4 is what
-    // flips an individual user from one backend to the other.
+    // Phase D default: Supabase handles auth unless the user explicitly opts
+    // back to Firebase with SYNC_BACKEND=firebase. This keeps the login modal
+    // aligned with Sync/AuthFacade, which already treat a missing backend flag
+    // as Supabase.
     function _useSupabase() {
         try {
-            return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'
+            return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) !== 'firebase'
                 && typeof window.SupabaseAuth !== 'undefined';
         } catch {
-            return false;
+            return typeof window.SupabaseAuth !== 'undefined';
         }
     }
 
@@ -97,6 +96,10 @@ const Auth = (() => {
         // sign-in modal appears; in exchange, authenticated users no longer
         // get falsely logged out on F5.
         if (_authReadyResolve && user) { _authReadyResolve(user); _authReadyResolve = null; }
+        if (user && user._backend === 'supabase' && typeof SupabaseAuth !== 'undefined') {
+            _isAdmin = SupabaseAuth.isAdmin === true;
+            _isBlocked = SupabaseAuth.isBlocked === true;
+        }
         _user = user;
         _updateHeaderUI(user);
         // Refresh landing greeting with user's name
