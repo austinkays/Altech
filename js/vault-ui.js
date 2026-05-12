@@ -271,6 +271,22 @@
             _hideModal('#vaultUnlockModal');
             _toast('🔓 Vault unlocked', 'success');
             if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            // Mirror the passphrase-unlock path: re-pull encrypted docs from
+            // the cloud so reminders / CGL / etc. that couldn't decrypt
+            // pre-unlock land in localStorage and the consuming modules
+            // pick them up.
+            try {
+                if (typeof SupabaseAuth !== 'undefined' && SupabaseAuth.user
+                    && typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.restoreFromCloud === 'function') {
+                    SupabaseSync.restoreFromCloud().then(r => {
+                        if (r && r.restored && r.restored.length) {
+                            console.log('[Vault] Restored from cloud after biometric unlock:', r.restored);
+                            try { if (typeof Reminders !== 'undefined' && Reminders.init) Reminders.init(); } catch (_) {}
+                            try { if (typeof ComplianceDashboard !== 'undefined' && ComplianceDashboard.init) ComplianceDashboard.init(); } catch (_) {}
+                        }
+                    }).catch(err => console.warn('[Vault] restoreFromCloud after biometric unlock failed:', err && err.message));
+                }
+            } catch (_) { /* best effort */ }
             try {
                 if (typeof SecureStorage !== 'undefined' && SecureStorage.migrate) {
                     SecureStorage.migrate().catch(() => {});
@@ -308,6 +324,31 @@
             _hideModal('#vaultUnlockModal');
             _toast('🔓 Vault unlocked', 'success');
             if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            // Re-pull encrypted docs from the cloud now that we have a key.
+            // Earlier in the boot, SupabaseSync may have tried to hydrate
+            // reminders / cglState / clientHistory and failed silently
+            // because decrypt threw CRYPTO_LOCKED — local state stayed
+            // empty. Running restoreFromCloud now picks up all those docs
+            // and writes their plaintext back to localStorage, so the
+            // user's 14 reminders / CGL annotations / etc. reappear
+            // without needing another full page refresh.
+            try {
+                if (typeof SupabaseAuth !== 'undefined' && SupabaseAuth.user
+                    && typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.restoreFromCloud === 'function') {
+                    SupabaseSync.restoreFromCloud().then(r => {
+                        if (r && r.restored && r.restored.length) {
+                            console.log('[Vault] Restored from cloud after unlock:', r.restored);
+                            // Re-run module inits — they re-read from the now-
+                            // populated localStorage and re-render. init() is
+                            // idempotent enough for this purpose; the
+                            // alternative (per-module reload helpers) would
+                            // require a public API change in each consumer.
+                            try { if (typeof Reminders !== 'undefined' && Reminders.init) Reminders.init(); } catch (e) { console.warn('[Vault] reminders re-init failed:', e); }
+                            try { if (typeof ComplianceDashboard !== 'undefined' && ComplianceDashboard.init) ComplianceDashboard.init(); } catch (e) { /* CGL is page-bound; safe to skip if not mounted */ }
+                        }
+                    }).catch(err => console.warn('[Vault] restoreFromCloud after unlock failed:', err && err.message));
+                }
+            } catch (_) { /* best effort */ }
             // Drain any sensitive-key encryptions that were deferred at boot
             // because the vault was still locked. Best-effort — never blocks
             // the unlock flow on the result.
