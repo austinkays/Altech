@@ -21,6 +21,11 @@ const ROOT = path.resolve(__dirname, '..');
 const cloudSyncSrc  = fs.readFileSync(path.join(ROOT, 'js', 'cloud-sync.js'), 'utf8');
 const syncFacadeSrc = fs.readFileSync(path.join(ROOT, 'js', 'sync-facade.js'), 'utf8');
 const authSrc       = fs.readFileSync(path.join(ROOT, 'js', 'auth.js'), 'utf8');
+const indexSrc      = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+const cloudPolicySrc = cloudSyncSrc.slice(
+    cloudSyncSrc.indexOf('function _policyBlocksSync'),
+    cloudSyncSrc.indexOf('let _authRefreshWired')
+);
 
 describe('Admin-only cloud sync policy', () => {
     describe('js/cloud-sync.js', () => {
@@ -28,21 +33,26 @@ describe('Admin-only cloud sync policy', () => {
             expect(cloudSyncSrc).toMatch(/function _policyBlocksSync\(\)/);
         });
 
-        test('_policyBlocksSync fails closed when Auth is undefined', () => {
-            // Guard: if Auth module isn't loaded, we must assume non-admin and block.
-            // Losing this check means the policy could silently disengage during
-            // the boot window before Auth becomes available.
-            const block = cloudSyncSrc.match(/function _policyBlocksSync\(\)\s*\{([\s\S]*?)\n\s*\}/);
-            expect(block).not.toBeNull();
-            expect(block[1]).toMatch(/typeof Auth === 'undefined'/);
-            expect(block[1]).toMatch(/return true/);
+        test('_policyBlocksSync uses Supabase admin claims by default and fails closed', () => {
+            // Supabase is the Phase D default. A missing active auth module must
+            // block sync during the boot window until the JWT/user is hydrated.
+            expect(cloudSyncSrc).toMatch(/app_metadata\.is_admin/);
+            expect(cloudPolicySrc).toMatch(/_activeBackend\(\) === 'supabase'/);
+            expect(cloudPolicySrc).toMatch(/typeof SupabaseAuth === 'undefined'/);
+            expect(cloudPolicySrc).toMatch(/SupabaseAuth\.isAdmin !== true/);
+            expect(cloudPolicySrc).toMatch(/typeof Auth === 'undefined'/);
         });
 
-        test('_policyBlocksSync returns true for non-admin', () => {
+        test('_policyBlocksSync preserves Firebase fallback for explicit Firebase users', () => {
             // Must check Auth.isAdmin !== true (not just == false) so that
             // a missing or undefined field also blocks, fail-closed.
-            const block = cloudSyncSrc.match(/function _policyBlocksSync\(\)\s*\{([\s\S]*?)\n\s*\}/);
-            expect(block[1]).toMatch(/Auth\.isAdmin !== true/);
+            expect(cloudPolicySrc).toMatch(/Auth\.isAdmin !== true/);
+        });
+
+        test('wires Supabase auth refresh events to refresh CloudSync UI', () => {
+            expect(cloudSyncSrc).toMatch(/function _wireAuthRefresh\(\)/);
+            expect(cloudSyncSrc).toMatch(/SupabaseAuth\.addAuthListener\(\(\) => _refreshSyncUI\(\)\)/);
+            expect(cloudSyncSrc).toMatch(/refreshUI\(\)\s*\{\s*_wireAuthRefresh\(\);\s*_refreshSyncUI\(\);/);
         });
 
         test('disabledByUser getter chains through _policyBlocksSync', () => {
@@ -57,6 +67,12 @@ describe('Admin-only cloud sync policy', () => {
         test('_refreshSyncUI shows "admin-restricted" status for policy-blocked users', () => {
             // User-visible status must distinguish policy block from user opt-out.
             expect(cloudSyncSrc).toMatch(/admin-restricted/i);
+        });
+
+        test('Account Sync toggle calls CloudSync.setDisabled and re-enable removes opt-out flag', () => {
+            expect(indexSrc).toContain('id="authSyncDisabled" onchange="CloudSync.setDisabled(this.checked)"');
+            expect(cloudSyncSrc).toMatch(/setDisabled\(disabled\)/);
+            expect(cloudSyncSrc).toMatch(/localStorage\.removeItem\(STORAGE_KEYS\.CLOUD_SYNC_DISABLED\)/);
         });
     });
 
