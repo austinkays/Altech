@@ -612,6 +612,20 @@
     async function maybePromptUnlockOnLoad() {
         if (!CryptoHelper.isV2Enabled()) return;
         if (CryptoHelper.isV2Unlocked()) return;
+
+        // Wait until the user is actually signed in to the cloud account
+        // BEFORE asking for the vault passphrase / biometric. Otherwise the
+        // user sees "please unlock your vault" first, then a few seconds
+        // later "please sign in to your account" — which is confusing and
+        // backwards (you need the cloud account to even fetch vault meta).
+        // 30s timeout via Auth.whenSignedIn so a user who genuinely never
+        // signs in doesn't get the unlock prompt either — they'll see the
+        // Welcome Back modal and can decide from there.
+        if (typeof Auth !== 'undefined' && typeof Auth.whenSignedIn === 'function') {
+            const user = await Auth.whenSignedIn(30000);
+            if (!user) return;
+        }
+
         const exists = await VaultMeta.exists();
         if (!exists) return;
         openUnlock();
