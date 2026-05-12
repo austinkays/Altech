@@ -47,6 +47,27 @@
         return `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
     }
 
+    // Timezone-safe age from a YYYY-MM-DD string. The naive
+    // `new Date(dob)` parses as UTC midnight; for users in negative UTC
+    // offsets that can render the previous calendar day locally, which can
+    // throw the age off by one on edge dates (Dec 31 → Jan 1 boundary
+    // birthdays). Parsing the components manually compares both birth and
+    // today in the local calendar — same year/month/day semantics the
+    // <input type="date"> picker exposed in the first place.
+    function ageFromDobString(dob) {
+        if (!dob || typeof dob !== 'string') return 0;
+        const parts = dob.split('-');
+        if (parts.length !== 3) return 0;
+        const y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
+        if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return 0;
+        const now = new Date();
+        let age = now.getFullYear() - y;
+        const nm = now.getMonth() + 1;
+        const nd = now.getDate();
+        if (nm < m || (nm === m && nd < d)) age--;
+        return age;
+    }
+
     function readDomValue(el) {
         if (!el) return '';
         if (el.type === 'checkbox') return !!el.checked;
@@ -95,6 +116,7 @@
         _getByPath: getByPath,
         _setByPath: setByPath,
         _newId: newId,
+        _ageFromDob: ageFromDobString,
 
         // ─── save / load ───────────────────────────────────────────────────
         scheduleSave() {
@@ -290,7 +312,8 @@
         },
 
         // ─── Mutation helpers used by every renderer ──────────────────────
-        addItem(collKey, partial) {
+        addItem(collKey, partial, opts) {
+            opts = opts || {};
             const arr = this.data[collKey] = this.data[collKey] || [];
             const idPrefix = collKey === 'operators' ? 'op'
                           : collKey === 'homes'     ? 'home'
@@ -298,11 +321,23 @@
                           : collKey === 'boats'     ? 'boat'
                           : collKey === 'rvs'       ? 'rv'
                           : 'item';
-            const item = Object.assign(itemDefaults(collKey), partial || {});
+            // Deep-merge so nested partials (e.g. inline operator form supplies
+            // `dl.state` only) don't replace the entire nested object and leave
+            // a half-populated shape (`{dl: {state:'WA'}}` with `num/status/...`
+            // gone). Shallow Object.assign was the prior, broken behavior.
+            const item = deepMergeDefaults(itemDefaults(collKey), partial || {});
             if (!item.id) item.id = newId(idPrefix);
             arr.push(item);
-            this.save();
-            this.requestRerender();
+            // `opts.quiet` skips save + rerender so a caller doing multiple
+            // related mutations (e.g. the inline operator picker also linking
+            // the new operator to a product's primaryOperatorId) can save once
+            // at the end. Avoids a save race where two concurrent in-flight
+            // encryptions could land in the wrong order and persist a stale
+            // intermediate state to localStorage.
+            if (!opts.quiet) {
+                this.save();
+                this.requestRerender();
+            }
             return item;
         },
         removeItem(collKey, itemId) {
@@ -390,16 +425,26 @@
                 coOp.relationship = this.data.coApplicant.relationship || coOp.relationship || '';
                 if (!co) ops.splice(1, 0, coOp);
             } else if (co) {
-                // Remove the co-applicant operator AND unlink from products
+                // Remove the co-applicant operator AND unlink from every place
+                // their id could be referenced. Mirror removeItem('operators',
+                // co.id) so toggling the co-app flag off has the same cleanup
+                // behavior as deleting them through the operator pool UI.
+                // Defensive: handle the (impossible-via-UI but importable)
+                // case of multiple isCoApplicant entries by filtering all.
+                const removedIds = ops.filter(o => o.isCoApplicant).map(o => o.id);
                 this.data.operators = ops.filter(o => !o.isCoApplicant);
                 ['autos','boats','rvs'].forEach(coll => {
                     (this.data[coll] || []).forEach(item => {
-                        if (item.primaryOperatorId === co.id) item.primaryOperatorId = '';
+                        if (removedIds.includes(item.primaryOperatorId)) item.primaryOperatorId = '';
                         if (Array.isArray(item.additionalOperatorIds)) {
-                            item.additionalOperatorIds = item.additionalOperatorIds.filter(id => id !== co.id);
+                            item.additionalOperatorIds = item.additionalOperatorIds.filter(id => !removedIds.includes(id));
                         }
                     });
                 });
+                if (this.data.history) {
+                    (this.data.history.losses || []).forEach(L => { if (removedIds.includes(L.operatorId)) L.operatorId = ''; });
+                    (this.data.history.violations || []).forEach(V => { if (removedIds.includes(V.operatorId)) V.operatorId = ''; });
+                }
             }
         },
     });

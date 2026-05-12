@@ -160,14 +160,13 @@ const RULES = [
 ];
 
 function ageFromDob(dob) {
-    if (!dob) return 0;
-    const d = new Date(dob);
-    if (Number.isNaN(d.getTime())) return 0;
-    const now = new Date();
-    let age = now.getFullYear() - d.getFullYear();
-    const m = now.getMonth() - d.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
-    return age;
+    // Delegate to the timezone-safe helper in intake-v2-core.js. The local
+    // implementation had the same UTC-midnight bug as operators.js#ageOf —
+    // could return the wrong age in negative-UTC locales on edge dates.
+    if (window.IntakeV2 && typeof window.IntakeV2._ageFromDob === 'function') {
+        return window.IntakeV2._ageFromDob(dob);
+    }
+    return 0;
 }
 
 function computeSuggestions(data) {

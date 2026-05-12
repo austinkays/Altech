@@ -299,9 +299,15 @@ async function buildIntakeV2PDF(data) {
         header('Agent Notes');
         doc.setFont('helvetica', 'normal').setFontSize(10);
         const split = doc.splitTextToSize(String(data.notes.freeText), PAGE_W - 2 * MARGIN_X);
-        ensureSpace(split.length * 12 + 6);
-        doc.text(split, MARGIN_X, y);
-        y += split.length * 12;
+        // Iterate line-by-line so a long note paginates instead of running
+        // off the page. The old code called ensureSpace once upfront for
+        // the entire block, then doc.text(split, …) wrote past the bottom
+        // margin with no awareness of the page boundary.
+        for (const line of split) {
+            ensureSpace(14);
+            doc.text(line, MARGIN_X, y);
+            y += 12;
+        }
     }
 
     return doc;
