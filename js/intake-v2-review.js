@@ -61,12 +61,42 @@ function exportButtons(data) {
     <div style="font-size:11px; color:var(--text-secondary); margin-top:6px">Boats and RVs export to PDF only — HawkSoft and EZLynx personal lines do not have native boat/RV raters.</div>`;
 }
 
+// The review section has two halves:
+//   - dynamic: carrier readiness / missing fields / deferred / export buttons.
+//     Re-rendered on every save via the renderer registry — destructive innerHTML
+//     replace, but no inputs live here so focus loss is fine.
+//   - static: agent notes textarea, mounted ONCE on first render and never touched
+//     again. If we re-rendered the textarea on every keystroke we'd wipe the
+//     selection + caret mid-typing, which is exactly the kind of thing that
+//     makes a form feel broken on a call.
+function ensureStaticMount(root) {
+    if (root.querySelector('[data-iv2-review-static="notes"]')) return;
+    // First mount — also lays out the inner slots for the dynamic half.
+    root.innerHTML = `
+        <div data-iv2-review-static="dynamic"></div>
+        <div data-iv2-review-static="notes" style="margin-top:18px; padding-top:14px; border-top:1px solid var(--border);">
+            <h4 style="margin:0 0 6px; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Agent Notes</h4>
+            <div class="iv2-field" data-field-wrap="notes.freeText">
+                <textarea id="iv2-notes" data-iv2-path="notes.freeText" rows="4" placeholder="Anything the underwriter or follow-up agent should know — discount eligibility, missing docs, special handling, etc."></textarea>
+                <span class="iv2-field-defer-badge" style="display:none">deferred</span>
+            </div>
+        </div>
+    `;
+    // Repaint value from data (the global delegation listener handles saves).
+    const ta = root.querySelector('#iv2-notes');
+    if (ta) ta.value = (window.IntakeV2.data.notes && window.IntakeV2.data.notes.freeText) || '';
+}
+
 function render() {
     const root = document.querySelector('[data-render="review"]');
     if (!root) return;
+    ensureStaticMount(root);
+    const dyn = root.querySelector('[data-iv2-review-static="dynamic"]');
+    if (!dyn) return;
+
     const data = window.IntakeV2.data;
     const bind = window.IntakeV2.bindability || (window.IntakeV2Bindability && window.IntakeV2Bindability.computeBindability({ data }));
-    root.innerHTML = `
+    dyn.innerHTML = `
         <h4 style="margin:4px 0; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Carrier readiness</h4>
         ${carriersBlock(bind)}
         ${missingDetail(bind)}
@@ -79,7 +109,7 @@ function render() {
         </div>
     `;
 
-    root.querySelectorAll('[data-jump-path]').forEach(a => {
+    dyn.querySelectorAll('[data-jump-path]').forEach(a => {
         a.addEventListener('click', (e) => {
             e.preventDefault();
             const path = a.getAttribute('data-jump-path');
@@ -88,7 +118,7 @@ function render() {
             }
         });
     });
-    root.querySelectorAll('[data-export]').forEach(btn => {
+    dyn.querySelectorAll('[data-export]').forEach(btn => {
         btn.addEventListener('click', () => {
             const which = btn.getAttribute('data-export');
             if (which === 'pdf')        window.IntakeV2.exportPDF();
