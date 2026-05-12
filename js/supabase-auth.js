@@ -206,6 +206,16 @@ window.SupabaseAuth = (() => {
     }
 
     async function apiFetch(url, options = {}) {
+        // Wait for the session to be hydrated from localStorage before
+        // making the request — otherwise a call fired at window.onload
+        // (e.g. loadPlacesAPI in app-boot.js) goes out with no Authorization
+        // header because `getSession()` returns null before init completes,
+        // and the server replies 401 even though the user IS signed in.
+        // _authReady has a 5s safety timeout so this never hangs forever
+        // when the user genuinely isn't signed in.
+        if (!_inited) {
+            try { await _authReady; } catch (_) { /* timeout — fall through */ }
+        }
         const token = await getAccessToken();
         if (token) {
             options = {
