@@ -434,6 +434,44 @@ const Auth = (() => {
                     if (event === 'INITIAL' && !sbUser) return;
                     _onAuthStateChanged(_normalizeSupabaseUser(sbUser));
                 });
+
+                // Belt-and-suspenders mirror against the cold-load race that
+                // PR #90's bridge listener still loses on some boots:
+                //   1. app-boot.js fires `Auth.init()` BEFORE `SupabaseAuth.init()`.
+                //   2. `addAuthListener` fires `(null, 'INITIAL')` synchronously
+                //      because `SupabaseAuth._user` is still null — the early-
+                //      return guard above swallows it. So far so good.
+                //   3. `SupabaseAuth.init()` runs, awaits `getSession()`,
+                //      populates `_user` from the persisted session, then
+                //      registers `client.auth.onAuthStateChange(_onAuthChange)`.
+                //   4. The Supabase JS v2 SDK is *supposed* to fire
+                //      `INITIAL_SESSION` immediately after step 3 — but in
+                //      practice the listener attached at step 3 sometimes
+                //      misses the synthetic restore event (or `_refreshFactors`
+                //      stalls before the fan-out), so `_onAuthChange` never
+                //      runs the `_listeners.forEach` for the restored session.
+                //   5. Result: `Auth._user` stays null forever despite
+                //      `SupabaseAuth.user` being populated. Every tool tile
+                //      click re-opens the Welcome Back modal, the dashboard
+                //      greeting shows no name, F5 prompts sign-in again.
+                // The fix is to re-read `SupabaseAuth.user` ourselves:
+                //   • If already hydrated, mirror now (no-op if the
+                //     synchronous INITIAL fire already populated us).
+                //   • Otherwise wait for `SupabaseAuth.ready()` (resolves
+                //     when `getSession` settles or via the 5s safety timeout)
+                //     and mirror once. The `!_user` guard inside the deferred
+                //     branch avoids clobbering a real event that arrived in
+                //     between.
+                const _mirrorSb = () => {
+                    if (SupabaseAuth.user && !_user) {
+                        _onAuthStateChanged(_normalizeSupabaseUser(SupabaseAuth.user));
+                    }
+                };
+                if (SupabaseAuth.user) {
+                    _mirrorSb();
+                } else if (typeof SupabaseAuth.ready === 'function') {
+                    Promise.resolve(SupabaseAuth.ready()).then(_mirrorSb).catch(() => {});
+                }
             }
         },
 
