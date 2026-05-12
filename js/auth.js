@@ -78,6 +78,48 @@ const Auth = (() => {
         };
     }
 
+    function _isSupabaseUser(user) {
+        return !!(user && user._backend === 'supabase');
+    }
+
+    let _supabaseRestoreInFlight = false;
+    async function _restoreSupabaseCloudAfterSignIn() {
+        if (_supabaseRestoreInFlight) return;
+
+        // Row-encrypted Supabase blobs need the v2 vault key. If the vault is
+        // still locked, vault-ui's unlock handlers will run this same restore
+        // after the user supplies the passphrase/passkey.
+        try {
+            if (typeof CryptoHelper !== 'undefined'
+                && typeof CryptoHelper.isV2Unlocked === 'function'
+                && !CryptoHelper.isV2Unlocked()) {
+                return;
+            }
+        } catch (_) { return; }
+
+        const sync = (typeof window !== 'undefined' && window.Sync && typeof window.Sync.restoreFromCloud === 'function')
+            ? window.Sync
+            : ((typeof SupabaseSync !== 'undefined' && typeof SupabaseSync.restoreFromCloud === 'function') ? SupabaseSync : null);
+        if (!sync) return;
+
+        _supabaseRestoreInFlight = true;
+        try {
+            const result = await sync.restoreFromCloud();
+            if (result && result.restored && result.restored.length) {
+                console.log('[Auth] Restored Supabase docs after sign-in:', result.restored);
+                try { if (typeof Reminders !== 'undefined' && Reminders.init) Reminders.init(); } catch (e) { console.warn('[Auth] reminders re-init failed:', e); }
+                try { if (typeof ComplianceDashboard !== 'undefined' && ComplianceDashboard.init) ComplianceDashboard.init(); } catch (_) {}
+                try { if (typeof DashboardWidgets !== 'undefined' && DashboardWidgets.refreshAll) DashboardWidgets.refreshAll(); } catch (_) {}
+            } else if (result && result.failed && result.failed.length) {
+                console.warn('[Auth] Supabase restore after sign-in could not decrypt:', result.failed);
+            }
+        } catch (e) {
+            console.warn('[Auth] Supabase restore after sign-in failed:', e && e.message);
+        } finally {
+            _supabaseRestoreInFlight = false;
+        }
+    }
+
     // ── Auth state change callback ──
     function _onAuthStateChanged(user) {
         // Defense-in-depth against the same race the conservative bridge
@@ -121,11 +163,10 @@ const Auth = (() => {
             // stale pre-migration values and apparently delete reminders /
             // quick-ref / cgl state. This was the cause of the May 2026
             // "missing reminders" report.
-            const onSupabase = (function () {
-                try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'; }
-                catch { return false; }
-            })();
-            if (!onSupabase && typeof CloudSync !== 'undefined' && CloudSync.pullFromCloud) {
+            const onSupabase = _isSupabaseUser(user) || _useSupabase();
+            if (onSupabase) {
+                _restoreSupabaseCloudAfterSignIn();
+            } else if (typeof CloudSync !== 'undefined' && CloudSync.pullFromCloud) {
                 CloudSync.pullFromCloud().catch(e => console.error('[Auth] Initial sync failed:', e));
             }
             // Load subscription state for paywall

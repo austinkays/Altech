@@ -21,6 +21,7 @@ const ROOT = path.resolve(__dirname, '..');
 const cloudSyncSrc  = fs.readFileSync(path.join(ROOT, 'js', 'cloud-sync.js'), 'utf8');
 const syncFacadeSrc = fs.readFileSync(path.join(ROOT, 'js', 'sync-facade.js'), 'utf8');
 const authSrc       = fs.readFileSync(path.join(ROOT, 'js', 'auth.js'), 'utf8');
+const adminPanelSrc = fs.readFileSync(path.join(ROOT, 'js', 'admin-panel.js'), 'utf8');
 const indexSrc      = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const cloudPolicySrc = cloudSyncSrc.slice(
     cloudSyncSrc.indexOf('function _policyBlocksSync'),
@@ -129,6 +130,19 @@ describe('Admin-only cloud sync policy', () => {
             expect(authSrc).toMatch(/_isBlocked = SupabaseAuth\.isBlocked === true/);
         });
 
+        test('does not run the legacy Firebase pull for default-Supabase users', () => {
+            expect(authSrc).toMatch(/const onSupabase = _isSupabaseUser\(user\) \|\| _useSupabase\(\)/);
+            expect(authSrc).toMatch(/if \(onSupabase\) \{\s*_restoreSupabaseCloudAfterSignIn\(\);\s*\} else if \(typeof CloudSync !== 'undefined' && CloudSync\.pullFromCloud\)/);
+            expect(authSrc).not.toMatch(/localStorage\.getItem\(STORAGE_KEYS\.SYNC_BACKEND\) === 'supabase'/);
+        });
+
+        test('restores Supabase blobs after sign-in when the vault is already unlocked', () => {
+            expect(authSrc).toContain('async function _restoreSupabaseCloudAfterSignIn()');
+            expect(authSrc).toMatch(/restoreFromCloud\(\)/);
+            expect(authSrc).toMatch(/Reminders\.init\(\)/);
+            expect(authSrc).toMatch(/DashboardWidgets\.refreshAll\(\)/);
+        });
+
         test('force-disables the sync opt-out toggle for non-admins', () => {
             // A non-admin can't toggle sync on — the checkbox is checked and
             // disabled, with explanatory text swapped in.
@@ -136,6 +150,15 @@ describe('Admin-only cloud sync policy', () => {
             expect(authSrc).toMatch(/syncDisabledEl\.checked = true/);
             expect(authSrc).toMatch(/syncDisabledEl\.disabled = true/);
             expect(authSrc).toMatch(/admin policy/i);
+        });
+    });
+
+    describe('js/admin-panel.js backend routing', () => {
+        test('defaults admin API calls to Supabase unless Firebase is explicit', () => {
+            const isSupabase = adminPanelSrc.match(/function _isSupabase\(\)\s*\{([\s\S]*?)\n\s*\}/);
+            expect(isSupabase).not.toBeNull();
+            expect(isSupabase[1]).toMatch(/SYNC_BACKEND\) !== 'firebase'/);
+            expect(isSupabase[1]).toMatch(/catch \{ return true; \}/);
         });
     });
 });

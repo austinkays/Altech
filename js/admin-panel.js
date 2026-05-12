@@ -18,16 +18,15 @@ window.AdminPanel = (() => {
 
     // ── Backend routing (Phase 3) ────────────────────────────────────
     //
-    // When SYNC_BACKEND=supabase, /api/admin-supabase.js is used; it verifies
-    // the Supabase access token, checks app_metadata.is_admin for the caller,
-    // and mutates target users via the SERVICE_ROLE_KEY (server-side only).
-    // When SYNC_BACKEND=firebase (the default), the legacy /api/admin flow
-    // stays in place. The two endpoints share an `action` query parameter
-    // and JSON body shape, so only the base URL and the token source differ.
+    // Supabase is the default admin backend unless SYNC_BACKEND is explicitly
+    // set to firebase. /api/admin-supabase.js verifies the Supabase access
+    // token, checks app_metadata.is_admin for the caller, and mutates target
+    // users via the SERVICE_ROLE_KEY (server-side only). The legacy /api/admin
+    // flow stays available for explicit Firebase fallback users.
 
     function _isSupabase() {
-        try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'; }
-        catch { return false; }
+        try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) !== 'firebase'; }
+        catch { return true; }
     }
 
     async function _apiFetch(action, options = {}) {
