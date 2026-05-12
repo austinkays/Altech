@@ -599,17 +599,28 @@ const Auth = (() => {
                 _clearErrors();
                 try {
                     await SupabaseAuth.signIn(email, password);
-                    // After sign-in, the onAuthStateChange callback populates the
-                    // user + MFA state. Block the modal close on users who still
-                    // need to enroll TOTP, so they can't ignore the prompt.
+                    // Always close the Welcome Back modal on a successful sign-in
+                    // and surface a confirmation toast so the user has unambiguous
+                    // feedback that it worked. Previously, when MFA enforcement
+                    // fired, we left the Welcome Back modal open and tried to
+                    // layer the MFA modal on top — but if either the MFA modal
+                    // failed to mount or just looked similar enough to the auth
+                    // modal, the user couldn't tell the sign-in succeeded and
+                    // re-clicked Sign In on a loop. Now: close, toast, THEN
+                    // open the MFA modal if needed.
+                    this.closeModal();
+                    if (typeof App !== 'undefined' && App.toast) {
+                        App.toast(`🔓 Signed in as ${email}`, { type: 'success', duration: 3000 });
+                    }
                     const level = SupabaseAuth.mfaEnforcementLevel();
                     if (level && typeof AuthMFAUI !== 'undefined') {
                         AuthMFAUI.openEnroll({ hard: level === 'hard' });
-                    } else {
-                        this.closeModal();
                     }
                 } catch (e) {
                     _showError('login', _supabaseErrorMessage(e));
+                    if (typeof App !== 'undefined' && App.toast) {
+                        App.toast(`Sign-in failed: ${_supabaseErrorMessage(e)}`, { type: 'error', duration: 5000 });
+                    }
                 } finally {
                     _setLoading('login', false);
                 }
