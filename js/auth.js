@@ -48,6 +48,37 @@ const Auth = (() => {
         }
     }, READY_TIMEOUT_MS);
 
+    // Translate a Supabase user object into the Firebase-ish shape the rest
+    // of this module (and consumers via `Auth.user`) already understand. The
+    // getters at the bottom read `uid` / `email` / `displayName` /
+    // `emailVerified` / `getIdToken()` — we synthesize all four. Returning
+    // null preserves the "signed out" semantics for the same callback.
+    function _normalizeSupabaseUser(sbUser) {
+        if (!sbUser) return null;
+        const meta = sbUser.user_metadata || {};
+        const displayName = meta.display_name || meta.full_name || meta.name || '';
+        return {
+            uid: sbUser.id,
+            email: sbUser.email || '',
+            displayName,
+            // Firebase exposes a boolean; Supabase exposes a timestamp string.
+            emailVerified: !!sbUser.email_confirmed_at || !!sbUser.confirmed_at,
+            // Consumers that call `getIdToken()` (cloud-sync, secure-storage)
+            // get the Supabase access token instead — same JWT semantics from
+            // the consumer's POV.
+            getIdToken: async () => {
+                try {
+                    if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseAuth.getAccessToken === 'function') {
+                        return await SupabaseAuth.getAccessToken();
+                    }
+                } catch (_) { /* fall through */ }
+                return null;
+            },
+            _backend: 'supabase',
+            _raw: sbUser,
+        };
+    }
+
     // ── Auth state change callback ──
     function _onAuthStateChanged(user) {
         if (_authReadyResolve) { _authReadyResolve(user); _authReadyResolve = null; }
@@ -370,11 +401,40 @@ const Auth = (() => {
             if (!FirebaseConfig.isReady) {
                 console.warn('[Auth] Firebase not initialized, auth disabled');
                 _updateHeaderUI(null);
-                return;
+                // Fall through — don't return — so Supabase listener still wires.
+            } else {
+                // Listen for Firebase auth state changes
+                FirebaseConfig.auth.onAuthStateChanged(_onAuthStateChanged);
             }
 
-            // Listen for auth state changes
-            FirebaseConfig.auth.onAuthStateChanged(_onAuthStateChanged);
+            // Supabase users have their session in SupabaseAuth, not Firebase.
+            // Without this listener, `Auth.user` stays null for Supabase-backed
+            // users even after a successful sign-in — which made the auth gate
+            // in app-navigation re-open the login modal on every tool click,
+            // creating a repeat-sign-in loop where each click hit
+            // `token?grant_type=password` again and again. We mirror Supabase's
+            // user into the auth.js `_user` slot (normalized to the Firebase
+            // shape the getters expect) so every consumer sees a consistent
+            // signed-in state regardless of backend.
+            if (typeof SupabaseAuth !== 'undefined' && typeof SupabaseAuth.addAuthListener === 'function') {
+                SupabaseAuth.addAuthListener((sbUser, event) => {
+                    // SupabaseAuth fires the listener synchronously with
+                    // `(_user, 'INITIAL')` the moment we register — at that
+                    // point SupabaseAuth.init() may not have hydrated the
+                    // persisted session yet, so the user is null even when
+                    // the user IS signed in. Resolving _authReady on that
+                    // premature null means callers (e.g. the auth gate in
+                    // app-navigation) see "not signed in" and open the login
+                    // modal — even though a real INITIAL_SESSION event from
+                    // the Supabase SDK arrives a few hundred ms later with
+                    // the restored user. We skip ONLY the synthetic
+                    // null-INITIAL; every real auth-state event (including
+                    // INITIAL_SESSION, SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED)
+                    // still flows through.
+                    if (event === 'INITIAL' && !sbUser) return;
+                    _onAuthStateChanged(_normalizeSupabaseUser(sbUser));
+                });
+            }
         },
 
         /**
