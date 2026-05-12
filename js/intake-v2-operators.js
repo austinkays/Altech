@@ -57,6 +57,12 @@ const SYNCED_FIELD_PATHS = new Set([
 ]);
 
 function renderField(item, collKey, f) {
+    // Subsection heading inside an operator card (e.g. "License" / "History flags")
+    if (f.type === 'header') {
+        return `<div class="iv2-field" style="grid-column: 1 / -1; margin-top:6px; margin-bottom:-2px;">
+            <h5 style="margin:0; font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; border-top:1px solid var(--border); padding-top:8px;">${esc(f.label)}</h5>
+        </div>`;
+    }
     const elId = `iv2-${f.idStem}-${item.id}`;
     const fullClass = f.mode === 'full' ? ' iv2-full-only' : '';
     const v = window.IntakeV2._getByPath(item, f.path);

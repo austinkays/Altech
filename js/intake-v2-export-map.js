@@ -120,6 +120,24 @@ function toLegacyShape(v2) {
         burglarAlarm:       home ? val(home.hazards && home.hazards.alarms) : '',
         purchaseDate:       home ? val(home.purchaseDate) : '',
 
+        // ── Home coverage selections ── flat keys the legacy CMSMTF + EZLynx
+        // builders read. The HawkSoft template uses `gen_lCovA`/`gen_sLiability`
+        // / `gen_sDeduct`; the EZLynx home XML pulls the same flat shape.
+        dwellingCoverage:    home ? val(home.coverages && home.coverages.dwellingA) : '',
+        otherStructures:     home ? val(home.coverages && home.coverages.otherStructuresB) : '',
+        homePersonalProperty:home ? val(home.coverages && home.coverages.personalPropertyC) : '',
+        homeLossOfUse:       home ? val(home.coverages && home.coverages.lossOfUseD) : '',
+        personalLiability:   home ? val(home.coverages && home.coverages.liabilityE) : '',
+        medicalPayments:     home ? val(home.coverages && home.coverages.medPayF) : '',
+        homeDeductible:      home ? val(home.coverages && home.coverages.deductible) : '',
+        ordinanceOrLaw:      home && home.endorsements && home.endorsements.ordinanceLaw ? 'Yes' : '',
+
+        // Mortgage / lien holder for the home — required for binding when
+        // there's a loan against the property.
+        mortgagee:           home ? val(home.mortgageCompany && home.mortgageCompany.name) : '',
+        mortgageeAddress:    home ? val(home.mortgageCompany && home.mortgageCompany.address) : '',
+        mortgageeLoanNum:    home ? val(home.mortgageCompany && home.mortgageCompany.loanNumber) : '',
+
         // Prior insurance — flatten to legacy field names
         priorCarrier:       val(v2.priorInsurance.auto && v2.priorInsurance.auto.carrier),
         priorYears:         val(v2.priorInsurance.auto && v2.priorInsurance.auto.years),
