@@ -11,7 +11,7 @@
  * Requires: FIREBASE_API_KEY env var
  */
 
-import { securityMiddleware, verifyFirebaseToken } from '../lib/security.js';
+import { securityMiddleware, verifyAuthToken } from '../lib/security.js';
 import { firestoreGet, firestoreSet, firestoreList, parseFirestoreDoc } from '../lib/firestore.js';
 
 // ── Verify Admin ────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ import { firestoreGet, firestoreSet, firestoreList, parseFirestoreDoc } from '..
  */
 async function verifyAdmin(req) {
     // 1. Verify Firebase ID token
-    const user = await verifyFirebaseToken(req);
+    const user = await verifyAuthToken(req);
     if (!user) return null;
 
     const uid = user.localId;

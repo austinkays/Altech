@@ -80,6 +80,7 @@ window.STORAGE_KEYS = Object.freeze({
 
     // ── UI state (local-only) ────────────────────────────────────────────────
     SIDEBAR_COLLAPSED:      'altech_sidebar_collapsed',
+    IDLE_TIMEOUT_MS:        'altech_idle_timeout_ms', // Idle-lock threshold (default 15 min, 0 = disabled). Per-device preference.
     WEATHER_CACHE:          'altech_weather_cache',
     WEATHER_LOCATION:       'altech_weather_location',
     DEVICE_ID:              'altech_device_id',

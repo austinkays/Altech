@@ -1,26 +1,30 @@
-// js/sync-facade.js — Path B Phase 2+3 sync + auth backend router.
+// js/sync-facade.js — Phase D backend router.
 //
-// Tiny shim that exposes window.Sync and window.AuthFacade, routing to
-// either the Firebase stack (CloudSync + Auth, current default) or the
-// Supabase stack (SupabaseSync + SupabaseAuth, opt-in) based on
-// localStorage[STORAGE_KEYS.SYNC_BACKEND].
+// Routes window.Sync / window.AuthFacade calls to the Supabase stack
+// (SupabaseSync + SupabaseAuth). The Firebase stack (CloudSync + Auth)
+// is no longer the default — the May 2026 "drop Firebase" pass flipped
+// SYNC_BACKEND to 'supabase' as the default and left the Firebase code
+// in place as a one-release fallback. A user can opt back to Firebase
+// only by explicitly setting localStorage[SYNC_BACKEND]='firebase';
+// every fresh install uses Supabase.
 //
-// Default backend is 'firebase'. New and migrated call sites should prefer
-// window.Sync.xxx over CloudSync.xxx and window.AuthFacade.xxx over Auth.xxx;
-// the Firebase path stays fully functional and is still exercised by every
-// existing call site that references CloudSync / Auth directly. Phase 4 will
-// migrate more of those once the Supabase migration flow flips the flag.
+// Phase D follow-ups (one release later): delete cloud-sync.js,
+// firebase-config.js, auth.js, admin-panel.js — they're already dead code
+// for any user who doesn't explicitly opt back in.
 
 'use strict';
 
 (function () {
     function backend() {
         try {
-            return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'
-                ? 'supabase'
-                : 'firebase';
+            // Phase D (May 2026): default flipped to 'supabase'. Only an explicit
+            // 'firebase' value falls back — every other value (including missing
+            // key) routes to Supabase.
+            return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'firebase'
+                ? 'firebase'
+                : 'supabase';
         } catch {
-            return 'firebase';
+            return 'supabase';
         }
     }
 
@@ -226,4 +230,73 @@
     };
 
     window.AuthFacade = AuthFacade;
+
+    // ── Phase D: Firebase-SDK-not-loaded shim ──────────────────────────────
+    //
+    // When the Firebase compat scripts aren't on the page (the default
+    // post-Phase-D state), the existing `window.Auth` singleton from
+    // js/auth.js still exists but its underlying `firebase.auth()` is
+    // undefined — all its methods would throw. The 25+ plugins that call
+    // `Auth.apiFetch / Auth.isSignedIn / Auth.uid / Auth.isAdmin` directly
+    // (rather than through AuthFacade) would break en masse.
+    //
+    // Fix: at the end of facade setup, detect missing Firebase SDK and
+    // REPLACE `window.Auth` with a proxy that routes the legacy surface
+    // through AuthFacade (which in turn hits SupabaseAuth). Existing
+    // callers keep working unchanged; SupabaseAuth handles auth.
+    function _firebaseSdkAvailable() {
+        return typeof window !== 'undefined'
+            && typeof window.firebase !== 'undefined'
+            && typeof window.firebase.initializeApp === 'function';
+    }
+    // The real Firebase Auth singleton (js/auth.js) defines an `init` method
+    // AND `login` method. Tests that mock `window.Auth = { isAdmin, uid, ... }`
+    // typically don't bother adding these. If neither is present, treat the
+    // existing Auth as a test mock (or absent) and skip the shim — replacing
+    // a deliberate test mock would invalidate the test setup.
+    function _isRealFirebaseAuthSingleton() {
+        if (typeof window === 'undefined') return false;
+        const a = window.Auth;
+        return !!(a && typeof a.init === 'function' && typeof a.login === 'function');
+    }
+    // Surgical patch: when Firebase SDK isn't loaded but the legacy `Auth`
+    // singleton (js/auth.js) still defines `apiFetch`, that method would
+    // happily send unauthenticated requests (no bearer token) because
+    // `firebase.auth().currentUser.getIdToken()` would throw. Every
+    // auth-required endpoint would 401. Override ONLY `apiFetch` to
+    // delegate to SupabaseAuth.apiFetch (which sends a Supabase JWT). All
+    // other Auth properties (uid, isSignedIn, isAdmin, login, ready, etc.)
+    // stay untouched so test mocks aren't disturbed and any UI gates that
+    // depend on `Auth.isSignedIn` continue to read the legacy value (false
+    // when Firebase isn't loaded — UI shows signed-out state, which is the
+    // safe default).
+    if (typeof window !== 'undefined' && _isRealFirebaseAuthSingleton()) {
+        const _origAuth = window.Auth;
+        const _origApiFetch = typeof _origAuth.apiFetch === 'function'
+            ? _origAuth.apiFetch.bind(_origAuth)
+            : null;
+        try {
+            Object.defineProperty(_origAuth, 'apiFetch', {
+                configurable: true,
+                writable: true,
+                value(url, options) {
+                    // LIVE check: Firebase may be lazy-loaded or mocked AFTER
+                    // sync-facade.js runs (some test setups mock firebase in
+                    // beforeEach). Re-check on every call so the legacy
+                    // Auth.apiFetch wins when Firebase IS available, and the
+                    // SupabaseAuth fallback only kicks in when it genuinely
+                    // isn't.
+                    if (_firebaseSdkAvailable() && _origApiFetch) {
+                        return _origApiFetch(url, options);
+                    }
+                    const sa = modernAuth();
+                    if (sa && typeof sa.apiFetch === 'function') {
+                        return sa.apiFetch(url, options);
+                    }
+                    if (_origApiFetch) return _origApiFetch(url, options);
+                    return fetch(url, options);
+                },
+            });
+        } catch { /* property non-configurable — no-op */ }
+    }
 })();

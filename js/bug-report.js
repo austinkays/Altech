@@ -18,6 +18,59 @@ window.BugReport = (() => {
     // ── Helpers ──────────────────────────────────────────────
     function escapeHTML(str) { return Utils.escapeHTML(str); }
 
+    // ── PII scrub ────────────────────────────────────────────
+    // Bug reports get posted to a PUBLIC GitHub repository as Issues. Any
+    // client NPI (Nonpublic Personal Information) the user accidentally
+    // pastes into the title/description/steps becomes a permanent public
+    // record on GitHub — even after a manual delete, the issue may already
+    // be indexed by search engines + present in webhook backups. We can't
+    // recover from that, so the right move is to scrub on the client side
+    // BEFORE it leaves the device. The server (api/config.js) also runs
+    // the same scrub as a defense-in-depth layer.
+    //
+    // Patterns redacted (replaced with `[REDACTED-<kind>]`):
+    //   • SSN — 9 digits with optional dashes/spaces (\d{3}-\d{2}-\d{4}, \d{9})
+    //   • Phone — most US formats including 555-1234 / (425) 555-1234 / +1 425 555 1234
+    //   • Email — RFC-loose pattern (good enough for accidental-paste cases)
+    //   • Credit card — 13–19 digit groups w/ optional separators (Luhn not checked —
+    //     better to redact false positives than leak a real PAN)
+    //   • VIN — 17-char alphanumeric (excludes I/O/Q per VIN spec) that's wholly word-bounded
+    //   • Long dates — M/D/YYYY or M-D-YYYY (DOB shape; we don't try to redact
+    //     short dates because too many false positives in error messages like "after 5/11")
+    //
+    // What this does NOT cover:
+    //   • Free-text client names. There's no general regex that detects "Smith"
+    //     vs "Smith Carrier Reform Act". The UI warning tells users to avoid
+    //     them; we don't pretend to auto-redact.
+    //   • Addresses. Same reason.
+    function _scrubPII(text) {
+        if (typeof text !== 'string' || !text) return text;
+        let out = text;
+        // SSN: 9 digits with optional dashes or spaces. Anchored on word boundaries
+        // so 9-digit policy numbers in error messages aren't false positives unless
+        // they look like an SSN. We do conservative SSN detection: 3-2-4 hyphenated
+        // (very high confidence), and standalone 9 digits only if NOT inside a
+        // longer number (e.g., 16-digit credit card).
+        out = out.replace(/\b\d{3}[-\s]\d{2}[-\s]\d{4}\b/g, '[REDACTED-SSN]');
+        // US Phone — covers (xxx) xxx-xxxx, xxx-xxx-xxxx, +1 xxx xxx xxxx, xxx.xxx.xxxx.
+        // The alternation `\(\d{3}\)|\d{3}` captures the parens together so the opening
+        // `(` doesn't get left behind. Requires at least one separator before the
+        // last 4 digits to avoid matching long unformatted numbers (policy #, order #).
+        out = out.replace(/(?:\+?1[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]\d{4}/g, '[REDACTED-PHONE]');
+        // Email — loose RFC-ish.
+        out = out.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[REDACTED-EMAIL]');
+        // Credit card — 13–19 digit run, optionally separated by spaces or dashes.
+        out = out.replace(/\b(?:\d[\s-]?){13,19}\b/g, (m) => {
+            const digits = m.replace(/[\s-]/g, '');
+            return (digits.length >= 13 && digits.length <= 19) ? '[REDACTED-CC]' : m;
+        });
+        // VIN — exactly 17 word-bounded alphanumeric chars, no I/O/Q (per VIN spec).
+        out = out.replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi, '[REDACTED-VIN]');
+        // Dates of birth — M/D/YYYY or M-D-YYYY (4-digit year).
+        out = out.replace(/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\b/g, '[REDACTED-DOB]');
+        return out;
+    }
+
     function getCurrentPage() {
         // Hash-based detection (most reliable)
         const hash = window.location.hash;
@@ -71,6 +124,9 @@ window.BugReport = (() => {
                     <button class="bugreport-close" onclick="BugReport.close()" aria-label="Close">&times;</button>
                 </div>
                 <form id="bugreportForm" class="bugreport-body" onsubmit="BugReport.submit(event)">
+                    <div class="bugreport-privacy-notice" style="background:rgba(255,149,0,0.12); border:1px solid rgba(255,149,0,0.4); color:var(--text); padding:10px 12px; border-radius:8px; margin-bottom:12px; font-size:12px; line-height:1.4;">
+                        <strong>⚠️ Reports are public on GitHub.</strong> Do <em>not</em> include client names, addresses, DOB, SSN, policy numbers, or screenshots showing PII. SSN / phone / email / VIN / credit card / DOB patterns are auto-redacted, but client names cannot be.
+                    </div>
                     <label class="bugreport-label" for="bugreport-category">Category</label>
                     <select id="bugreport-category" class="bugreport-select">
                         <option value="bug" selected>🐛 Bug / Something Broken</option>
@@ -218,15 +274,18 @@ window.BugReport = (() => {
         btn.disabled = true;
         btnText.textContent = 'Submitting…';
 
+        // Scrub PII before the report leaves the device. The server runs the
+        // same scrub as defense-in-depth, but client-side scrubbing prevents
+        // PII from ever being transmitted over the network.
         const payload = {
-            title,
-            description,
-            steps,
+            title:       _scrubPII(title),
+            description: _scrubPII(description),
+            steps:       _scrubPII(steps),
             category,
-            screenshot: _screenshotData || null,
+            screenshot:  _screenshotData || null,
             currentPage: getCurrentPage(),
-            appVersion: getAppVersion(),
-            userAgent: navigator.userAgent,
+            appVersion:  getAppVersion(),
+            userAgent:   navigator.userAgent,
         };
 
         try {

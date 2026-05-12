@@ -74,14 +74,14 @@
     <!-- Vercel Speed Insights -->
     <script defer src="/_vercel/speed-insights/script.js"></script>
 
-    <!-- Firebase SDK (compat mode — no build step needed) -->
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-
-    <!-- Supabase JS (UMD, Path B Phase 2). Exposes window.supabase.createClient.
-         Dormant until SYNC_BACKEND=supabase is set in localStorage. -->
+    <!-- Supabase JS (UMD). Primary backend as of Phase D (May 2026).
+         Exposes window.supabase.createClient. -->
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js"></script>
+    <!-- Firebase SDK was removed in Phase D (May 2026). The js/firebase-config.js,
+         js/auth.js, js/admin-panel.js, and js/cloud-sync.js modules are kept as
+         a one-release fallback for users who explicitly opt back via
+         localStorage[altech_sync_backend]='firebase'. Those modules will be
+         deleted in the next release once no clients have flipped back. -->
 </head>
 <body>
 
@@ -1181,6 +1181,8 @@
     <script src="js/storage-keys.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/fields.js"></script>
+    <script src="js/secure-storage.js"></script>
+    <script src="js/idle-lock.js"></script>
 
     <!-- App initialization: state, workflows, toolConfig registry -->
     <script src="js/app-init.js"></script>

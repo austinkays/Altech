@@ -61,7 +61,9 @@ window.SupabaseSync = (() => {
     let _pushing = false;
 
     function _enabled() {
-        return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase';
+        // Phase D (May 2026): default flipped to Supabase. Only an explicit
+        // 'firebase' opts out (one-release fallback for the Phase D rollout).
+        return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) !== 'firebase';
     }
 
     function _client() {

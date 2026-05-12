@@ -60,23 +60,72 @@ window.CglIDB = {
         });
     },
 
+    // Stored shape: { __sec: 'v1', ct: <base64 ciphertext> } when the value
+    // was encrypted at write time, OR the raw JS value when CryptoHelper was
+    // unavailable / locked at write time. .get() handles both transparently.
+    _looksWrapped(v) {
+        return v && typeof v === 'object' && v.__sec === 'v1' && typeof v.ct === 'string';
+    },
+
+    async _wrap(value) {
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.encrypt) return value;
+        try {
+            const ct = await CryptoHelper.encrypt(value);
+            if (typeof ct === 'string' && ct.length > 40) return { __sec: 'v1', ct };
+        } catch (e) {
+            console.warn('[CGL IDB] encrypt-at-rest failed; storing plaintext:', (e && e.message) || e);
+        }
+        return value;
+    },
+
+    // Sentinel returned when a wrapped value EXISTS in IDB but can't be
+    // decrypted (vault locked, key mismatch). Distinct from `undefined`
+    // (the row doesn't exist at all) so callers can choose to throw vs
+    // treat as cache miss. Callers that don't check just see falsy and
+    // fall through to refetch — that's the safe default.
+    DECRYPT_FAILED: Object.freeze({ __cglIdbError: 'decrypt-failed' }),
+
+    async _unwrap(stored) {
+        if (!this._looksWrapped(stored)) return stored;
+        if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decrypt) {
+            return this.DECRYPT_FAILED;
+        }
+        try {
+            const plain = await CryptoHelper.decrypt(stored.ct);
+            if (plain == null) return this.DECRYPT_FAILED;
+            return plain;
+        } catch (e) {
+            console.warn('[CGL IDB] decrypt-at-rest failed:', (e && e.message) || e);
+            return this.DECRYPT_FAILED;
+        }
+    },
+
+    isDecryptError(v) { return v === this.DECRYPT_FAILED; },
+
     async get(key, storeName) {
         const db = await this.open();
         const store = storeName || this.STORE;
-        return new Promise((resolve, reject) => {
+        const raw = await new Promise((resolve, reject) => {
             const tx = db.transaction(store, 'readonly');
             const req = tx.objectStore(store).get(key);
             req.onsuccess = () => resolve(req.result);
             req.onerror = () => reject(req.error);
         });
+        if (raw === undefined) return undefined; // row truly missing
+        const unwrapped = await this._unwrap(raw);
+        // Pass DECRYPT_FAILED through so callers that want to discriminate
+        // can; ones that don't will get a non-null sentinel that fails their
+        // shape check and naturally fall to refetch.
+        return unwrapped;
     },
 
     async set(key, value, storeName) {
         const db = await this.open();
         const store = storeName || this.STORE;
+        const wrapped = await this._wrap(value);
         return new Promise((resolve, reject) => {
             const tx = db.transaction(store, 'readwrite');
-            tx.objectStore(store).put(value, key);
+            tx.objectStore(store).put(wrapped, key);
             tx.oncomplete = () => resolve();
             tx.onerror = () => reject(tx.error);
         });

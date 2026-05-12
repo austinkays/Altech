@@ -16,7 +16,7 @@
  *   GITHUB_ISSUES_TOKEN — GitHub PAT with Issues write scope
  */
 
-import { securityMiddleware, verifyFirebaseToken, sanitizeInput } from '../lib/security.js';
+import { securityMiddleware, verifyAuthToken, sanitizeInput } from '../lib/security.js';
 
 // ── Firebase Config ─────────────────────────────────────────────────────
 
@@ -99,7 +99,7 @@ async function handleKeys(req, res) {
     }
 
     // Require Firebase Auth — API keys must not be exposed to unauthenticated callers
-    const user = await verifyFirebaseToken(req);
+    const user = await verifyAuthToken(req);
     if (!user) {
         return res.status(401).json({ error: 'Authentication required.' });
     }
@@ -122,7 +122,7 @@ async function handlePhonetics(req, res) {
     }
 
     // Require authentication to prevent unauthenticated API quota consumption
-    const user = await verifyFirebaseToken(req);
+    const user = await verifyAuthToken(req);
     if (!user) {
         return res.status(401).json({ error: 'Authentication required' });
     }
@@ -211,13 +211,32 @@ const CATEGORY_LABELS = {
     other:   ['triage'],
 };
 
+// Server-side defense-in-depth scrub. The client (js/bug-report.js) runs the
+// SAME regex set before sending so PII never crosses the wire — this fires on
+// the (rare) case of a bypassed/older client. Patterns must stay in sync.
+// See js/bug-report.js#_scrubPII for the comment explaining each rule.
+function scrubBugReportPII(text) {
+    if (typeof text !== 'string' || !text) return text;
+    let out = text;
+    out = out.replace(/\b\d{3}[-\s]\d{2}[-\s]\d{4}\b/g, '[REDACTED-SSN]');
+    out = out.replace(/(?:\+?1[\s.-]?)?(?:\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]\d{4}/g, '[REDACTED-PHONE]');
+    out = out.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[REDACTED-EMAIL]');
+    out = out.replace(/\b(?:\d[\s-]?){13,19}\b/g, (m) => {
+        const digits = m.replace(/[\s-]/g, '');
+        return (digits.length >= 13 && digits.length <= 19) ? '[REDACTED-CC]' : m;
+    });
+    out = out.replace(/\b[A-HJ-NPR-Z0-9]{17}\b/gi, '[REDACTED-VIN]');
+    out = out.replace(/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\b/g, '[REDACTED-DOB]');
+    return out;
+}
+
 async function handleBugReport(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     // Require auth
-    const user = await verifyFirebaseToken(req);
+    const user = await verifyAuthToken(req);
     if (!user) {
         return res.status(401).json({ error: 'Authentication required.', requestId: req.requestId });
     }
@@ -237,9 +256,9 @@ async function handleBugReport(req, res) {
         return res.status(400).json({ error: 'Title is required (min 3 characters)', requestId: req.requestId });
     }
 
-    const safeTitle       = sanitizeInput(title, 120);
-    const safeDescription = sanitizeInput(description || '', 2000);
-    const safeSteps       = sanitizeInput(steps || '', 1000);
+    const safeTitle       = scrubBugReportPII(sanitizeInput(title, 120));
+    const safeDescription = scrubBugReportPII(sanitizeInput(description || '', 2000));
+    const safeSteps       = scrubBugReportPII(sanitizeInput(steps || '', 1000));
     const safeCategory    = CATEGORY_LABELS[category] ? category : 'bug';
     const safePage        = sanitizeInput(currentPage || 'unknown', 100);
     const safeVersion     = sanitizeInput(appVersion || 'unknown', 20);

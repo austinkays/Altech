@@ -244,6 +244,14 @@
             _hideModal('#vaultUnlockModal');
             _toast('🔓 Vault unlocked', 'success');
             if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            // Drain any sensitive-key encryptions that were deferred at boot
+            // because the vault was still locked. Best-effort — never blocks
+            // the unlock flow on the result.
+            try {
+                if (typeof SecureStorage !== 'undefined' && SecureStorage.migrate) {
+                    SecureStorage.migrate().catch(() => {});
+                }
+            } catch { /* ignore */ }
         } catch (err) {
             console.error('[Vault] Unlock failed:', err);
             _setError('#vaultUnlockModal', err.message || 'Unable to unlock.');

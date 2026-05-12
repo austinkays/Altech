@@ -100,11 +100,15 @@ describe('hotfix: undefined → invalid-argument scrubbing', () => {
 
     test('cloud-sync _scrubUndefined exists + is called inside _pushDoc before ref.set', () => {
         expect(SYNC_SRC).toContain('function _scrubUndefined(value)');
-        // Used at the actual Firestore write boundary.
+        // Used at the actual Firestore write boundary. Phase B (May 11):
+        // the scrubbed plaintext is then passed through _wrapForFirestore,
+        // and the resulting v=2 envelope (stored in `wrapped`) is what
+        // lands in the `data` field.
         const fnStart = SYNC_SRC.indexOf('async function _pushDoc');
         const fnBlock = SYNC_SRC.slice(fnStart, fnStart + 4500);
         expect(fnBlock).toMatch(/const scrubbed = _scrubUndefined\(localData\)/);
-        expect(fnBlock).toMatch(/data:\s*scrubbed/);
+        expect(fnBlock).toMatch(/const wrapped = await _wrapForFirestore\(scrubbed/);
+        expect(fnBlock).toMatch(/data:\s*wrapped/);
     });
 
     test('_scrubUndefined handles array + null + nested + Date correctly', () => {

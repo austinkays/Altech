@@ -41,23 +41,28 @@ describe('push-side conflict detection in _pushDoc', () => {
         expect(readIdx).toBeGreaterThan(guardIdx);
     });
 
-    test('conflict descriptor includes remoteData, localData, remoteTime, localTime', () => {
+    test('conflict descriptor includes remoteData (unwrapped), localData, remoteTime, localTime', () => {
         const fnStart = SRC.indexOf('async function _pushDoc');
         const fnBlock = SRC.slice(fnStart, fnStart + 3500);
         expect(fnBlock).toMatch(/ok:\s*false,\s*conflict:\s*true/);
-        expect(fnBlock).toContain('remoteData: remote.data');
+        // Phase B (May 11): remote.data may now be a v=2 AAD envelope, so the
+        // conflict descriptor carries the unwrapped plaintext (`remoteUnwrapped`),
+        // not the raw envelope, so the diff UI renders something meaningful.
+        expect(fnBlock).toContain('remoteData: remoteUnwrapped');
         expect(fnBlock).toContain('localData,');
         expect(fnBlock).toContain('remoteTime,');
         expect(fnBlock).toContain('localTime:');
     });
 
-    test('conflict only triggers when payloads actually differ', () => {
+    test('conflict only triggers when payloads actually differ (plaintext comparison)', () => {
         // A same-payload echo from another device is not a real conflict —
         // _pushDoc must not surface a dialog for it. The JSON.stringify
-        // equality check gates the conflict branch.
+        // equality check gates the conflict branch. Phase B note: remote
+        // is now decrypted first via _unwrapFromFirestore, otherwise every
+        // fresh-IV push would falsely register as different ciphertext.
         const fnStart = SRC.indexOf('async function _pushDoc');
         const fnBlock = SRC.slice(fnStart, fnStart + 3500);
-        expect(fnBlock).toMatch(/JSON\.stringify\(remote\.data\)\s*!==\s*JSON\.stringify\(localData\)/);
+        expect(fnBlock).toMatch(/JSON\.stringify\(remoteUnwrapped\)\s*!==\s*JSON\.stringify\(localData\)/);
     });
 
     test('read-failure path falls through to a normal write (non-fatal)', () => {
@@ -65,12 +70,12 @@ describe('push-side conflict detection in _pushDoc', () => {
         const fnBlock = SRC.slice(fnStart, fnStart + 3500);
         // The catch block must NOT throw — comment says "fall through to the write".
         expect(fnBlock).toMatch(/console\.warn\(`\[CloudSync\] Pre-push conflict check failed/);
-        // The success-path write still runs below the catch. (Hotfix
-        // May 11 evening: the actual write uses `data: scrubbed` where
-        // scrubbed comes from _scrubUndefined(localData) — the original
-        // `data: localData` would now match the rejection too.)
+        // The success-path write still runs below the catch. Phase B writes
+        // a v=2 AAD envelope: _wrapForFirestore(scrubbed) → `wrapped`, then
+        // ref.set({ data: wrapped, ... }).
         expect(fnBlock).toMatch(/const scrubbed = _scrubUndefined\(localData\)/);
-        expect(fnBlock).toMatch(/await ref\.set\(\{[\s\S]*?data:\s*scrubbed/);
+        expect(fnBlock).toMatch(/const wrapped = await _wrapForFirestore\(scrubbed, FS_SYNC_TABLE, docPath\)/);
+        expect(fnBlock).toMatch(/await ref\.set\(\{[\s\S]*?data:\s*wrapped/);
     });
 });
 
