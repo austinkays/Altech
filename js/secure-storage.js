@@ -210,7 +210,27 @@ window.SecureStorage = (() => {
                     // is still correct so plugin reads keep working.
                     const env = await _encryptToEnvelope(plaintext);
                     if (env) {
-                        localStorage.setItem(key, env);
+                        try {
+                            localStorage.setItem(key, env);
+                        } catch (e) {
+                            // QuotaExceededError on a single oversized key (a fat
+                            // cgl_cache full of HawkSoft policy bytes is the usual
+                            // culprit). Pre-fix, the throw escaped the IIFE and
+                            // _ready never flipped — the localStorage proxy never
+                            // installed, and every later `Reminders._load()` got
+                            // the raw envelope string back instead of plaintext,
+                            // failing `JSON.parse("altech-sec:v1:…")`.
+                            //
+                            // Recovery: leave the disk value as-is (still readable
+                            // via the cache we already populated above) and keep
+                            // going. The cache is the source of truth at runtime;
+                            // the on-disk encryption upgrade for THIS key can wait
+                            // until the next write attempt (which will either
+                            // shrink the payload or hit quota again — either way,
+                            // the cache + proxy are alive for every other key).
+                            _pendingMigration.add(key);
+                            console.warn('[SecureStorage] migration write deferred for', key, '— storage quota exceeded; runtime reads use the cache');
+                        }
                     } else {
                         _pendingMigration.add(key);
                         console.warn('[SecureStorage] migration encrypt deferred for', key, '— will retry on next write');
