@@ -173,7 +173,14 @@ function computeSuggestions(data) {
     const out = [];
     for (const rule of RULES) {
         try {
-            if (rule.when(data)) out.push({ id: rule.id, html: rule.render(data) });
+            if (!rule.when(data)) continue;
+            const html = rule.render(data);
+            // Only push if render returned actual content — otherwise the
+            // talk-track panel ends up interpolating `${null}` / `${undefined}`
+            // as the literal strings "null" / "undefined".
+            if (typeof html === 'string' && html.length > 0) {
+                out.push({ id: rule.id, html });
+            }
         } catch (err) {
             // eslint-disable-next-line no-console
             console.warn('TalkTrack rule failed:', rule.id, err);

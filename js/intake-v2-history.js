@@ -64,6 +64,8 @@ function render() {
             <div style="margin-top:8px; padding:10px 12px; border-radius:8px; background:rgba(27,135,63,0.06); border-left:3px solid #1B873F; font-size:13px;">
                 Clean record recorded for all operators. Untoggle above to enter specific incidents.
             </div>`;
+        // Re-apply deferred-field styling after innerHTML replacement
+        if (window.IntakeV2._defer) window.IntakeV2._defer.render();
         return;
     }
 
@@ -144,6 +146,9 @@ function render() {
             });
         });
     });
+
+    // Re-apply deferred-field styling after innerHTML replacement.
+    if (window.IntakeV2._defer) window.IntakeV2._defer.render();
 }
 
 window.IntakeV2.onBoot(function () {

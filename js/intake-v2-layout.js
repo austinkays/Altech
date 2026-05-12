@@ -288,6 +288,11 @@ window.IntakeV2.onBoot(function () {
             else el.value = v == null ? '' : String(v);
         }
         renderJumpBadges();
+        // Re-apply deferred-field styling — innerHTML replacement above wipes
+        // any data-deferred attrs / badge visibility. Without this, expanding
+        // the co-applicant cluster on a quote with deferred co-app fields
+        // would lose the yellow border + badge until the next defer event.
+        if (window.IntakeV2._defer) window.IntakeV2._defer.render();
     });
 
     this._layout = { renderTopbarStatus, renderJumpBadges, renderTalkTrack, renderLastEntries, setMode, toggleRails };
