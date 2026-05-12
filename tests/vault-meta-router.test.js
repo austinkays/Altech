@@ -222,6 +222,44 @@ describe('VaultMeta — Supabase backend active', () => {
     });
 });
 
+describe('VaultMeta — Phase D default (missing SYNC_BACKEND flag)', () => {
+    // Regression: fresh installs (no SYNC_BACKEND flag set) used to fall
+    // through to local-only vault meta, which left passphrase unlock reading
+    // absent/stale local metadata and failing silently. Phase D treats a
+    // missing flag as Supabase. This block verifies VaultMeta matches the
+    // sync-facade / supabase-auth / supabase-sync / cloud-sync pattern.
+    beforeEach(() => {
+        // Crucial: leave SYNC_BACKEND unset and stand up the Supabase stub.
+        globalThis.window.Supabase = makeSupabaseStub();
+    });
+
+    test('save mirrors to Supabase even without SYNC_BACKEND flag', async () => {
+        expect(localStorage.getItem('altech_sync_backend')).toBeNull();
+        await VaultMeta.save(fullMeta());
+        expect(_lastUpsert).not.toBeNull();
+        expect(_lastUpsert.passphrase_salt).toBe('salt-b64-aaaaaaaaaaaaaaaaaaaaaa');
+    });
+
+    test('load prefers Supabase even without SYNC_BACKEND flag', async () => {
+        expect(localStorage.getItem('altech_sync_backend')).toBeNull();
+        _remoteRow = {
+            user_id:               'user-test-uid',
+            passphrase_salt:       'remote-salt-default-supabase',
+            passphrase_wrapped_mk: 'remote-wrap-b64',
+            kdf_tree:              'hkdf-v1',
+            rotated_at:            '2026-05-12T01:23:45.000Z',
+        };
+        const loaded = await VaultMeta.load();
+        expect(loaded.passphraseSaltB64).toBe('remote-salt-default-supabase');
+    });
+
+    test('still respects an explicit SYNC_BACKEND=firebase opt-out', async () => {
+        localStorage.setItem('altech_sync_backend', 'firebase');
+        await VaultMeta.save(fullMeta());
+        expect(_lastUpsert).toBeNull();
+    });
+});
+
 describe('VaultMeta — field mapping', () => {
     test('toDbRow keeps known fields, drops unknown', () => {
         const row = VaultMeta._internals.toDbRow({
