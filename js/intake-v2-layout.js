@@ -55,7 +55,7 @@ function renderScalarField(f) {
         const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}">${esc(opt || '—')}</option>`).join('');
         control = `<select id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">${opts}</select>`;
     } else if (f.type === 'checkbox') {
-        return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> ${esc(f.label)}</label></div>`;
+        return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}" rows="3"></textarea>`;
     } else {
@@ -83,15 +83,22 @@ function renderTopbarStatus() {
             : `${info.label}: missing ${info.missing.length} field(s)\n` + info.missing.slice(0, 6).map(m => '• ' + m.label + (m.itemLabel ? ` — ${m.itemLabel}` : '')).join('\n') + (info.missing.length > 6 ? `\n…and ${info.missing.length - 6} more` : '');
     }
 
-    // Save status pill
+    // Save status pill — accurate message per failure mode. The old text
+    // claimed "Save failed — retrying" but no retry mechanism existed.
     const status = document.getElementById('iv2SaveStatus');
     if (status) {
-        if (window.IntakeV2._lastSaveOk === false) {
-            status.textContent = 'Save failed — retrying';
+        if (window.IntakeV2._lastSaveLocked) {
+            status.textContent = 'Vault locked — unlock to save';
             status.className = 'iv2-save-status is-error';
+            status.title = 'Your encrypted vault is locked. Saves are refused until you enter your passphrase. Click the vault icon in the top right to unlock.';
+        } else if (window.IntakeV2._lastSaveOk === false) {
+            status.textContent = 'Save failed';
+            status.className = 'iv2-save-status is-error';
+            status.title = 'Most recent save failed — the next keystroke will retry. Check console for details.';
         } else {
             status.textContent = 'Saved';
             status.className   = 'iv2-save-status';
+            status.title = '';
         }
     }
 }
@@ -281,6 +288,11 @@ window.IntakeV2.onBoot(function () {
             else el.value = v == null ? '' : String(v);
         }
         renderJumpBadges();
+        // Re-apply deferred-field styling — innerHTML replacement above wipes
+        // any data-deferred attrs / badge visibility. Without this, expanding
+        // the co-applicant cluster on a quote with deferred co-app fields
+        // would lose the yellow border + badge until the next defer event.
+        if (window.IntakeV2._defer) window.IntakeV2._defer.render();
     });
 
     this._layout = { renderTopbarStatus, renderJumpBadges, renderTalkTrack, renderLastEntries, setMode, toggleRails };

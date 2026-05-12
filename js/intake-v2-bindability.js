@@ -128,6 +128,34 @@ function computeBindability(opts) {
                         });
                     }
                 }
+                // Synthetic checks: fields that don't live in collDef.fields
+                // but are still required to bind. (Operator picker manages
+                // primaryOperatorId; the home card renders address in a
+                // separate header above the field grid.)
+                if (collKey === 'autos' || collKey === 'boats' || collKey === 'rvs') {
+                    const primaryPath = `${collKey}#${item.id}.primaryOperatorId`;
+                    if (!deferred.has(primaryPath) && !isFilled(item.primaryOperatorId)) {
+                        missing.push({
+                            path: primaryPath,
+                            label: 'Primary operator',
+                            productKey: productKey,
+                            itemId: item.id,
+                            itemLabel: itemSummary(collKey, item),
+                        });
+                    }
+                }
+                if (collKey === 'homes') {
+                    const addrPath = `${collKey}#${item.id}.address`;
+                    if (!deferred.has(addrPath) && !isFilled(item.address)) {
+                        missing.push({
+                            path: addrPath,
+                            label: 'Property address',
+                            productKey: 'home',
+                            itemId: item.id,
+                            itemLabel: itemSummary(collKey, item),
+                        });
+                    }
+                }
             }
         }
 
@@ -160,6 +188,21 @@ function statusForItem(collKey, item, deferredSet) {
         if (isFilled(v)) continue;
         for (const c of CARRIERS) {
             if (f.bindable[c]) carrierMissing[c].push({ path, label: f.label });
+        }
+    }
+    // Same synthetic checks as computeBindability — without these the
+    // per-card status dot would be green for a vehicle with no driver
+    // or a home with no property address.
+    if (collKey === 'autos' || collKey === 'boats' || collKey === 'rvs') {
+        const primaryPath = `${collKey}#${item.id}.primaryOperatorId`;
+        if (!deferred.has(primaryPath) && !isFilled(item.primaryOperatorId)) {
+            for (const c of CARRIERS) carrierMissing[c].push({ path: primaryPath, label: 'Primary operator' });
+        }
+    }
+    if (collKey === 'homes') {
+        const addrPath = `${collKey}#${item.id}.address`;
+        if (!deferred.has(addrPath) && !isFilled(item.address)) {
+            for (const c of CARRIERS) carrierMissing[c].push({ path: addrPath, label: 'Property address' });
         }
     }
 

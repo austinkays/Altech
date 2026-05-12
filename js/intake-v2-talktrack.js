@@ -69,10 +69,15 @@ const RULES = [
     },
     {
         id: 'boat-photos-old',
+        // The two `some()`s used to be separate, which let the rule fire when
+        // boat A was old/valuable AND boat B was missing photos — wrong target.
+        // Both conditions must hold for the SAME boat.
         when: (d) => d.boats.some(b => {
             const age = b.year ? (new Date().getFullYear() - Number(b.year)) : 0;
-            return age > 30 && Number(b.marketValue) > 30000;
-        }) && d.boats.some(b => !b.docs?.photos),
+            return age > 30
+                && Number(b.marketValue) > 30000
+                && !(b.docs && b.docs.photos);
+        }),
         render: () => `Travelers requires bilge / running gear / engine / exterior photos for boats > 30 yrs valued > $30k.`,
     },
     {
@@ -86,7 +91,13 @@ const RULES = [
     // ── RV-specific prompts ───────────────────────────────────────────────
     {
         id: 'rv-fulltimer',
-        when: (d) => d.rvs.length > 0 && d.rvs.some(r => !('fullTimer' in r)),
+        // Old check `!('fullTimer' in r)` literally never fired — the default
+        // RV always has `fullTimer: false`, so `in` is always true. Now fires
+        // when an RV is partially-filled (year present) but the agent hasn't
+        // checked the full-timer box. Retires once `fullTimer === true` OR
+        // once the agent has finished entering the RV (year + length both set
+        // and full-timer = false, meaning they answered "no" implicitly).
+        when: (d) => d.rvs.some(r => r.year && !r.length && !r.fullTimer),
         render: () => `Ask about full-time use. ${quote("Do you live in this RV full-time, even part of the year?")} — drives rate significantly.`,
     },
     {
@@ -149,21 +160,27 @@ const RULES = [
 ];
 
 function ageFromDob(dob) {
-    if (!dob) return 0;
-    const d = new Date(dob);
-    if (Number.isNaN(d.getTime())) return 0;
-    const now = new Date();
-    let age = now.getFullYear() - d.getFullYear();
-    const m = now.getMonth() - d.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
-    return age;
+    // Delegate to the timezone-safe helper in intake-v2-core.js. The local
+    // implementation had the same UTC-midnight bug as operators.js#ageOf —
+    // could return the wrong age in negative-UTC locales on edge dates.
+    if (window.IntakeV2 && typeof window.IntakeV2._ageFromDob === 'function') {
+        return window.IntakeV2._ageFromDob(dob);
+    }
+    return 0;
 }
 
 function computeSuggestions(data) {
     const out = [];
     for (const rule of RULES) {
         try {
-            if (rule.when(data)) out.push({ id: rule.id, html: rule.render(data) });
+            if (!rule.when(data)) continue;
+            const html = rule.render(data);
+            // Only push if render returned actual content — otherwise the
+            // talk-track panel ends up interpolating `${null}` / `${undefined}`
+            // as the literal strings "null" / "undefined".
+            if (typeof html === 'string' && html.length > 0) {
+                out.push({ id: rule.id, html });
+            }
         } catch (err) {
             // eslint-disable-next-line no-console
             console.warn('TalkTrack rule failed:', rule.id, err);

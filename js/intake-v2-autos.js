@@ -138,8 +138,16 @@ async function decodeVinIntoCard(input) {
 
     let parsed = _vinCache.get(vin);
     if (!parsed) {
+        // 8s timeout matches the legacy VinDecoder's NHTSA fetch budget.
+        // Without it the request can hang indefinitely on a flaky network
+        // and the auto-fill never resolves.
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 8000);
         try {
-            const resp = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${encodeURIComponent(vin)}?format=json`);
+            const resp = await fetch(
+                `https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${encodeURIComponent(vin)}?format=json`,
+                { signal: ctrl.signal }
+            );
             if (!resp.ok) return;
             const json = await resp.json();
             const map = {};
@@ -152,6 +160,7 @@ async function decodeVinIntoCard(input) {
             };
             _vinCache.set(vin, parsed);
         } catch (_) { return; }
+        finally { clearTimeout(tid); }
     }
     let changed = false;
     if (parsed.year  && !item.year)  { item.year  = parsed.year;  changed = true; }

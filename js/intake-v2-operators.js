@@ -18,13 +18,10 @@ const escAttr = (s) => (window.Utils && window.Utils.escapeAttr) ? window.Utils.
 
 function ageOf(dob) {
     if (!dob) return '';
-    const d = new Date(dob);
-    if (Number.isNaN(d.getTime())) return '';
-    const now = new Date();
-    let age = now.getFullYear() - d.getFullYear();
-    const m = now.getMonth() - d.getMonth();
-    if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
-    return age;
+    // Use the shared timezone-safe helper — `new Date('YYYY-MM-DD')` parses
+    // as UTC midnight, which is the wrong day in negative-UTC locales.
+    const age = window.IntakeV2._ageFromDob(dob);
+    return age > 0 ? age : '';
 }
 
 function operatorName(op) {
@@ -49,24 +46,50 @@ function linkedProducts(op) {
     return out;
 }
 
+// Fields on a primary-applicant / co-applicant operator card that are mirrored
+// from the Quick Start applicant / co-applicant cluster. Editing them on the
+// operator card looks like it works, but the next applicant keystroke would
+// silently overwrite the edit — so we lock them with readonly / disabled and
+// nudge the agent to the canonical source.
+const SYNCED_FIELD_PATHS = new Set([
+    'firstName','middleName','lastName','dob','gender','maritalStatus','occupation','industry','education',
+    // relationship is synced for co-applicant only — guarded below
+]);
+
 function renderField(item, collKey, f) {
     const elId = `iv2-${f.idStem}-${item.id}`;
     const fullClass = f.mode === 'full' ? ' iv2-full-only' : '';
     const v = window.IntakeV2._getByPath(item, f.path);
     const dataAttrs = ` data-collection="${escAttr(collKey)}" data-item-id="${escAttr(item.id)}" data-field-path="${escAttr(f.path)}"`;
+
+    // Lock the synced fields on the primary-applicant / co-applicant card.
+    // Edits would be discarded anyway by the next syncApplicantOperators().
+    const isSynced = (item.isPrimaryApplicant || item.isCoApplicant)
+        && (SYNCED_FIELD_PATHS.has(f.path) || (item.isCoApplicant && f.path === 'relationship'));
+    const lockAttr  = isSynced ? ' readonly tabindex="-1" title="Synced with the Quick Start block — edit it there"' : '';
+    const lockSelAttr = isSynced ? ' disabled title="Synced with the Quick Start block — edit it there"' : '';
+    const lockStyle = isSynced ? ' style="opacity:0.65; cursor:not-allowed;"' : '';
+
+    // data-field-wrap matches the format used elsewhere
+    // (`${collKey}#${itemId}.${path}`) so the defer system's primary
+    // [data-field-wrap] selector picks up operator fields too — without it,
+    // operator-card fields only got deferred styling via a redundant
+    // second-pass selector in defer.js.
+    const wrapAttr = ` data-field-wrap="operators#${escAttr(item.id)}.${escAttr(f.path)}"`;
+
     let control;
     if (f.type === 'select') {
         const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}" ${String(v ?? '') === String(opt) ? 'selected' : ''}>${esc(opt || '—')}</option>`).join('');
-        control = `<select id="${escAttr(elId)}"${dataAttrs}>${opts}</select>`;
+        control = `<select id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle}>${opts}</select>`;
     } else if (f.type === 'checkbox') {
-        return `<div class="iv2-field${fullClass}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs} ${v ? 'checked' : ''}> ${esc(f.label)}</label></div>`;
+        return `<div class="iv2-field${fullClass}"${wrapAttr}><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle} ${v ? 'checked' : ''}> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
-        control = `<textarea id="${escAttr(elId)}"${dataAttrs} rows="2">${esc(v ?? '')}</textarea>`;
+        control = `<textarea id="${escAttr(elId)}"${dataAttrs}${lockAttr}${lockStyle} rows="2">${esc(v ?? '')}</textarea>`;
     } else {
-        control = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs} value="${escAttr(v ?? '')}">`;
+        control = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs}${lockAttr}${lockStyle} value="${escAttr(v ?? '')}">`;
     }
-    return `<div class="iv2-field${fullClass}">
-        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind a carrier">✦</span>' : ''}</label>
+    return `<div class="iv2-field${fullClass}"${wrapAttr}>
+        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind a carrier">✦</span>' : ''}${isSynced ? ' <span style="font-size:10px; color:var(--text-secondary)">🔒</span>' : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;
@@ -204,7 +227,12 @@ function renderOperatorPicker(container, item, collKey) {
                 else item.additionalOperatorIds.splice(i, 1);
             }
             window.IntakeV2.save();
-            window.IntakeV2.requestRerender();
+            // Re-render only the operator pool (link-badge counts changed)
+            // and the affected product collection (chip-row primary star
+            // moved). Skipping layout/coverage/history/review here is a
+            // measurable perf win on quotes with many entities.
+            window.IntakeV2.requestRerender('operators');
+            window.IntakeV2.requestRerender(collKey);
         });
     });
 
@@ -238,15 +266,23 @@ function openInlineAddForm(container, item, collKey) {
             const v = el.type === 'checkbox' ? el.checked : el.value;
             window.IntakeV2._setByPath(partial, k, v);
         });
-        const newOp = window.IntakeV2.addItem('operators', partial);
-        // Link as primary if none set yet, else additional
+        // Add the operator without firing a save yet, link it to the parent
+        // product, then save once. Two concurrent saves were racing —
+        // whichever encryption finished last won, sometimes persisting the
+        // pre-link state to disk.
+        const newOp = window.IntakeV2.addItem('operators', partial, { quiet: true });
         if (!item.primaryOperatorId) item.primaryOperatorId = newOp.id;
         else {
             item.additionalOperatorIds = Array.isArray(item.additionalOperatorIds) ? item.additionalOperatorIds : [];
             item.additionalOperatorIds.push(newOp.id);
         }
         window.IntakeV2.save();
-        window.IntakeV2.requestRerender();
+        // Narrow the re-render to the affected sections — operator panel
+        // (for the new link badge) and the parent product (for the chip
+        // row's updated primary star). Avoids re-rendering layout / coverage
+        // / history / review for an op-link change.
+        window.IntakeV2.requestRerender('operators');
+        window.IntakeV2.requestRerender(collKey);
     });
     form.querySelector('input').focus();
 }

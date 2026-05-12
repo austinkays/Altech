@@ -127,6 +127,12 @@ function render() {
             else if (which === 'save-quote') window.IntakeV2.saveAsQuote();
         });
     });
+
+    // Re-apply deferred-field styling after innerHTML replacement.
+    // The notes textarea's wrap could carry a deferred state if the agent
+    // Alt+L'd in the notes field — without this, that state would visually
+    // reset on the next save (which re-renders the review block).
+    if (window.IntakeV2._defer) window.IntakeV2._defer.render();
 }
 
 window.IntakeV2.onBoot(function () {

@@ -65,9 +65,14 @@ async function tryPrefill(homeId) {
     // Call the property-intelligence endpoint directly — Rentcast + Gemini
     // fallback. `Auth.apiFetch` adds the bearer token; fall back to fetch().
     if (window.App && window.App.toast) window.App.toast('Looking up property…', { type: 'info', duration: 1500 });
+    // 12s budget — Rentcast + Gemini fallback can be slower than NHTSA so we
+    // give it a bit more than VIN decode. Anything longer suggests a real
+    // outage and the agent should fill manually.
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 12000);
     try {
         const body = JSON.stringify({ address: home.address });
-        const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body };
+        const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: ctrl.signal };
         const doFetch = (window.Auth && typeof window.Auth.apiFetch === 'function')
             ? window.Auth.apiFetch.bind(window.Auth)
             : window.fetch.bind(window);
@@ -77,12 +82,19 @@ async function tryPrefill(homeId) {
             return;
         }
         const data = await resp.json();
-        applyPrefill(home, data);
+        const filled = applyPrefill(home, data);
+        // Toast only reflects what actually happened. The previous code
+        // always showed "Property details filled" even when the API
+        // returned nothing useful — false positive on a quiet failure.
+        if (window.App && window.App.toast) {
+            if (filled > 0) window.App.toast(`Filled ${filled} field${filled > 1 ? 's' : ''} from address`, { type: 'success' });
+            else            window.App.toast('No property details found for that address', { type: 'info' });
+        }
     } catch (err) {
         if (window.App && window.App.toast) window.App.toast('Property lookup failed', { type: 'error' });
         // eslint-disable-next-line no-console
         console.warn('property lookup failed:', err);
-    }
+    } finally { clearTimeout(tid); }
 }
 
 // Rentcast / Gemini returns fields under a few different shapes (top-level,
@@ -129,32 +141,36 @@ function applyPrefill(home, data) {
     const dwelling  = get('propertyType', 'dwelling_type', 'property_type');
     const county    = get('county');
 
-    if (yearBuilt) home.yrBuilt = String(yearBuilt);
-    if (sqFt)      home.sqFt    = String(sqFt);
-    if (lotSize)   home.lotSize = String(lotSize);
-    if (beds && !home.bedrooms)  home.bedrooms  = String(beds);
+    let filled = 0;
+    if (yearBuilt && !home.yrBuilt) { home.yrBuilt = String(yearBuilt); filled++; }
+    if (sqFt      && !home.sqFt)    { home.sqFt    = String(sqFt);      filled++; }
+    if (lotSize   && !home.lotSize) { home.lotSize = String(lotSize);   filled++; }
+    if (beds      && !home.bedrooms){ home.bedrooms= String(beds);      filled++; }
     if (baths) {
         const n = Number(baths);
         if (Number.isFinite(n)) {
             const full = Math.floor(n);
             const half = (n - full) >= 0.5 ? 1 : 0;
-            if (!home.fullBaths) home.fullBaths = String(full);
-            if (!home.halfBaths && half) home.halfBaths = String(half);
+            if (!home.fullBaths)        { home.fullBaths = String(full); filled++; }
+            if (!home.halfBaths && half){ home.halfBaths = String(half); filled++; }
         }
     }
-    if (dwelling) {
+    if (dwelling && !home.dwellingType) {
         const norm = DWELLING_NORMALIZE[String(dwelling).toLowerCase().trim()] || dwelling;
         home.dwellingType = norm;
+        filled++;
     }
-    if (county) {
+    if (county && !window.IntakeV2.data.address.county) {
         const c = String(county).replace(/\s+County$/i, '').trim();
-        // County lives on address, not home — also store there if empty.
-        if (!window.IntakeV2.data.address.county) window.IntakeV2.data.address.county = c;
+        window.IntakeV2.data.address.county = c;
+        filled++;
     }
 
-    window.IntakeV2.save();
-    window.IntakeV2.requestRerender();
-    if (window.App && window.App.toast) window.App.toast('Property details filled', { type: 'success' });
+    if (filled > 0) {
+        window.IntakeV2.save();
+        window.IntakeV2.requestRerender();
+    }
+    return filled;
 }
 
 window.IntakeV2.onBoot(function () {

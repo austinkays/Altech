@@ -47,6 +47,27 @@
         return `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`;
     }
 
+    // Timezone-safe age from a YYYY-MM-DD string. The naive
+    // `new Date(dob)` parses as UTC midnight; for users in negative UTC
+    // offsets that can render the previous calendar day locally, which can
+    // throw the age off by one on edge dates (Dec 31 → Jan 1 boundary
+    // birthdays). Parsing the components manually compares both birth and
+    // today in the local calendar — same year/month/day semantics the
+    // <input type="date"> picker exposed in the first place.
+    function ageFromDobString(dob) {
+        if (!dob || typeof dob !== 'string') return 0;
+        const parts = dob.split('-');
+        if (parts.length !== 3) return 0;
+        const y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
+        if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return 0;
+        const now = new Date();
+        let age = now.getFullYear() - y;
+        const nm = now.getMonth() + 1;
+        const nd = now.getDate();
+        if (nm < m || (nm === m && nd < d)) age--;
+        return age;
+    }
+
     function readDomValue(el) {
         if (!el) return '';
         if (el.type === 'checkbox') return !!el.checked;
@@ -65,15 +86,24 @@
 
     // ─── Storage I/O ───────────────────────────────────────────────────────
     // CryptoHelper.encrypt/decrypt are async (return Promises) — we await
-    // them. When unavailable or when they fail, we fall back to plaintext
-    // JSON so the form is never blocked by a crypto failure.
+    // them. When unavailable, we fall back to plaintext JSON so the form
+    // works in environments without crypto.subtle (JSDOM tests). When the
+    // v2 vault is *locked* (passphrase enrolled but not entered), encrypt
+    // throws CRYPTO_LOCKED — we propagate that to save() so we refuse the
+    // write rather than silently writing plaintext (which would defeat the
+    // user's locking of the vault).
     async function encryptOrPassthrough(plain) {
         if (window.CryptoHelper && typeof window.CryptoHelper.encrypt === 'function') {
             try {
                 const r = window.CryptoHelper.encrypt(plain);
                 const out = (r && typeof r.then === 'function') ? await r : r;
                 if (typeof out === 'string' && out.length) return out;
-            } catch (_) { /* fall back */ }
+            } catch (err) {
+                if (err && typeof err.message === 'string' && err.message.startsWith('CRYPTO_LOCKED')) {
+                    throw err;  // propagate — save() catches and refuses
+                }
+                /* other errors (e.g. crypto.subtle missing): fall back */
+            }
         }
         return plain;
     }
@@ -95,6 +125,7 @@
         _getByPath: getByPath,
         _setByPath: setByPath,
         _newId: newId,
+        _ageFromDob: ageFromDobString,
 
         // ─── save / load ───────────────────────────────────────────────────
         scheduleSave() {
@@ -117,6 +148,7 @@
                 localStorage.setItem(this.STORAGE_KEY, stored);
 
                 this._lastSaveOk = true;
+                this._lastSaveLocked = false;
                 this._saveToken++;
 
                 if (window.ActivityLog && !opts.silent) {
@@ -133,11 +165,13 @@
                 return true;
             } catch (err) {
                 this._lastSaveOk = false;
+                const isLocked = err && typeof err.message === 'string' && err.message.startsWith('CRYPTO_LOCKED');
+                this._lastSaveLocked = !!isLocked;
                 if (window.ActivityLog) {
                     window.ActivityLog.add({
                         type: 'error', area: 'intake-v2', ok: false,
-                        message: 'Intake v2 save failed',
-                        detail: String(err && err.message || err),
+                        message: isLocked ? 'Intake v2 save refused: vault is locked' : 'Intake v2 save failed',
+                        detail: isLocked ? 'Unlock the vault to resume saving' : String(err && err.message || err),
                     });
                 }
                 // eslint-disable-next-line no-console
@@ -178,6 +212,23 @@
             const base = this.defaultData();
             const merged = deepMergeDefaults(base, data || {});
             merged._schemaVersion = this.SCHEMA_VERSION;
+
+            // Backfill missing ids on collection items. Loaded data, imports,
+            // or older snapshots may have items with `id: ''` (the default)
+            // or no id at all — without one, getItem/removeItem/chip-link
+            // lookups all fail silently because every comparison is to `id`.
+            const idPrefix = (k) => k === 'operators' ? 'op'
+                : k === 'homes' ? 'home'
+                : k === 'autos' ? 'auto'
+                : k === 'boats' ? 'boat'
+                : k === 'rvs'   ? 'rv'   : 'item';
+            ['operators','homes','autos','boats','rvs'].forEach(k => {
+                if (!Array.isArray(merged[k])) return;
+                merged[k].forEach(item => {
+                    if (!item || typeof item !== 'object') return;
+                    if (!item.id) item.id = newId(idPrefix(k));
+                });
+            });
             return merged;
         },
 
@@ -244,11 +295,18 @@
             }
         },
 
-        // Ring buffer of last 5 field writes for the right-rail peek
+        // Ring buffer of last 5 field writes for the right-rail peek.
+        // Dedupes consecutive writes to the same path so typing "John" shows
+        // up as one entry, not four keystrokes monopolizing the buffer.
         _pushLastEntry(entry) {
             this.lastEntries = this.lastEntries || [];
-            this.lastEntries.unshift({ ...entry, at: Date.now() });
-            this.lastEntries = this.lastEntries.slice(0, 5);
+            const head = this.lastEntries[0];
+            if (head && head.path === entry.path) {
+                this.lastEntries[0] = { ...entry, at: Date.now() };
+            } else {
+                this.lastEntries.unshift({ ...entry, at: Date.now() });
+                this.lastEntries = this.lastEntries.slice(0, 5);
+            }
         },
 
         // Renderers register themselves so requestRerender() can fan out.
@@ -266,7 +324,8 @@
         },
 
         // ─── Mutation helpers used by every renderer ──────────────────────
-        addItem(collKey, partial) {
+        addItem(collKey, partial, opts) {
+            opts = opts || {};
             const arr = this.data[collKey] = this.data[collKey] || [];
             const idPrefix = collKey === 'operators' ? 'op'
                           : collKey === 'homes'     ? 'home'
@@ -274,22 +333,36 @@
                           : collKey === 'boats'     ? 'boat'
                           : collKey === 'rvs'       ? 'rv'
                           : 'item';
-            const item = Object.assign(itemDefaults(collKey), partial || {});
+            // Deep-merge so nested partials (e.g. inline operator form supplies
+            // `dl.state` only) don't replace the entire nested object and leave
+            // a half-populated shape (`{dl: {state:'WA'}}` with `num/status/...`
+            // gone). Shallow Object.assign was the prior, broken behavior.
+            const item = deepMergeDefaults(itemDefaults(collKey), partial || {});
             if (!item.id) item.id = newId(idPrefix);
             arr.push(item);
-            this.save();
-            this.requestRerender();
+            // `opts.quiet` skips save + rerender so a caller doing multiple
+            // related mutations (e.g. the inline operator picker also linking
+            // the new operator to a product's primaryOperatorId) can save once
+            // at the end. Avoids a save race where two concurrent in-flight
+            // encryptions could land in the wrong order and persist a stale
+            // intermediate state to localStorage.
+            if (!opts.quiet) {
+                this.save();
+                this.requestRerender();
+            }
             return item;
         },
         removeItem(collKey, itemId) {
             const arr = this.data[collKey] || [];
             this.data[collKey] = arr.filter(x => x.id !== itemId);
+
             // Defense in depth: when an operator is removed, sever every
-            // product link pointing at them so no auto/boat/RV ends up with
-            // a dangling primaryOperatorId. The UI in operators.js already
-            // does this with a confirm dialog before calling removeItem;
-            // this guard catches any other caller (command palette, tests,
-            // imports) that goes straight through the model API.
+            // product link AND every history-row link pointing at them so no
+            // auto/boat/RV/loss/violation ends up referencing a ghost id. The
+            // UI in operators.js already does the auto/boat/RV unlink with a
+            // confirm dialog; this guard catches any other caller (command
+            // palette, tests, imports, scripted ops) that goes straight
+            // through the model API.
             if (collKey === 'operators') {
                 ['autos','boats','rvs'].forEach(coll => {
                     (this.data[coll] || []).forEach(item => {
@@ -299,7 +372,22 @@
                         }
                     });
                 });
+                // Also wipe operator references on loss/violation rows so
+                // the PDF doesn't dangle "Operator: (none)" entries.
+                if (this.data.history) {
+                    (this.data.history.losses || []).forEach(L => { if (L.operatorId === itemId) L.operatorId = ''; });
+                    (this.data.history.violations || []).forEach(V => { if (V.operatorId === itemId) V.operatorId = ''; });
+                }
             }
+
+            // Drop any deferred-field paths anchored to the removed item so
+            // the right-rail follow-up list doesn't show ghost entries that
+            // can't be jumped to (their target DOM no longer exists).
+            if (Array.isArray(this.data.deferred) && this.data.deferred.length) {
+                const prefix = `${collKey}#${itemId}.`;
+                this.data.deferred = this.data.deferred.filter(p => !p.startsWith(prefix));
+            }
+
             this.save();
             this.requestRerender();
         },
@@ -349,16 +437,26 @@
                 coOp.relationship = this.data.coApplicant.relationship || coOp.relationship || '';
                 if (!co) ops.splice(1, 0, coOp);
             } else if (co) {
-                // Remove the co-applicant operator AND unlink from products
+                // Remove the co-applicant operator AND unlink from every place
+                // their id could be referenced. Mirror removeItem('operators',
+                // co.id) so toggling the co-app flag off has the same cleanup
+                // behavior as deleting them through the operator pool UI.
+                // Defensive: handle the (impossible-via-UI but importable)
+                // case of multiple isCoApplicant entries by filtering all.
+                const removedIds = ops.filter(o => o.isCoApplicant).map(o => o.id);
                 this.data.operators = ops.filter(o => !o.isCoApplicant);
                 ['autos','boats','rvs'].forEach(coll => {
                     (this.data[coll] || []).forEach(item => {
-                        if (item.primaryOperatorId === co.id) item.primaryOperatorId = '';
+                        if (removedIds.includes(item.primaryOperatorId)) item.primaryOperatorId = '';
                         if (Array.isArray(item.additionalOperatorIds)) {
-                            item.additionalOperatorIds = item.additionalOperatorIds.filter(id => id !== co.id);
+                            item.additionalOperatorIds = item.additionalOperatorIds.filter(id => !removedIds.includes(id));
                         }
                     });
                 });
+                if (this.data.history) {
+                    (this.data.history.losses || []).forEach(L => { if (removedIds.includes(L.operatorId)) L.operatorId = ''; });
+                    (this.data.history.violations || []).forEach(V => { if (removedIds.includes(V.operatorId)) V.operatorId = ''; });
+                }
             }
         },
     });
@@ -421,6 +519,11 @@
     function deepMergeDefaults(defaults, incoming) {
         if (incoming == null || typeof incoming !== 'object') return defaults;
         if (Array.isArray(defaults)) return Array.isArray(incoming) ? incoming : defaults;
+        // Type-shape guard: if defaults expects an object but incoming is an
+        // array (or vice versa, handled above), the shapes are incompatible —
+        // fall back to defaults rather than treating the array's numeric
+        // indices as object keys. Catches corrupt cloud-pulls cleanly.
+        if (Array.isArray(incoming)) return defaults;
         const out = {};
         const keys = new Set([...Object.keys(defaults), ...Object.keys(incoming)]);
         for (const k of keys) {
@@ -437,13 +540,41 @@
     }
     window.IntakeV2._deepMerge = deepMergeDefaults;
 
+    // Set of scalar paths whose value is mirrored onto the primary/co-applicant
+    // operator by syncApplicantOperators(). Used by the delegation listener to
+    // avoid re-rendering the operator pool on every keystroke in non-synced
+    // fields (phone, email, ssn, prefix, suffix).
+    const OP_SYNC_FIELDS = ['firstName','middleName','lastName','dob','gender','maritalStatus','occupation','industry','education'];
+    const OP_SYNC_PATHS = new Set([
+        ...OP_SYNC_FIELDS.map(k => `applicant.${k}`),
+        ...OP_SYNC_FIELDS.map(k => `coApplicant.${k}`),
+        'coApplicant.present',
+        'coApplicant.relationship',
+    ]);
+
     // ─── Boot hook: install global delegation listener for scalar fields ──
     window.IntakeV2.onBoot(function () {
         const root = this._container;
         if (!root) return;
 
-        // Cold load
-        this.load();
+        // Cold load. `this.load()` returns a Promise (CryptoHelper.decrypt is
+        // async). The boot hook itself is sync — it has to be, every other
+        // module's boot hook expects a synchronous baseline — so we do an
+        // initial paint with defaults, then re-paint once load resolves.
+        // Without this, users with saved data saw the empty default form on
+        // open (until something else triggered a rerender).
+        const _loadPromise = Promise.resolve(this.load()).then((ok) => {
+            if (!ok) return;
+            this.syncApplicantOperators();
+            this.applyData();
+            // applyData runs requestRerender — that fans out to every
+            // registered renderer, which by this point all exist.
+        }).catch(err => {
+            // eslint-disable-next-line no-console
+            console.error('IntakeV2 load promise rejected:', err);
+        });
+        // First-paint with defaults (or with whatever sync-decoded data
+        // happened to land in time on the fast path).
         this.syncApplicantOperators();
 
         // Delegated input listener: every scalar + collection field flows here.
@@ -458,15 +589,16 @@
             // Scalar (no `#` in path) vs collection (`coll#id.field`)
             if (path.indexOf('#') === -1) {
                 this.setField(path, value);
-                if (path.startsWith('applicant.') || path.startsWith('coApplicant.')) {
+                // Only the applicant/co-applicant fields that syncApplicantOperators()
+                // actually copies need a resync — everything else (phone, email, ssn,
+                // prefix, suffix) doesn't propagate to the operator, so re-rendering
+                // the operator pool on every keystroke there was wasted DOM work.
+                if (OP_SYNC_PATHS.has(path)) {
                     this.syncApplicantOperators();
                     this.requestRerender('operators');
                 }
+                // Co-applicant toggle also expands/collapses the Quick Start cluster.
                 if (path === 'coApplicant.present') {
-                    this.syncApplicantOperators();
-                    this.requestRerender('operators');
-                    // Re-render the Quick Start section so the co-applicant
-                    // cluster expands/collapses to match the new toggle state.
                     this.requestRerender('layout');
                 }
             } else {
