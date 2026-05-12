@@ -395,6 +395,11 @@
             return (this.data[collKey] || []).find(x => x.id === itemId);
         },
         setItemField(collKey, itemId, path, value) {
+            // `__header.*` paths are virtual — the renderer uses them to draw
+            // subsection titles (Coverage / Lien holder / Endorsements). They
+            // have no inputs and should never reach this method, but guard
+            // defensively in case a future renderer accidentally creates one.
+            if (typeof path === 'string' && path.startsWith('__header.')) return;
             const item = this.getItem(collKey, itemId);
             if (!item) return;
             setByPath(item, path, value);
@@ -471,6 +476,11 @@
                 dl:{ num:'', state:'', status:'', ageLicensed:'', yearsAuto:'', yearsBoat:'', yearsRV:'' },
                 education:'', industry:'', occupation:'', relationship:'',
                 hasCleanHistory: false,
+                // Underwriting flags — agent should ask each on the call
+                sr22Required: false,
+                licenseSuspended5y: false,
+                goodStudent: false,
+                distantStudent: false,
             };
             case 'homes': return {
                 id:'', address:'', yrBuilt:'', sqFt:'', lotSize:'',
@@ -483,12 +493,29 @@
                 hazards:{ alarms:'', pool:false, trampoline:false, dogs:'', woodStove:false, businessOnPremises:false,
                           fireStationDist:'', fireHydrantFeet:'', protectionClass:'', tidalWaterDist:'' },
                 purchaseDate:'',
+                // Coverage selections — what's actually being quoted
+                coverages:{
+                    dwellingA:'', otherStructuresB:'', personalPropertyC:'', lossOfUseD:'',
+                    liabilityE:'', medPayF:'',
+                    deductible:'', windHailDeductible:'',
+                    replacementType:'',
+                },
+                // Common HO endorsements
+                endorsements:{
+                    waterBackup:false, equipmentBreakdown:false, serviceLine:false,
+                    scheduledProperty:false, ordinanceLaw:false, identityTheft:false,
+                },
+                // Required for binding any mortgaged home
+                mortgageCompany:{ name:'', loanNumber:'', address:'' },
             };
             case 'autos': return {
                 id:'', year:'', make:'', model:'', vin:'',
                 garagingZip:'', useType:'', annualMiles:'', ownership:'',
+                oneWayMiles:'', daysPerWeek:'', antiTheftDevice:'',
                 primaryOperatorId:'', additionalOperatorIds:[],
                 coverages:{ liab:'', collDed:'', compDed:'', umuim:'', medpay:'', towingDed:'', rentalDed:'' },
+                // Required for binding when ownership === 'Financed' or 'Leased'
+                lienHolder:{ name:'', address:'', loanNumber:'' },
             };
             case 'boats': return {
                 id:'', kind:'boat', year:'', make:'', model:'', length:'', hin:'',
@@ -499,6 +526,12 @@
                 docs:{ billOfSale:false, dealerAppraisal:false, photos:false, marineSurvey:false },
                 usage:{ pleasure:true, rental:false, charter:false, commercial:false },
                 primaryOperatorId:'', additionalOperatorIds:[],
+                coverages:{
+                    hullValueType:'', liabilityLimit:'', deductible:'',
+                    medPay:'', umBoater:'',
+                    fuelSpillIncluded:false, personalEffects:'',
+                },
+                lienHolder:{ name:'', address:'', loanNumber:'' },
             };
             case 'rvs': return {
                 id:'', class:'', year:'', make:'', model:'', length:'', vin:'',
@@ -506,6 +539,12 @@
                 marketValue:'', purchasePrice:'', addlEquipmentValue:'',
                 totalLossReplacementRequested:false,
                 primaryOperatorId:'', additionalOperatorIds:[],
+                coverages:{
+                    compDeductible:'', collDeductible:'',
+                    liabilityLimit:'', vacationLiability:false, umuim:'', medPay:'',
+                    personalEffects:'', awningDamage:false, emergencyExpense:false,
+                },
+                lienHolder:{ name:'', address:'', loanNumber:'' },
             };
             default: return { id:'' };
         }

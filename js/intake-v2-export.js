@@ -133,6 +133,10 @@ async function buildIntakeV2PDF(data) {
             ['Occupation',    op.occupation],
             ['Marital',       op.maritalStatus],
             ['Role',          op.isPrimaryApplicant ? 'Primary applicant' : (op.isCoApplicant ? 'Co-applicant' : '')],
+            ['SR-22 / FR-44 required', op.sr22Required ? 'Yes' : ''],
+            ['Suspended in 5 yrs',     op.licenseSuspended5y ? 'Yes' : ''],
+            ['Good student',           op.goodStudent ? 'Yes' : ''],
+            ['Distant student',        op.distantStudent ? 'Yes' : ''],
         ]);
     });
 
@@ -164,6 +168,34 @@ async function buildIntakeV2PDF(data) {
                 ['Fire station',   h.hazards && h.hazards.fireStationDist],
                 ['Hydrant feet',   h.hazards && h.hazards.fireHydrantFeet],
                 ['Alarms',         h.hazards && h.hazards.alarms],
+                ['Pool',           h.hazards && h.hazards.pool ? 'Yes' : ''],
+                ['Trampoline',     h.hazards && h.hazards.trampoline ? 'Yes' : ''],
+                ['Wood / pellet stove', h.hazards && h.hazards.woodStove ? 'Yes' : ''],
+                ['Business on premises', h.hazards && h.hazards.businessOnPremises ? 'Yes' : ''],
+                ['Dogs',           h.hazards && h.hazards.dogs],
+                // Coverage selections
+                ['Coverage A — Dwelling',         h.coverages && h.coverages.dwellingA],
+                ['Coverage B — Other Structures', h.coverages && h.coverages.otherStructuresB],
+                ['Coverage C — Personal Property',h.coverages && h.coverages.personalPropertyC],
+                ['Coverage D — Loss of Use',      h.coverages && h.coverages.lossOfUseD],
+                ['Coverage E — Liability',        h.coverages && h.coverages.liabilityE],
+                ['Coverage F — Med Pay',          h.coverages && h.coverages.medPayF],
+                ['All-Peril Deductible',          h.coverages && h.coverages.deductible],
+                ['Wind/Hail Deductible',          h.coverages && h.coverages.windHailDeductible],
+                ['Settlement Type',               h.coverages && h.coverages.replacementType],
+                // Endorsements (only show those that are TRUE; pre-build the list)
+                ['Endorsements', [
+                    h.endorsements && h.endorsements.waterBackup        && 'Water Backup',
+                    h.endorsements && h.endorsements.equipmentBreakdown && 'Equipment Breakdown',
+                    h.endorsements && h.endorsements.serviceLine        && 'Service Line',
+                    h.endorsements && h.endorsements.scheduledProperty  && 'Scheduled Property',
+                    h.endorsements && h.endorsements.ordinanceLaw       && 'Ordinance/Law',
+                    h.endorsements && h.endorsements.identityTheft      && 'Identity Theft',
+                ].filter(Boolean).join(', ')],
+                // Mortgage / lien holder
+                ['Mortgage Co.',   h.mortgageCompany && h.mortgageCompany.name],
+                ['Loan #',         h.mortgageCompany && h.mortgageCompany.loanNumber],
+                ['Mortgagee Addr', h.mortgageCompany && h.mortgageCompany.address],
             ]);
         });
     }
@@ -187,6 +219,16 @@ async function buildIntakeV2PDF(data) {
                 ['Comp ded',    v.coverages && v.coverages.compDed],
                 ['UM/UIM',      v.coverages && v.coverages.umuim],
                 ['Med pay',     v.coverages && v.coverages.medpay],
+                ['Towing',      v.coverages && v.coverages.towingDed],
+                ['Rental reimb',v.coverages && v.coverages.rentalDed],
+                // Commute / use details
+                ['One-way miles', v.oneWayMiles],
+                ['Days/week',     v.daysPerWeek],
+                ['Anti-theft',    v.antiTheftDevice],
+                // Lien holder (required for binding any financed/leased auto)
+                ['Lien Holder',   v.lienHolder && v.lienHolder.name],
+                ['Lien Address',  v.lienHolder && v.lienHolder.address],
+                ['Loan / Lease #',v.lienHolder && v.lienHolder.loanNumber],
             ]);
         });
     }
@@ -219,6 +261,18 @@ async function buildIntakeV2PDF(data) {
                 ['Usage',           [b.usage && b.usage.pleasure && 'Pleasure', b.usage && b.usage.rental && 'Rental', b.usage && b.usage.charter && 'Charter', b.usage && b.usage.commercial && 'Commercial'].filter(Boolean).join(', ')],
                 ['Primary',         primary ? `${primary.firstName || ''} ${primary.lastName || ''}`.trim() : ''],
                 ['Additional',      adds],
+                // Coverage selections
+                ['Hull Settlement', b.coverages && b.coverages.hullValueType],
+                ['Liability Limit', b.coverages && b.coverages.liabilityLimit],
+                ['Deductible',      b.coverages && b.coverages.deductible],
+                ['Med Pay',         b.coverages && b.coverages.medPay],
+                ['Uninsured Boater',b.coverages && b.coverages.umBoater],
+                ['Fuel Spill',      b.coverages && b.coverages.fuelSpillIncluded ? 'Yes' : ''],
+                ['Personal Effects',b.coverages && b.coverages.personalEffects],
+                // Lien holder
+                ['Lien Holder',     b.lienHolder && b.lienHolder.name],
+                ['Lien Address',    b.lienHolder && b.lienHolder.address],
+                ['Loan #',          b.lienHolder && b.lienHolder.loanNumber],
             ]);
         });
     }
@@ -242,6 +296,20 @@ async function buildIntakeV2PDF(data) {
                 ['Total Loss Replacement', r.totalLossReplacementRequested ? 'Requested' : ''],
                 ['Primary',         primary ? `${primary.firstName || ''} ${primary.lastName || ''}`.trim() : ''],
                 ['Additional',      adds],
+                // Coverage selections
+                ['Comp Deductible', r.coverages && r.coverages.compDeductible],
+                ['Coll Deductible', r.coverages && r.coverages.collDeductible],
+                ['Liability',       r.coverages && r.coverages.liabilityLimit],
+                ['Vacation Liability', r.coverages && r.coverages.vacationLiability ? 'Yes' : ''],
+                ['UM/UIM',          r.coverages && r.coverages.umuim],
+                ['Med Pay',         r.coverages && r.coverages.medPay],
+                ['Personal Effects',r.coverages && r.coverages.personalEffects],
+                ['Awning Damage',   r.coverages && r.coverages.awningDamage ? 'Yes' : ''],
+                ['Emergency Expense', r.coverages && r.coverages.emergencyExpense ? 'Yes' : ''],
+                // Lien holder
+                ['Lien Holder',     r.lienHolder && r.lienHolder.name],
+                ['Lien Address',    r.lienHolder && r.lienHolder.address],
+                ['Loan #',          r.lienHolder && r.lienHolder.loanNumber],
             ]);
         });
     }

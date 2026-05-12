@@ -153,6 +153,16 @@ const COLLECTIONS = {
             { idStem: 'op-occupation',     path: 'occupation',      label: 'Occupation', type: 'text',   mode: 'full' },
             { idStem: 'op-education',      path: 'education',       label: 'Education',  type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], mode: 'full' },
             { idStem: 'op-ssn',            path: 'ssn',             label: 'SSN (optional)', type: 'text', mode: 'full' },
+            // ── Underwriting flags ────────────────────────────────────────
+            // Subheader spans the full grid; the rest are checkboxes the
+            // agent should ask about during the intake call. SR-22 / FR-44
+            // and license-suspension history specifically gate Progressive
+            // and Foremost auto bind eligibility.
+            { idStem: 'op-flag-header',     path: '__header.flags',     label: 'Underwriting flags', type: 'header', mode: 'full' },
+            { idStem: 'op-sr22',            path: 'sr22Required',       label: 'SR-22 / FR-44 required',          type: 'checkbox', mode: 'full' },
+            { idStem: 'op-suspended',       path: 'licenseSuspended5y', label: 'License suspended in last 5 yrs', type: 'checkbox', mode: 'full' },
+            { idStem: 'op-goodStudent',     path: 'goodStudent',        label: 'Good student (B+ avg, < 25)',     type: 'checkbox', mode: 'full' },
+            { idStem: 'op-distantStudent',  path: 'distantStudent',     label: 'Distant student (away 100+ mi)',  type: 'checkbox', mode: 'full' },
         ],
     },
 
@@ -187,8 +197,42 @@ const COLLECTIONS = {
             { idStem: 'home-fireHydrantFeet', path: 'hazards.fireHydrantFeet', label: 'Hydrant (feet)',       type: 'number', mode: 'full' },
             { idStem: 'home-alarms',          path: 'hazards.alarms',          label: 'Alarms',         type: 'select', options: ['', 'None', 'Local', 'Central Station'], mode: 'full' },
             { idStem: 'home-pool',            path: 'hazards.pool',            label: 'Pool',           type: 'checkbox', mode: 'full' },
-            { idStem: 'home-dogs',            path: 'hazards.dogs',            label: 'Dogs',           type: 'text', mode: 'full' },
+            { idStem: 'home-trampoline',      path: 'hazards.trampoline',      label: 'Trampoline',     type: 'checkbox', mode: 'full' },
+            { idStem: 'home-woodStove',       path: 'hazards.woodStove',       label: 'Wood / pellet stove', type: 'checkbox', mode: 'full' },
+            { idStem: 'home-business',        path: 'hazards.businessOnPremises', label: 'Business on premises', type: 'checkbox', mode: 'full' },
+            { idStem: 'home-dogs',            path: 'hazards.dogs',            label: 'Dogs (breeds)',  type: 'text', mode: 'full' },
             { idStem: 'home-purchaseDate',    path: 'purchaseDate',            label: 'Purchase Date', type: 'date', mode: 'full' },
+
+            // ── Coverage selections ───────────────────────────────────────
+            // Coverage A is the dwelling limit — the single most important
+            // number on a homeowners quote. Marked bindable so the per-card
+            // status dot reflects whether the agent has captured it.
+            { idStem: 'home-cov-header',         path: '__header.coverages',          label: 'Coverage selections', type: 'header', mode: 'quick' },
+            { idStem: 'home-cov-dwellingA',      path: 'coverages.dwellingA',         label: 'Coverage A — Dwelling',     type: 'number', mode: 'quick', bindable: requiredBy('travelers','safeco','foremost') },
+            { idStem: 'home-cov-otherStructuresB', path: 'coverages.otherStructuresB', label: 'Coverage B — Other Structures', type: 'number', mode: 'full' },
+            { idStem: 'home-cov-personalPropertyC', path: 'coverages.personalPropertyC', label: 'Coverage C — Personal Property', type: 'number', mode: 'full' },
+            { idStem: 'home-cov-lossOfUseD',     path: 'coverages.lossOfUseD',        label: 'Coverage D — Loss of Use',  type: 'number', mode: 'full' },
+            { idStem: 'home-cov-liabilityE',     path: 'coverages.liabilityE',        label: 'Coverage E — Liability',    type: 'select', options: ['', '100,000', '300,000', '500,000', '1,000,000'], mode: 'quick' },
+            { idStem: 'home-cov-medPayF',        path: 'coverages.medPayF',           label: 'Coverage F — Med Pay',      type: 'select', options: ['', '1,000', '2,000', '5,000', '10,000'], mode: 'full' },
+            { idStem: 'home-cov-deductible',     path: 'coverages.deductible',        label: 'All-Peril Deductible',      type: 'select', options: ['', '500', '1,000', '1,500', '2,500', '5,000', '10,000'], mode: 'quick' },
+            { idStem: 'home-cov-windHail',       path: 'coverages.windHailDeductible',label: 'Wind/Hail Deductible',      type: 'select', options: ['', 'Same as AOP', '1%', '2%', '5%', '$1,000', '$2,500', '$5,000'], mode: 'full' },
+            { idStem: 'home-cov-replType',       path: 'coverages.replacementType',   label: 'Settlement Type',           type: 'select', options: ['', 'Replacement Cost', 'Actual Cash Value (ACV)', 'Modified RC'], mode: 'full' },
+            // Endorsements — most-requested, all checkboxes
+            { idStem: 'home-end-header',         path: '__header.endorsements',       label: 'Endorsements', type: 'header', mode: 'full' },
+            { idStem: 'home-end-waterBackup',    path: 'endorsements.waterBackup',    label: 'Water/Sewer Backup',          type: 'checkbox', mode: 'full' },
+            { idStem: 'home-end-equipBreak',     path: 'endorsements.equipmentBreakdown', label: 'Equipment Breakdown',     type: 'checkbox', mode: 'full' },
+            { idStem: 'home-end-serviceLine',    path: 'endorsements.serviceLine',    label: 'Service Line',                type: 'checkbox', mode: 'full' },
+            { idStem: 'home-end-scheduledProp',  path: 'endorsements.scheduledProperty', label: 'Scheduled Personal Property', type: 'checkbox', mode: 'full' },
+            { idStem: 'home-end-ordinanceLaw',   path: 'endorsements.ordinanceLaw',   label: 'Ordinance or Law',            type: 'checkbox', mode: 'full' },
+            { idStem: 'home-end-identityTheft',  path: 'endorsements.identityTheft',  label: 'Identity Theft',              type: 'checkbox', mode: 'full' },
+
+            // ── Mortgage / lien holder ────────────────────────────────────
+            // Required for binding any mortgaged home — the carrier issues
+            // a Mortgagee Clause certificate to this entity.
+            { idStem: 'home-mort-header',  path: '__header.mortgage',         label: 'Mortgage / Lien Holder', type: 'header', mode: 'full' },
+            { idStem: 'home-mort-name',    path: 'mortgageCompany.name',      label: 'Mortgage Company',     type: 'text', mode: 'full' },
+            { idStem: 'home-mort-loanNum', path: 'mortgageCompany.loanNumber',label: 'Loan #',               type: 'text', mode: 'full' },
+            { idStem: 'home-mort-address', path: 'mortgageCompany.address',   label: 'Mortgagee Address',    type: 'text', mode: 'full' },
         ],
     },
 
@@ -210,6 +254,18 @@ const COLLECTIONS = {
             { idStem: 'auto-medpay',        path: 'coverages.medpay',      label: 'Med Pay',    type: 'select', options: ['', 'None', '1000', '2000', '5000', '10000'], mode: 'full' },
             { idStem: 'auto-towingDed',     path: 'coverages.towingDed',   label: 'Towing',     type: 'select', options: ['', 'None', 'Included'], mode: 'full' },
             { idStem: 'auto-rentalDed',     path: 'coverages.rentalDed',   label: 'Rental',     type: 'select', options: ['', 'None', '30/900', '40/1200', '50/1500'], mode: 'full' },
+            // ── Commute / use details ─────────────────────────────────────
+            { idStem: 'auto-use-header',     path: '__header.use',          label: 'Commute & use',  type: 'header', mode: 'full' },
+            { idStem: 'auto-oneWayMiles',    path: 'oneWayMiles',           label: 'One-way miles to work', type: 'number', mode: 'full' },
+            { idStem: 'auto-daysPerWeek',    path: 'daysPerWeek',           label: 'Days/week to work',     type: 'number', mode: 'full' },
+            { idStem: 'auto-antiTheft',      path: 'antiTheftDevice',       label: 'Anti-theft device',     type: 'select', options: ['', 'None', 'Active disabling', 'Passive disabling', 'Recovery (LoJack)', 'Alarm only'], mode: 'full' },
+            // ── Lien holder ───────────────────────────────────────────────
+            // Required for binding any financed or leased vehicle. Carrier
+            // issues a Loss Payee endorsement to this entity.
+            { idStem: 'auto-lien-header',    path: '__header.lien',         label: 'Lien holder', type: 'header', mode: 'full' },
+            { idStem: 'auto-lien-name',      path: 'lienHolder.name',       label: 'Lien Holder Name',     type: 'text', mode: 'full' },
+            { idStem: 'auto-lien-address',   path: 'lienHolder.address',    label: 'Lien Holder Address',  type: 'text', mode: 'full' },
+            { idStem: 'auto-lien-loanNum',   path: 'lienHolder.loanNumber', label: 'Loan / Lease #',       type: 'text', mode: 'full' },
         ],
     },
 
@@ -251,6 +307,20 @@ const COLLECTIONS = {
             { idStem: 'boat-use-rental',   path: 'usage.rental',    label: 'Rented out', type: 'checkbox', mode: 'quick' },
             { idStem: 'boat-use-charter',  path: 'usage.charter',   label: 'Chartered', type: 'checkbox', mode: 'quick' },
             { idStem: 'boat-use-commercial', path: 'usage.commercial', label: 'Commercial', type: 'checkbox', mode: 'quick' },
+            // ── Coverage selections ───────────────────────────────────────
+            { idStem: 'boat-cov-header',     path: '__header.coverages',     label: 'Coverage selections', type: 'header', mode: 'quick' },
+            { idStem: 'boat-cov-hullType',   path: 'coverages.hullValueType',label: 'Hull Settlement', type: 'select', options: ['', 'Agreed Value', 'Actual Cash Value'], mode: 'quick' },
+            { idStem: 'boat-cov-liability',  path: 'coverages.liabilityLimit', label: 'Liability Limit', type: 'select', options: ['', '50,000', '100,000', '300,000', '500,000', '1,000,000'], mode: 'quick' },
+            { idStem: 'boat-cov-deductible', path: 'coverages.deductible',    label: 'Deductible',      type: 'select', options: ['', '250', '500', '1,000', '2,500', '5,000'], mode: 'quick' },
+            { idStem: 'boat-cov-medPay',     path: 'coverages.medPay',        label: 'Medical Payments',type: 'select', options: ['', 'None', '1,000', '5,000', '10,000', '25,000'], mode: 'full' },
+            { idStem: 'boat-cov-umBoater',   path: 'coverages.umBoater',      label: 'Uninsured Boater',type: 'select', options: ['', 'None', '50,000', '100,000', '300,000', '500,000'], mode: 'full' },
+            { idStem: 'boat-cov-fuelSpill',  path: 'coverages.fuelSpillIncluded', label: 'Fuel Spill Liability', type: 'checkbox', mode: 'full' },
+            { idStem: 'boat-cov-personalEffects', path: 'coverages.personalEffects', label: 'Personal Effects $', type: 'number', mode: 'full' },
+            // ── Lien holder ───────────────────────────────────────────────
+            { idStem: 'boat-lien-header',    path: '__header.lien',           label: 'Lien holder',     type: 'header', mode: 'full' },
+            { idStem: 'boat-lien-name',      path: 'lienHolder.name',         label: 'Lien Holder Name',type: 'text', mode: 'full' },
+            { idStem: 'boat-lien-address',   path: 'lienHolder.address',      label: 'Lien Holder Address', type: 'text', mode: 'full' },
+            { idStem: 'boat-lien-loanNum',   path: 'lienHolder.loanNumber',   label: 'Loan #',          type: 'text', mode: 'full' },
         ],
     },
 
@@ -271,6 +341,27 @@ const COLLECTIONS = {
             { idStem: 'rv-purchasePrice',  path: 'purchasePrice',  label: 'Purchase Price',type: 'number', mode: 'full' },
             { idStem: 'rv-addlEquip',      path: 'addlEquipmentValue', label: 'Add\'l Equipment $', type: 'number', mode: 'full' },
             { idStem: 'rv-tlr',            path: 'totalLossReplacementRequested', label: 'Total Loss Replacement requested', type: 'checkbox', mode: 'full' },
+            // ── Coverage selections ───────────────────────────────────────
+            // Motorhomes (Class A/B/C/bus) carry their own auto liability;
+            // towables (travel trailer / 5W / toy hauler / pop-up) typically
+            // don't but should have Vacation Liability when in use. Both
+            // surfaces here so the agent can pick whichever the carrier
+            // requires for the chosen RV class.
+            { idStem: 'rv-cov-header',       path: '__header.coverages',     label: 'Coverage selections', type: 'header', mode: 'quick' },
+            { idStem: 'rv-cov-compDed',      path: 'coverages.compDeductible', label: 'Comprehensive Deductible', type: 'select', options: ['', '250', '500', '1,000', '2,500', '5,000'], mode: 'quick' },
+            { idStem: 'rv-cov-collDed',      path: 'coverages.collDeductible', label: 'Collision Deductible',     type: 'select', options: ['', '250', '500', '1,000', '2,500', '5,000'], mode: 'quick' },
+            { idStem: 'rv-cov-liability',    path: 'coverages.liabilityLimit', label: 'Liability (motorhomes)',   type: 'select', options: ['', '50/100/50', '100/300/100', '250/500/100', '300/500/300', '500/500/500'], mode: 'full' },
+            { idStem: 'rv-cov-vacationLiab', path: 'coverages.vacationLiability', label: 'Vacation Liability (towables)', type: 'checkbox', mode: 'full' },
+            { idStem: 'rv-cov-umuim',        path: 'coverages.umuim',         label: 'UM/UIM',                 type: 'select', options: ['', '25/50', '50/100', '100/300', '250/500'], mode: 'full' },
+            { idStem: 'rv-cov-medPay',       path: 'coverages.medPay',        label: 'Medical Payments',       type: 'select', options: ['', 'None', '1,000', '5,000', '10,000', '25,000'], mode: 'full' },
+            { idStem: 'rv-cov-personalEffects', path: 'coverages.personalEffects', label: 'Personal Effects $', type: 'number', mode: 'full' },
+            { idStem: 'rv-cov-awning',       path: 'coverages.awningDamage',  label: 'Awning Damage',          type: 'checkbox', mode: 'full' },
+            { idStem: 'rv-cov-emergencyExp', path: 'coverages.emergencyExpense', label: 'Emergency Expense',   type: 'checkbox', mode: 'full' },
+            // ── Lien holder ───────────────────────────────────────────────
+            { idStem: 'rv-lien-header',      path: '__header.lien',           label: 'Lien holder',     type: 'header', mode: 'full' },
+            { idStem: 'rv-lien-name',        path: 'lienHolder.name',         label: 'Lien Holder Name',type: 'text', mode: 'full' },
+            { idStem: 'rv-lien-address',     path: 'lienHolder.address',      label: 'Lien Holder Address', type: 'text', mode: 'full' },
+            { idStem: 'rv-lien-loanNum',     path: 'lienHolder.loanNumber',   label: 'Loan #',          type: 'text', mode: 'full' },
         ],
     },
 };
