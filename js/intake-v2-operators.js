@@ -204,7 +204,12 @@ function renderOperatorPicker(container, item, collKey) {
                 else item.additionalOperatorIds.splice(i, 1);
             }
             window.IntakeV2.save();
-            window.IntakeV2.requestRerender();
+            // Re-render only the operator pool (link-badge counts changed)
+            // and the affected product collection (chip-row primary star
+            // moved). Skipping layout/coverage/history/review here is a
+            // measurable perf win on quotes with many entities.
+            window.IntakeV2.requestRerender('operators');
+            window.IntakeV2.requestRerender(collKey);
         });
     });
 

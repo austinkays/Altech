@@ -85,8 +85,12 @@ const SCALAR = [
     { id: 'iv2-contactMethod',   path: 'household.contactMethod', label: 'Preferred Contact', type: 'select', options: ['', 'Phone', 'Email', 'Text'], section: 'quick', mode: 'full' },
     { id: 'iv2-contactTime',     path: 'household.contactTime',   label: 'Best Time to Call', type: 'select', options: ['', 'Morning', 'Afternoon', 'Evening'], section: 'quick', mode: 'full' },
     { id: 'iv2-referralSource',  path: 'household.referralSource',label: 'Referral Source', type: 'text', section: 'quick', mode: 'full' },
-    { id: 'iv2-tcpaConsent',     path: 'household.tcpaConsent',   label: 'TCPA consent obtained', type: 'checkbox', section: 'quick', mode: 'full' },
-    { id: 'iv2-creditCheckAuth', path: 'household.creditCheckAuth', label: 'Credit pull authorized', type: 'checkbox', section: 'quick', mode: 'full' },
+    // tcpaConsent and creditCheckAuth are visible in Quick mode because the
+    // talk-track sidebar's `tcpa-consent` and `credit-pull` prompts both ask
+    // the agent to capture these on the call — keeping them in Full-only made
+    // the prompts unactionable until the agent switched modes.
+    { id: 'iv2-tcpaConsent',     path: 'household.tcpaConsent',   label: 'TCPA consent obtained', type: 'checkbox', section: 'quick', mode: 'quick' },
+    { id: 'iv2-creditCheckAuth', path: 'household.creditCheckAuth', label: 'Credit pull authorized', type: 'checkbox', section: 'quick', mode: 'quick' },
 
     // ── Coverage section (universal coverages — per-product details live in collection fields) ──
     { id: 'iv2-priorContinuous',       path: 'priorInsurance.continuous',       label: 'Continuous Coverage', type: 'select', options: ['', 'Yes', 'No'], section: 'coverage', mode: 'quick' },

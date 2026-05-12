@@ -69,10 +69,15 @@ const RULES = [
     },
     {
         id: 'boat-photos-old',
+        // The two `some()`s used to be separate, which let the rule fire when
+        // boat A was old/valuable AND boat B was missing photos — wrong target.
+        // Both conditions must hold for the SAME boat.
         when: (d) => d.boats.some(b => {
             const age = b.year ? (new Date().getFullYear() - Number(b.year)) : 0;
-            return age > 30 && Number(b.marketValue) > 30000;
-        }) && d.boats.some(b => !b.docs?.photos),
+            return age > 30
+                && Number(b.marketValue) > 30000
+                && !(b.docs && b.docs.photos);
+        }),
         render: () => `Travelers requires bilge / running gear / engine / exterior photos for boats > 30 yrs valued > $30k.`,
     },
     {
@@ -86,7 +91,13 @@ const RULES = [
     // ── RV-specific prompts ───────────────────────────────────────────────
     {
         id: 'rv-fulltimer',
-        when: (d) => d.rvs.length > 0 && d.rvs.some(r => !('fullTimer' in r)),
+        // Old check `!('fullTimer' in r)` literally never fired — the default
+        // RV always has `fullTimer: false`, so `in` is always true. Now fires
+        // when an RV is partially-filled (year present) but the agent hasn't
+        // checked the full-timer box. Retires once `fullTimer === true` OR
+        // once the agent has finished entering the RV (year + length both set
+        // and full-timer = false, meaning they answered "no" implicitly).
+        when: (d) => d.rvs.some(r => r.year && !r.length && !r.fullTimer),
         render: () => `Ask about full-time use. ${quote("Do you live in this RV full-time, even part of the year?")} — drives rate significantly.`,
     },
     {

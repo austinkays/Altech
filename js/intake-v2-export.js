@@ -348,6 +348,16 @@ function withLegacyShape(fn) {
 
 function exportCMSMTF() {
     try {
+        // Mirror the EZLynx guard: HawkSoft CMSMTF supports Home / Auto only.
+        const d = window.IntakeV2.data;
+        const hasHome = Array.isArray(d.homes) && d.homes.length > 0;
+        const hasAuto = Array.isArray(d.autos) && d.autos.length > 0;
+        if (!hasHome && !hasAuto) {
+            if (window.App && window.App.toast) {
+                window.App.toast('HawkSoft CMSMTF supports Home / Auto only — add at least one to use this export', { type: 'info', duration: 4000 });
+            }
+            return;
+        }
         const result = withLegacyShape((App) => App.buildCMSMTF(App.data));
         if (window.App && typeof window.App.downloadFile === 'function') {
             window.App.downloadFile(result.content, result.filename, result.mime);
@@ -362,16 +372,26 @@ function exportCMSMTF() {
 
 function exportEZLynxXML() {
     try {
+        // Refuse if there's nothing to export — the review-section button is
+        // already disabled in this case, but CommandPalette + programmatic
+        // callers bypass that check. Avoids emitting an empty home XML for a
+        // boat- or RV-only quote.
+        const d = window.IntakeV2.data;
+        const hasHome = Array.isArray(d.homes) && d.homes.length > 0;
+        const hasAuto = Array.isArray(d.autos) && d.autos.length > 0;
+        if (!hasHome && !hasAuto) {
+            if (window.App && window.App.toast) {
+                window.App.toast('EZLynx XML supports Home / Auto only — add at least one to use this export', { type: 'info', duration: 4000 });
+            }
+            return;
+        }
         // App.buildEZLynxXML returns { content, filename, mime } for the auto line.
         // App.buildEZLynxHomeXML returns the same shape for the home line.
         // We download whichever lines are populated.
         const results = withLegacyShape((App) => {
             const out = [];
-            const qType = (App.data && App.data.qType) || 'both';
-            const incAuto = qType === 'auto' || qType === 'both';
-            const incHome = qType === 'home' || qType === 'both';
-            if (incAuto && typeof App.buildEZLynxXML === 'function')      out.push(App.buildEZLynxXML());
-            if (incHome && typeof App.buildEZLynxHomeXML === 'function')  out.push(App.buildEZLynxHomeXML());
+            if (hasAuto && typeof App.buildEZLynxXML === 'function')      out.push(App.buildEZLynxXML());
+            if (hasHome && typeof App.buildEZLynxHomeXML === 'function')  out.push(App.buildEZLynxHomeXML());
             if (!out.length) throw new Error('No EZLynx builder available on App');
             return out;
         });

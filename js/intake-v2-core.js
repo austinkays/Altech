@@ -178,6 +178,23 @@
             const base = this.defaultData();
             const merged = deepMergeDefaults(base, data || {});
             merged._schemaVersion = this.SCHEMA_VERSION;
+
+            // Backfill missing ids on collection items. Loaded data, imports,
+            // or older snapshots may have items with `id: ''` (the default)
+            // or no id at all — without one, getItem/removeItem/chip-link
+            // lookups all fail silently because every comparison is to `id`.
+            const idPrefix = (k) => k === 'operators' ? 'op'
+                : k === 'homes' ? 'home'
+                : k === 'autos' ? 'auto'
+                : k === 'boats' ? 'boat'
+                : k === 'rvs'   ? 'rv'   : 'item';
+            ['operators','homes','autos','boats','rvs'].forEach(k => {
+                if (!Array.isArray(merged[k])) return;
+                merged[k].forEach(item => {
+                    if (!item || typeof item !== 'object') return;
+                    if (!item.id) item.id = newId(idPrefix(k));
+                });
+            });
             return merged;
         },
 
@@ -244,11 +261,18 @@
             }
         },
 
-        // Ring buffer of last 5 field writes for the right-rail peek
+        // Ring buffer of last 5 field writes for the right-rail peek.
+        // Dedupes consecutive writes to the same path so typing "John" shows
+        // up as one entry, not four keystrokes monopolizing the buffer.
         _pushLastEntry(entry) {
             this.lastEntries = this.lastEntries || [];
-            this.lastEntries.unshift({ ...entry, at: Date.now() });
-            this.lastEntries = this.lastEntries.slice(0, 5);
+            const head = this.lastEntries[0];
+            if (head && head.path === entry.path) {
+                this.lastEntries[0] = { ...entry, at: Date.now() };
+            } else {
+                this.lastEntries.unshift({ ...entry, at: Date.now() });
+                this.lastEntries = this.lastEntries.slice(0, 5);
+            }
         },
 
         // Renderers register themselves so requestRerender() can fan out.
@@ -284,12 +308,14 @@
         removeItem(collKey, itemId) {
             const arr = this.data[collKey] || [];
             this.data[collKey] = arr.filter(x => x.id !== itemId);
+
             // Defense in depth: when an operator is removed, sever every
-            // product link pointing at them so no auto/boat/RV ends up with
-            // a dangling primaryOperatorId. The UI in operators.js already
-            // does this with a confirm dialog before calling removeItem;
-            // this guard catches any other caller (command palette, tests,
-            // imports) that goes straight through the model API.
+            // product link AND every history-row link pointing at them so no
+            // auto/boat/RV/loss/violation ends up referencing a ghost id. The
+            // UI in operators.js already does the auto/boat/RV unlink with a
+            // confirm dialog; this guard catches any other caller (command
+            // palette, tests, imports, scripted ops) that goes straight
+            // through the model API.
             if (collKey === 'operators') {
                 ['autos','boats','rvs'].forEach(coll => {
                     (this.data[coll] || []).forEach(item => {
@@ -299,7 +325,22 @@
                         }
                     });
                 });
+                // Also wipe operator references on loss/violation rows so
+                // the PDF doesn't dangle "Operator: (none)" entries.
+                if (this.data.history) {
+                    (this.data.history.losses || []).forEach(L => { if (L.operatorId === itemId) L.operatorId = ''; });
+                    (this.data.history.violations || []).forEach(V => { if (V.operatorId === itemId) V.operatorId = ''; });
+                }
             }
+
+            // Drop any deferred-field paths anchored to the removed item so
+            // the right-rail follow-up list doesn't show ghost entries that
+            // can't be jumped to (their target DOM no longer exists).
+            if (Array.isArray(this.data.deferred) && this.data.deferred.length) {
+                const prefix = `${collKey}#${itemId}.`;
+                this.data.deferred = this.data.deferred.filter(p => !p.startsWith(prefix));
+            }
+
             this.save();
             this.requestRerender();
         },
@@ -421,6 +462,11 @@
     function deepMergeDefaults(defaults, incoming) {
         if (incoming == null || typeof incoming !== 'object') return defaults;
         if (Array.isArray(defaults)) return Array.isArray(incoming) ? incoming : defaults;
+        // Type-shape guard: if defaults expects an object but incoming is an
+        // array (or vice versa, handled above), the shapes are incompatible —
+        // fall back to defaults rather than treating the array's numeric
+        // indices as object keys. Catches corrupt cloud-pulls cleanly.
+        if (Array.isArray(incoming)) return defaults;
         const out = {};
         const keys = new Set([...Object.keys(defaults), ...Object.keys(incoming)]);
         for (const k of keys) {
@@ -436,6 +482,18 @@
         return out;
     }
     window.IntakeV2._deepMerge = deepMergeDefaults;
+
+    // Set of scalar paths whose value is mirrored onto the primary/co-applicant
+    // operator by syncApplicantOperators(). Used by the delegation listener to
+    // avoid re-rendering the operator pool on every keystroke in non-synced
+    // fields (phone, email, ssn, prefix, suffix).
+    const OP_SYNC_FIELDS = ['firstName','middleName','lastName','dob','gender','maritalStatus','occupation','industry','education'];
+    const OP_SYNC_PATHS = new Set([
+        ...OP_SYNC_FIELDS.map(k => `applicant.${k}`),
+        ...OP_SYNC_FIELDS.map(k => `coApplicant.${k}`),
+        'coApplicant.present',
+        'coApplicant.relationship',
+    ]);
 
     // ─── Boot hook: install global delegation listener for scalar fields ──
     window.IntakeV2.onBoot(function () {
@@ -458,15 +516,16 @@
             // Scalar (no `#` in path) vs collection (`coll#id.field`)
             if (path.indexOf('#') === -1) {
                 this.setField(path, value);
-                if (path.startsWith('applicant.') || path.startsWith('coApplicant.')) {
+                // Only the applicant/co-applicant fields that syncApplicantOperators()
+                // actually copies need a resync — everything else (phone, email, ssn,
+                // prefix, suffix) doesn't propagate to the operator, so re-rendering
+                // the operator pool on every keystroke there was wasted DOM work.
+                if (OP_SYNC_PATHS.has(path)) {
                     this.syncApplicantOperators();
                     this.requestRerender('operators');
                 }
+                // Co-applicant toggle also expands/collapses the Quick Start cluster.
                 if (path === 'coApplicant.present') {
-                    this.syncApplicantOperators();
-                    this.requestRerender('operators');
-                    // Re-render the Quick Start section so the co-applicant
-                    // cluster expands/collapses to match the new toggle state.
                     this.requestRerender('layout');
                 }
             } else {
