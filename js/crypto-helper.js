@@ -85,8 +85,22 @@ const CryptoHelper = (() => {
     }
 
     // ─── Byte helpers ─────────────────────────────────────────────────────────
+    // Chunked to avoid `Maximum call stack size exceeded` — `fromCharCode(...
+    // bytes)` spreads the entire array as arguments, and JS engines cap that
+    // at ~64-128k. Encrypted SecureStorage payloads (e.g. a fat currentForm
+    // with many quotes) routinely exceed that and were crashing the migrate
+    // path at boot. 32 KB chunks are well below every engine's spread limit.
     function _bytesToBase64(bytes) {
-        return btoa(String.fromCharCode(...bytes));
+        const CHUNK = 0x8000;
+        const view = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+        if (view.length <= CHUNK) {
+            return btoa(String.fromCharCode.apply(null, view));
+        }
+        let s = '';
+        for (let i = 0; i < view.length; i += CHUNK) {
+            s += String.fromCharCode.apply(null, view.subarray(i, i + CHUNK));
+        }
+        return btoa(s);
     }
     function _base64ToBytes(b64) {
         return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -462,7 +476,14 @@ const CryptoHelper = (() => {
                     const isNotBase64 = firstErr
                         && (firstErr.name === 'InvalidCharacterError'
                             || /atob/i.test(String(firstErr.message || '')));
-                    if (!isNotBase64) {
+                    // OperationError is the AES-GCM auth-tag failure that fires
+                    // when the wrong key tries to decrypt valid ciphertext —
+                    // typical when the v2 vault is locked at boot and a probe
+                    // tries to decrypt v2-encrypted SecureStorage entries with
+                    // the v1 device-bound key. Same "wrong key, not corruption"
+                    // semantics as InvalidCharacterError above; demote to debug.
+                    const isWrongKey = firstErr && firstErr.name === 'OperationError';
+                    if (!isNotBase64 && !isWrongKey) {
                         console.error('Decryption failed:', firstErr);
                     } else {
                         // Keep a verbose breadcrumb available without spamming

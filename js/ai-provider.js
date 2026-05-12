@@ -18,7 +18,18 @@ window.AIProvider = (() => {
     // ── Crypto helpers (AES-GCM key encryption) ──────────────────
 
     function _buf2b64(buf) {
-        return btoa(String.fromCharCode(...new Uint8Array(buf)));
+        // Chunked spread to avoid `Maximum call stack size exceeded` on
+        // large buffers — see crypto-helper.js#_bytesToBase64 for the same
+        // fix. AI keys are tiny in practice, but the helper is reused for
+        // wrapped-key envelopes that can carry larger payloads.
+        const view = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+        const CHUNK = 0x8000;
+        if (view.length <= CHUNK) return btoa(String.fromCharCode.apply(null, view));
+        let s = '';
+        for (let i = 0; i < view.length; i += CHUNK) {
+            s += String.fromCharCode.apply(null, view.subarray(i, i + CHUNK));
+        }
+        return btoa(s);
     }
     function _b642buf(b64) {
         return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
