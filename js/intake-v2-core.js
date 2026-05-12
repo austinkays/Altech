@@ -284,6 +284,22 @@
         removeItem(collKey, itemId) {
             const arr = this.data[collKey] || [];
             this.data[collKey] = arr.filter(x => x.id !== itemId);
+            // Defense in depth: when an operator is removed, sever every
+            // product link pointing at them so no auto/boat/RV ends up with
+            // a dangling primaryOperatorId. The UI in operators.js already
+            // does this with a confirm dialog before calling removeItem;
+            // this guard catches any other caller (command palette, tests,
+            // imports) that goes straight through the model API.
+            if (collKey === 'operators') {
+                ['autos','boats','rvs'].forEach(coll => {
+                    (this.data[coll] || []).forEach(item => {
+                        if (item.primaryOperatorId === itemId) item.primaryOperatorId = '';
+                        if (Array.isArray(item.additionalOperatorIds)) {
+                            item.additionalOperatorIds = item.additionalOperatorIds.filter(id => id !== itemId);
+                        }
+                    });
+                });
+            }
             this.save();
             this.requestRerender();
         },
@@ -294,6 +310,9 @@
             const item = this.getItem(collKey, itemId);
             if (!item) return;
             setByPath(item, path, value);
+            // Mirror setField — surface the write in the right-rail
+            // "last entries" peek so the agent can verify mid-call.
+            this._pushLastEntry({ path: `${collKey}#${itemId}.${path}`, value });
             this.scheduleSave();
         },
         setField(path, value, opts) {
@@ -446,6 +465,9 @@
                 if (path === 'coApplicant.present') {
                     this.syncApplicantOperators();
                     this.requestRerender('operators');
+                    // Re-render the Quick Start section so the co-applicant
+                    // cluster expands/collapses to match the new toggle state.
+                    this.requestRerender('layout');
                 }
             } else {
                 const [collKey, rest] = path.split('#');

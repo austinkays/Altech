@@ -24,10 +24,15 @@ function renderQuickSection() {
     const fields = window.IntakeV2Fields && window.IntakeV2Fields.scalar;
     if (!fields) return;
 
-    // Group "quick" section fields by their natural cluster.
+    const coPresent = !!(window.IntakeV2.data && window.IntakeV2.data.coApplicant && window.IntakeV2.data.coApplicant.present);
+
+    // Group "quick" section fields by their natural cluster. The Co-Applicant
+    // cluster always renders its toggle; the rest of its fields only render
+    // when the toggle is on so the form doesn't show empty co-app inputs.
+    const coFullPaths = ['coApplicant.relationship','coApplicant.firstName','coApplicant.lastName','coApplicant.dob','coApplicant.gender','coApplicant.maritalStatus','coApplicant.phone','coApplicant.email','coApplicant.occupation','coApplicant.industry','coApplicant.education'];
     const clusters = [
         { title: 'About the Applicant',    paths: ['applicant.prefix','applicant.firstName','applicant.middleName','applicant.lastName','applicant.suffix','applicant.dob','applicant.ssn','applicant.gender','applicant.maritalStatus','applicant.phone','applicant.email','applicant.occupation','applicant.industry','applicant.education'] },
-        { title: 'Co-Applicant',           paths: ['coApplicant.present','coApplicant.relationship','coApplicant.firstName','coApplicant.lastName','coApplicant.dob','coApplicant.gender','coApplicant.maritalStatus','coApplicant.phone','coApplicant.email','coApplicant.occupation','coApplicant.industry','coApplicant.education'] },
+        { title: 'Co-Applicant',           paths: ['coApplicant.present', ...(coPresent ? coFullPaths : [])] },
         { title: 'Mailing Address',        paths: ['address.street','address.city','address.state','address.zip','address.county','address.yearsAt','address.previous.street','address.previous.city','address.previous.state','address.previous.zip'] },
         { title: 'Household Preferences',  paths: ['household.homeownership','household.contactMethod','household.contactTime','household.referralSource','household.tcpaConsent','household.creditCheckAuth'] },
     ];

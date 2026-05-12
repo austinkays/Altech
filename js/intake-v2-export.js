@@ -389,8 +389,13 @@ function exportEZLynxXML() {
     }
 }
 
-// Save current draft as a v2 quote in the quote library
-function saveAsQuote() {
+// Save current draft as a v2 quote in the quote library.
+//
+// CryptoHelper.encrypt / decrypt return Promises (AES-GCM via crypto.subtle).
+// Earlier this function called them synchronously and then JSON.parse'd the
+// Promise, which threw and silently reset the list to [] — corrupting every
+// previously-saved quote on every save. Now properly async with await.
+async function saveAsQuote() {
     try {
         const key = window.STORAGE_KEYS && window.STORAGE_KEYS.INTAKE_V2_QUOTES;
         if (!key) return;
@@ -398,11 +403,27 @@ function saveAsQuote() {
         let list = [];
         if (existingRaw) {
             try {
-                const decrypted = window.CryptoHelper && window.CryptoHelper.decrypt
-                    ? window.CryptoHelper.decrypt(existingRaw)
-                    : existingRaw;
-                list = JSON.parse(decrypted) || [];
-            } catch (_) { list = []; }
+                let plain = existingRaw;
+                if (window.CryptoHelper && typeof window.CryptoHelper.decrypt === 'function') {
+                    const r = window.CryptoHelper.decrypt(existingRaw);
+                    plain = (r && typeof r.then === 'function') ? await r : r;
+                }
+                if (plain) {
+                    const parsed = typeof plain === 'string' ? JSON.parse(plain) : plain;
+                    if (Array.isArray(parsed)) list = parsed;
+                }
+            } catch (err) {
+                // Don't clobber an unreadable library — surface to the user.
+                if (window.App && window.App.toast) {
+                    window.App.toast('Existing quote library could not be read — refusing to overwrite', { type: 'error' });
+                }
+                if (window.ActivityLog) {
+                    window.ActivityLog.add({ type: 'error', area: 'intake-v2', ok: false,
+                        message: 'Quote library decrypt failed; save aborted',
+                        detail: String(err && err.message || err) });
+                }
+                return;
+            }
         }
         const snapshot = JSON.parse(JSON.stringify(window.IntakeV2.data));
         snapshot.meta = snapshot.meta || {};
@@ -412,15 +433,21 @@ function saveAsQuote() {
         list = list.filter(q => q.meta && q.meta.quoteId !== snapshot.meta.quoteId);
         list.unshift(snapshot);
         const payload = JSON.stringify(list);
-        const stored = window.CryptoHelper && window.CryptoHelper.encrypt
-            ? window.CryptoHelper.encrypt(payload)
-            : payload;
+        let stored = payload;
+        if (window.CryptoHelper && typeof window.CryptoHelper.encrypt === 'function') {
+            try {
+                const r = window.CryptoHelper.encrypt(payload);
+                const out = (r && typeof r.then === 'function') ? await r : r;
+                if (typeof out === 'string' && out.length) stored = out;
+            } catch (_) { /* fall back to plaintext */ }
+        }
         localStorage.setItem(key, stored);
         if (window.Sync && typeof window.Sync.schedulePush === 'function') window.Sync.schedulePush();
         if (window.App && window.App.toast) window.App.toast('Quote saved to library', { type: 'success' });
         if (window.ActivityLog) window.ActivityLog.add({ type: 'save', area: 'intake-v2', ok: true, message: 'Quote saved to library' });
     } catch (err) {
         if (window.App && window.App.toast) window.App.toast('Save quote failed: ' + (err && err.message || err), { type: 'error' });
+        if (window.ActivityLog) window.ActivityLog.add({ type: 'error', area: 'intake-v2', ok: false, message: 'Save quote failed', detail: String(err && err.message || err) });
     }
 }
 

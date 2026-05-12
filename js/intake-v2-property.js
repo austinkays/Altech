@@ -62,37 +62,96 @@ async function tryPrefill(homeId) {
         if (window.App && window.App.toast) window.App.toast('Enter the property address first', { type: 'info' });
         return;
     }
-    // Use existing App.rentcastLookup if available — it returns a unified result.
-    if (window.App && typeof window.App.rentcastLookup === 'function') {
-        try {
-            if (window.App.toast) window.App.toast('Looking up property…', { type: 'info', duration: 1500 });
-            const data = await window.App.rentcastLookup(home.address);
-            if (data) applyPrefill(home, data);
-        } catch (err) {
+    // Call the property-intelligence endpoint directly — Rentcast + Gemini
+    // fallback. `Auth.apiFetch` adds the bearer token; fall back to fetch().
+    if (window.App && window.App.toast) window.App.toast('Looking up property…', { type: 'info', duration: 1500 });
+    try {
+        const body = JSON.stringify({ address: home.address });
+        const init = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body };
+        const doFetch = (window.Auth && typeof window.Auth.apiFetch === 'function')
+            ? window.Auth.apiFetch.bind(window.Auth)
+            : window.fetch.bind(window);
+        const resp = await doFetch('/api/property-intelligence?mode=zillow', init);
+        if (!resp || !resp.ok) {
             if (window.App && window.App.toast) window.App.toast('Property lookup failed', { type: 'error' });
-            // eslint-disable-next-line no-console
-            console.warn('rentcastLookup failed:', err);
+            return;
         }
-    } else if (window.App && window.App.toast) {
-        window.App.toast('Property lookup not available — fill manually', { type: 'info' });
+        const data = await resp.json();
+        applyPrefill(home, data);
+    } catch (err) {
+        if (window.App && window.App.toast) window.App.toast('Property lookup failed', { type: 'error' });
+        // eslint-disable-next-line no-console
+        console.warn('property lookup failed:', err);
     }
 }
 
-function applyPrefill(home, data) {
-    const map = {
-        yearBuilt: 'yrBuilt',
-        squareFootage: 'sqFt',
-        lotSize: 'lotSize',
-        propertyType: 'dwellingType',
-        bedrooms: 'bedrooms',
-        bathrooms: 'fullBaths',
-        county: null, // handled separately if present
-    };
-    Object.entries(map).forEach(([from, to]) => {
-        if (data[from] != null && data[from] !== '' && to) {
-            window.IntakeV2._setByPath(home, to, data[from]);
+// Rentcast / Gemini returns fields under a few different shapes (top-level,
+// or nested under `result` / `rentcast`). Pull from whichever shape arrived.
+function pickField(data, names) {
+    if (!data || typeof data !== 'object') return null;
+    const sources = [data, data.result, data.rentcast, data.unified].filter(Boolean);
+    for (const src of sources) {
+        for (const n of names) {
+            const v = src[n];
+            if (v != null && v !== '') {
+                // Some Gemini paths return { value, source } per field.
+                if (typeof v === 'object' && 'value' in v) return v.value;
+                return v;
+            }
         }
-    });
+    }
+    return null;
+}
+
+const DWELLING_NORMALIZE = {
+    'single family':       'One Family',
+    'single-family':       'One Family',
+    'sfr':                 'One Family',
+    'duplex':              'Two Family',
+    'triplex':             'Three Family',
+    'fourplex':            'Four Family',
+    'condo':               'Condo',
+    'condominium':         'Condo',
+    'townhouse':           'Townhouse',
+    'townhome':            'Townhouse',
+    'manufactured':        'Manufactured',
+    'mobile':              'Manufactured',
+};
+
+function applyPrefill(home, data) {
+    const get = (...names) => pickField(data, names);
+
+    const yearBuilt = get('yearBuilt', 'yr_built', 'year_built');
+    const sqFt      = get('squareFootage', 'sqft', 'sqFt', 'square_footage', 'building_area');
+    const lotSize   = get('lotSize', 'lot_size', 'lotSizeAcres');
+    const beds      = get('bedrooms', 'beds', 'num_bedrooms');
+    const baths     = get('bathrooms', 'fullBaths', 'baths', 'num_bathrooms');
+    const dwelling  = get('propertyType', 'dwelling_type', 'property_type');
+    const county    = get('county');
+
+    if (yearBuilt) home.yrBuilt = String(yearBuilt);
+    if (sqFt)      home.sqFt    = String(sqFt);
+    if (lotSize)   home.lotSize = String(lotSize);
+    if (beds && !home.bedrooms)  home.bedrooms  = String(beds);
+    if (baths) {
+        const n = Number(baths);
+        if (Number.isFinite(n)) {
+            const full = Math.floor(n);
+            const half = (n - full) >= 0.5 ? 1 : 0;
+            if (!home.fullBaths) home.fullBaths = String(full);
+            if (!home.halfBaths && half) home.halfBaths = String(half);
+        }
+    }
+    if (dwelling) {
+        const norm = DWELLING_NORMALIZE[String(dwelling).toLowerCase().trim()] || dwelling;
+        home.dwellingType = norm;
+    }
+    if (county) {
+        const c = String(county).replace(/\s+County$/i, '').trim();
+        // County lives on address, not home — also store there if empty.
+        if (!window.IntakeV2.data.address.county) window.IntakeV2.data.address.county = c;
+    }
+
     window.IntakeV2.save();
     window.IntakeV2.requestRerender();
     if (window.App && window.App.toast) window.App.toast('Property details filled', { type: 'success' });
