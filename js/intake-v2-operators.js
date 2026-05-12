@@ -70,18 +70,25 @@ function renderField(item, collKey, f) {
     const lockSelAttr = isSynced ? ' disabled title="Synced with the Quick Start block — edit it there"' : '';
     const lockStyle = isSynced ? ' style="opacity:0.65; cursor:not-allowed;"' : '';
 
+    // data-field-wrap matches the format used elsewhere
+    // (`${collKey}#${itemId}.${path}`) so the defer system's primary
+    // [data-field-wrap] selector picks up operator fields too — without it,
+    // operator-card fields only got deferred styling via a redundant
+    // second-pass selector in defer.js.
+    const wrapAttr = ` data-field-wrap="operators#${escAttr(item.id)}.${escAttr(f.path)}"`;
+
     let control;
     if (f.type === 'select') {
         const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}" ${String(v ?? '') === String(opt) ? 'selected' : ''}>${esc(opt || '—')}</option>`).join('');
         control = `<select id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle}>${opts}</select>`;
     } else if (f.type === 'checkbox') {
-        return `<div class="iv2-field${fullClass}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle} ${v ? 'checked' : ''}> ${esc(f.label)}</label></div>`;
+        return `<div class="iv2-field${fullClass}"${wrapAttr}><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle} ${v ? 'checked' : ''}> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(elId)}"${dataAttrs}${lockAttr}${lockStyle} rows="2">${esc(v ?? '')}</textarea>`;
     } else {
         control = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs}${lockAttr}${lockStyle} value="${escAttr(v ?? '')}">`;
     }
-    return `<div class="iv2-field${fullClass}">
+    return `<div class="iv2-field${fullClass}"${wrapAttr}>
         <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind a carrier">✦</span>' : ''}${isSynced ? ' <span style="font-size:10px; color:var(--text-secondary)">🔒</span>' : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>

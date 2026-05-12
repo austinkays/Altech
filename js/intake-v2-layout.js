@@ -83,15 +83,22 @@ function renderTopbarStatus() {
             : `${info.label}: missing ${info.missing.length} field(s)\n` + info.missing.slice(0, 6).map(m => '• ' + m.label + (m.itemLabel ? ` — ${m.itemLabel}` : '')).join('\n') + (info.missing.length > 6 ? `\n…and ${info.missing.length - 6} more` : '');
     }
 
-    // Save status pill
+    // Save status pill — accurate message per failure mode. The old text
+    // claimed "Save failed — retrying" but no retry mechanism existed.
     const status = document.getElementById('iv2SaveStatus');
     if (status) {
-        if (window.IntakeV2._lastSaveOk === false) {
-            status.textContent = 'Save failed — retrying';
+        if (window.IntakeV2._lastSaveLocked) {
+            status.textContent = 'Vault locked — unlock to save';
             status.className = 'iv2-save-status is-error';
+            status.title = 'Your encrypted vault is locked. Saves are refused until you enter your passphrase. Click the vault icon in the top right to unlock.';
+        } else if (window.IntakeV2._lastSaveOk === false) {
+            status.textContent = 'Save failed';
+            status.className = 'iv2-save-status is-error';
+            status.title = 'Most recent save failed — the next keystroke will retry. Check console for details.';
         } else {
             status.textContent = 'Saved';
             status.className   = 'iv2-save-status';
+            status.title = '';
         }
     }
 }

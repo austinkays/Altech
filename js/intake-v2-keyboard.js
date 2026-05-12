@@ -114,7 +114,12 @@ function showHelp() {
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
     overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-    overlay.querySelector('#iv2HelpClose').addEventListener('click', close);
+    const closeBtn = overlay.querySelector('#iv2HelpClose');
+    closeBtn.addEventListener('click', close);
+    // Auto-focus so keyboard users can immediately dismiss with Enter or Tab.
+    // Without this, focus stayed on whatever was active before opening — Tab
+    // would walk into the unrelated background page rather than the overlay.
+    closeBtn.focus();
 }
 
 function onKey(e) {

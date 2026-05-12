@@ -86,15 +86,24 @@
 
     // ─── Storage I/O ───────────────────────────────────────────────────────
     // CryptoHelper.encrypt/decrypt are async (return Promises) — we await
-    // them. When unavailable or when they fail, we fall back to plaintext
-    // JSON so the form is never blocked by a crypto failure.
+    // them. When unavailable, we fall back to plaintext JSON so the form
+    // works in environments without crypto.subtle (JSDOM tests). When the
+    // v2 vault is *locked* (passphrase enrolled but not entered), encrypt
+    // throws CRYPTO_LOCKED — we propagate that to save() so we refuse the
+    // write rather than silently writing plaintext (which would defeat the
+    // user's locking of the vault).
     async function encryptOrPassthrough(plain) {
         if (window.CryptoHelper && typeof window.CryptoHelper.encrypt === 'function') {
             try {
                 const r = window.CryptoHelper.encrypt(plain);
                 const out = (r && typeof r.then === 'function') ? await r : r;
                 if (typeof out === 'string' && out.length) return out;
-            } catch (_) { /* fall back */ }
+            } catch (err) {
+                if (err && typeof err.message === 'string' && err.message.startsWith('CRYPTO_LOCKED')) {
+                    throw err;  // propagate — save() catches and refuses
+                }
+                /* other errors (e.g. crypto.subtle missing): fall back */
+            }
         }
         return plain;
     }
@@ -139,6 +148,7 @@
                 localStorage.setItem(this.STORAGE_KEY, stored);
 
                 this._lastSaveOk = true;
+                this._lastSaveLocked = false;
                 this._saveToken++;
 
                 if (window.ActivityLog && !opts.silent) {
@@ -155,11 +165,13 @@
                 return true;
             } catch (err) {
                 this._lastSaveOk = false;
+                const isLocked = err && typeof err.message === 'string' && err.message.startsWith('CRYPTO_LOCKED');
+                this._lastSaveLocked = !!isLocked;
                 if (window.ActivityLog) {
                     window.ActivityLog.add({
                         type: 'error', area: 'intake-v2', ok: false,
-                        message: 'Intake v2 save failed',
-                        detail: String(err && err.message || err),
+                        message: isLocked ? 'Intake v2 save refused: vault is locked' : 'Intake v2 save failed',
+                        detail: isLocked ? 'Unlock the vault to resume saving' : String(err && err.message || err),
                     });
                 }
                 // eslint-disable-next-line no-console
