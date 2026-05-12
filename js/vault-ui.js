@@ -217,8 +217,72 @@
     }
 
     // ─── 2. Unlock ────────────────────────────────────────────────────────────
+    // Track when the user just cancelled a biometric prompt so we don't
+    // immediately re-trigger it on subsequent modal opens (which would be
+    // an annoying loop if the OS prompt was dismissed).
+    let _lastBiometricCancelAt = 0;
+    const BIOMETRIC_REPROMPT_COOLDOWN_MS = 30000;
+
     async function openUnlock() {
         _showModal('#vaultUnlockModal');
+
+        // Show the biometric button + auto-prompt only when WebAuthn is
+        // available AND the user has registered ≥1 credential on this device.
+        const row   = _q('#vaultUnlockBiometricRow');
+        const btn   = _q('#vaultUnlockBiometricBtn');
+        const label = _q('#vaultUnlockBiometricLabel');
+        const bio = window.BiometricUnlock;
+        const hasBio = bio && bio.isAvailable() && bio.hasAny();
+
+        if (row) row.style.display = hasBio ? 'block' : 'none';
+
+        if (hasBio) {
+            // Use the most recently-added credential's label as the button
+            // text (e.g. "Unlock with Touch ID (Mac)") for a friendlier prompt.
+            try {
+                const creds = bio.listCredentials();
+                if (creds.length && label) label.textContent = `Unlock with ${creds[creds.length - 1].label}`;
+            } catch (_) { /* default text already set */ }
+
+            // Auto-prompt on open unless we recently cancelled. The browser
+            // shows the OS-native UI (Touch ID prompt etc) without requiring
+            // an extra click, which is the whole point of "easier login".
+            const now = Date.now();
+            if (now - _lastBiometricCancelAt > BIOMETRIC_REPROMPT_COOLDOWN_MS) {
+                // Defer one tick so the modal is actually visible before the
+                // OS prompt appears on top of it.
+                setTimeout(() => { handleBiometricUnlock(); }, 50);
+            }
+        }
+    }
+
+    async function handleBiometricUnlock() {
+        _setError('#vaultUnlockModal', '');
+        const btn = _q('#vaultUnlockBiometricBtn');
+        if (btn) btn.disabled = true;
+        try {
+            const res = await window.BiometricUnlock.unlock();
+            if (!res.ok) {
+                _lastBiometricCancelAt = Date.now();
+                _setError('#vaultUnlockModal', res.reason || 'Biometric unlock failed.');
+                return;
+            }
+            _q('#vaultUnlockPass').value = '';
+            _hideModal('#vaultUnlockModal');
+            _toast('🔓 Vault unlocked', 'success');
+            if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            try {
+                if (typeof SecureStorage !== 'undefined' && SecureStorage.migrate) {
+                    SecureStorage.migrate().catch(() => {});
+                }
+            } catch { /* ignore */ }
+        } catch (err) {
+            _lastBiometricCancelAt = Date.now();
+            console.error('[Vault] Biometric unlock failed:', err);
+            _setError('#vaultUnlockModal', err.message || 'Biometric unlock failed.');
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     }
 
     async function handleUnlockSubmit(e) {
@@ -252,11 +316,62 @@
                     SecureStorage.migrate().catch(() => {});
                 }
             } catch { /* ignore */ }
+            // After a successful PASSPHRASE unlock, suggest setting up
+            // biometric so future unlocks don't need the passphrase. Only
+            // shown when WebAuthn is available AND no passkey is registered
+            // on this device yet.
+            _maybeOfferBiometricSetup();
         } catch (err) {
             console.error('[Vault] Unlock failed:', err);
             _setError('#vaultUnlockModal', err.message || 'Unable to unlock.');
         } finally {
             _setBusy('#vaultUnlockModal', false);
+        }
+    }
+
+    function _maybeOfferBiometricSetup() {
+        const bio = window.BiometricUnlock;
+        if (!bio || !bio.isAvailable() || bio.hasAny()) return;
+        // Show a single toast with a "Set up" link — non-blocking, the agent
+        // can ignore it. Reuses App.toast since it supports HTML + actions.
+        const msg = '🆔 Tap to set up biometric unlock — Touch ID, Face ID, or Windows Hello';
+        if (window.App && typeof window.App.toast === 'function') {
+            window.App.toast(msg, { type: 'info', duration: 8000 }, true);
+            // App.toast doesn't expose click callbacks, so we wire a one-shot
+            // listener on the most-recently-rendered toast element.
+            setTimeout(() => {
+                const toasts = document.querySelectorAll('.toast');
+                const last = toasts[toasts.length - 1];
+                if (last) {
+                    last.style.cursor = 'pointer';
+                    last.addEventListener('click', () => { registerBiometric(); }, { once: true });
+                }
+            }, 50);
+        }
+    }
+
+    // Public helper — also callable from the admin panel "Set up biometric"
+    // button. Vault must be unlocked. Prompts for an optional label, then
+    // creates a passkey via the native OS prompt.
+    async function registerBiometric(label) {
+        const bio = window.BiometricUnlock;
+        if (!bio || !bio.isAvailable()) {
+            _toast('Biometric not available in this browser.', 'error');
+            return false;
+        }
+        if (!CryptoHelper.isV2Unlocked()) {
+            _toast('Unlock the vault with your passphrase first, then add biometric.', 'error');
+            return false;
+        }
+        const finalLabel = label || prompt('Label for this passkey (e.g. "Office Mac", "iPhone Face ID"):', '') || '';
+        const res = await bio.register(finalLabel.trim() || undefined);
+        if (res.ok) {
+            _toast(`✅ Biometric added: ${res.label}`, 'success');
+            try { refreshSettingsRow(); } catch (_) {}
+            return true;
+        } else {
+            _toast(`Couldn't add biometric: ${res.reason}`, 'error');
+            return false;
         }
     }
 
@@ -444,6 +559,53 @@
             }
             row.querySelectorAll('[data-e2e-on]').forEach(el => el.style.display = 'block');
         }
+
+        _refreshBiometricRow();
+    }
+
+    function _refreshBiometricRow() {
+        const slot = _q('#vaultBiometricRow');
+        if (!slot) return; // Settings panel doesn't include the row yet — fine
+        const bio = window.BiometricUnlock;
+        if (!bio || !bio.isAvailable()) {
+            slot.innerHTML = `<div style="font-size:12px; color:var(--text-secondary)">Biometric unlock isn't supported in this browser.</div>`;
+            return;
+        }
+        const creds = bio.listCredentials();
+        const list = creds.length
+            ? creds.map(c => `
+                <div style="display:flex; align-items:center; justify-content:space-between; padding:6px 0; border-top:1px solid var(--border);">
+                    <div>
+                        <div style="font-weight:600; font-size:13px;">🆔 ${_escapeHtml(c.label)}</div>
+                        <div style="font-size:11px; color:var(--text-secondary);">Added ${new Date(c.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    <button type="button" class="vault-link" data-rm-cred="${_escapeAttr(c.credentialId)}" style="color:#B33A3A;">Remove</button>
+                </div>`).join('')
+            : `<div style="font-size:12px; color:var(--text-secondary); margin-bottom:6px;">No biometric unlock set up on this device yet.</div>`;
+        slot.innerHTML = `
+            <div style="margin-top:8px;">
+                <div style="font-size:13px; font-weight:600; margin-bottom:4px;">Biometric / passkey unlock</div>
+                ${list}
+                <button type="button" class="vault-link" id="vaultBiometricAdd" style="margin-top:6px;">+ Add ${creds.length ? 'another ' : ''}biometric / passkey</button>
+            </div>`;
+        const addBtn = slot.querySelector('#vaultBiometricAdd');
+        if (addBtn) addBtn.addEventListener('click', () => registerBiometric());
+        slot.querySelectorAll('[data-rm-cred]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-rm-cred');
+                if (!confirm('Remove this passkey? You\'ll need your passphrase to unlock from this device until you add a new one.')) return;
+                bio.removeCredential(id);
+                _refreshBiometricRow();
+                _toast('Passkey removed', 'info');
+            });
+        });
+    }
+
+    function _escapeHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    }
+    function _escapeAttr(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
     }
 
     // ─── Session-start unlock check ───────────────────────────────────────────
@@ -464,6 +626,8 @@
         cancelOnboarding,
         openUnlock,
         handleUnlockSubmit,
+        handleBiometricUnlock,
+        registerBiometric,
         openChange,
         handleChangeSubmit,
         openRecovery,

@@ -666,6 +666,10 @@
                                     <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.openRecovery()">Use recovery key</button>
                                     <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.disableE2E()" style="color:#FF453A">Turn off</button>
                                 </div>
+                                <!-- Biometric / passkey list — populated by VaultUI._refreshBiometricRow.
+                                     Each registered passkey shows a label + Remove button; trailing
+                                     "+ Add biometric / passkey" button kicks off WebAuthn registration. -->
+                                <div id="vaultBiometricRow" data-e2e-on style="display:none"></div>
                             </div>
                         </div>
                     </details>
@@ -937,7 +941,16 @@
         <div class="auth-modal">
             <div class="auth-modal-header">
                 <h3>🔒 Unlock Your Vault</h3>
-                <p class="auth-subtitle">Enter your passphrase to access encrypted data.</p>
+                <p class="auth-subtitle">Use Touch ID, Face ID, or Windows Hello — or enter your passphrase.</p>
+            </div>
+            <!-- Biometric button — shown only when ≥1 passkey is registered on this device.
+                 Auto-prompts on modal open via VaultUI.openUnlock() unless the user
+                 cancelled within the last 30s (avoids re-prompt loops). -->
+            <div id="vaultUnlockBiometricRow" style="display:none; margin-bottom:14px;">
+                <button type="button" id="vaultUnlockBiometricBtn" class="btn-auth btn-auth-primary" style="width:100%;" onclick="VaultUI.handleBiometricUnlock()">
+                    🆔 <span id="vaultUnlockBiometricLabel">Unlock with biometric</span>
+                </button>
+                <div style="text-align:center; margin:8px 0 0; font-size:11px; color:var(--text-secondary);">— or use your passphrase —</div>
             </div>
             <form class="auth-form" onsubmit="VaultUI.handleUnlockSubmit(event)">
                 <div class="auth-field">
@@ -1281,6 +1294,9 @@
 <script src="js/auth-mfa-ui.js"></script>
 <script src="js/sync-facade.js"></script>
 <script src="js/vault-meta.js"></script>
+<!-- Biometric / passkey unlock — loads before vault-ui so the unlock modal
+     can call into BiometricUnlock.unlock() / register() on user action. -->
+<script src="js/biometric-unlock.js"></script>
 <script src="js/vault-ui.js"></script>
 <script src="js/migration-backup.js"></script>
 <script src="js/migration-ui.js"></script>
