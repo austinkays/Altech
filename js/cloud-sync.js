@@ -22,18 +22,47 @@ const CloudSync = (() => {
     const SYNC_META_KEY = STORAGE_KEYS.SYNC_META; // localStorage key for sync metadata
 
     // ── Policy gate ──────────────────────────────────────────────────────────
-    // Agency policy: cloud sync is restricted to admin accounts until the
-    // Path B Phase 4 migration ships (end-to-end encrypted Supabase backend).
-    // Non-admin accounts stay local-only so plaintext client NPI never leaves
-    // the browser via Firestore. This gate cannot be overridden from the UI —
-    // `isAdmin` is a server-managed claim set in the user's Firestore profile.
+    // Agency policy: cloud sync is restricted to admin accounts. Supabase is
+    // the default backend as of Phase D, and its admin source of truth is the
+    // server-managed app_metadata.is_admin claim exposed via SupabaseAuth.isAdmin.
+    // Firebase fallback users keep using the legacy Auth.isAdmin value.
     //
-    // When Auth isn't loaded yet (during initial page boot), we conservatively
-    // return true (blocked) — the admin's own first sync will fire on the next
-    // debounce tick after their profile loads.
+    // When the active auth module isn't loaded yet (during initial page boot),
+    // we conservatively return true (blocked). Auth-change listeners refresh
+    // the UI once the session/JWT has hydrated.
+    function _activeBackend() {
+        try {
+            return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'firebase'
+                ? 'firebase'
+                : 'supabase';
+        } catch {
+            return 'supabase';
+        }
+    }
+
     function _policyBlocksSync() {
+        if (_activeBackend() === 'supabase') {
+            if (typeof SupabaseAuth === 'undefined') return true;
+            return SupabaseAuth.isAdmin !== true;
+        }
         if (typeof Auth === 'undefined') return true;
         return Auth.isAdmin !== true;
+    }
+
+    let _authRefreshWired = false;
+    function _wireAuthRefresh() {
+        if (_authRefreshWired) return;
+        if (typeof SupabaseAuth === 'undefined' || typeof SupabaseAuth.addAuthListener !== 'function') return;
+        _authRefreshWired = true;
+        SupabaseAuth.addAuthListener(() => _refreshSyncUI());
+    }
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _wireAuthRefresh, { once: true });
+        } else {
+            setTimeout(_wireAuthRefresh, 0);
+        }
     }
 
     // Single source of truth for all synced Firestore documents (excludes quotes, which use a subcollection).
@@ -721,7 +750,7 @@ const CloudSync = (() => {
         get disabledByUserOptOut() { return localStorage.getItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED) === 'true'; },
         get disabledByPolicy() { return _policyBlocksSync(); },
 
-        refreshUI() { _refreshSyncUI(); },
+        refreshUI() { _wireAuthRefresh(); _refreshSyncUI(); },
 
         setDisabled(disabled) {
             if (disabled) {
