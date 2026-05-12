@@ -5,11 +5,14 @@
 // on sign-in to unlock the vault.
 //
 // Two backends, picked at runtime:
-//   - Local (default): localStorage at STORAGE_KEYS.VAULT_LOCAL_META.
-//                      Single-device. Used when SYNC_BACKEND != 'supabase'
-//                      or when Supabase isn't reachable / user not signed in.
-//                      Also doubles as the offline read-through cache for
-//                      the Supabase path.
+//   - Local: localStorage at STORAGE_KEYS.VAULT_LOCAL_META.
+//            Single-device. Used when SYNC_BACKEND='firebase' is explicitly
+//            set, or when Supabase isn't reachable / user not signed in.
+//            Also doubles as the offline read-through cache for the
+//            Supabase path.
+//   - Supabase (Phase D default): public.user_crypto_meta. Used whenever
+//            SYNC_BACKEND is anything other than 'firebase' (including the
+//            common case of no flag set at all on a fresh install).
 //   - Supabase:        public.user_crypto_meta row keyed by auth.uid().
 //                      Cross-device unlock. Server holds wrapped MK + KDF
 //                      params; never sees the passphrase, recovery key, or
@@ -120,9 +123,16 @@ window.VaultMeta = (() => {
     }
 
     // ── Supabase reachability ──
+    // Phase D default: Supabase is the active backend unless the user has
+    // explicitly opted back to Firebase via SYNC_BACKEND='firebase'. The
+    // legacy `=== 'supabase'` check stranded fresh installs (no flag set) on
+    // local-only vault metadata — so the unlock modal would silently fail
+    // against absent/stale local meta and `CryptoHelper.isV2Unlocked()` would
+    // stay `false` even after the correct passphrase. Matches the same
+    // pattern in sync-facade, supabase-auth, supabase-sync, and cloud-sync.
     function _supabaseActive() {
-        try { if (localStorage.getItem(SYNC_BACKEND_KEY) !== 'supabase') return false; }
-        catch { return false; }
+        try { if (localStorage.getItem(SYNC_BACKEND_KEY) === 'firebase') return false; }
+        catch { /* fall through and trust Supabase presence */ }
         const sb = (typeof window !== 'undefined') ? window.Supabase : null;
         return !!(sb && sb.isReady && sb.client);
     }
