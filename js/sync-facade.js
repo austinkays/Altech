@@ -48,7 +48,7 @@
     }
 
     // Phase 3 MFA gate: on Supabase, block every push until the user has a
-    // verified TOTP factor. Opt-out users (CLOUD_SYNC_DISABLED=true) are
+    // verified MFA factor. Opt-out users (CLOUD_SYNC_DISABLED=true) are
     // exempt — SupabaseAuth.mfaRequired() already checks that and returns
     // false. Firebase path is untouched; it has no MFA requirement.
     function mfaBlocksSync() {

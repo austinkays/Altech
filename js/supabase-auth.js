@@ -2,14 +2,13 @@
  * js/supabase-auth.js — Path B Phase 3 Supabase Auth client.
  *
  * Mirrors the slice of js/auth.js that downstream code depends on, but
- * talks to Supabase Auth (email + password + TOTP MFA) instead of Firebase.
- * Dormant until localStorage[STORAGE_KEYS.SYNC_BACKEND] === 'supabase'; in
- * that mode it drives the login modal and enforces mandatory TOTP enrollment
- * for any account that has cloud sync enabled.
+ * talks to Supabase Auth (email + password + MFA factors) instead of Firebase.
+ * Supabase is the default auth backend unless SYNC_BACKEND is explicitly set
+ * to "firebase"; in Supabase mode it drives the login modal and enforces
+ * mandatory MFA enrollment for any account that has cloud sync enabled.
  *
- * The Firebase path stays the default and fully functional. Phase 4 is what
- * flips the SYNC_BACKEND flag and migrates real users — this module only
- * ships the auth primitives + MFA gate.
+ * The Firebase path remains available behind the explicit "firebase" backend
+ * flag while the app finishes moving to Supabase.
  *
  * Public surface (parallel to window.Auth):
  *   SupabaseAuth.init()                 — wires up the onAuthStateChange listener
@@ -25,7 +24,7 @@
  *   SupabaseAuth.mfaRequired            — true when cloud sync is on and no verified factor
  *   SupabaseAuth.recordMfaDismiss()     — bumps user_metadata.mfa_dismiss_count
  *
- * Admin / block flags live on user_metadata (is_admin, is_blocked). Writing
+ * Admin / block flags live on app_metadata (is_admin, is_blocked). Writing
  * them is done server-side only via api/admin-supabase.js using the
  * service-role key; this module only reads them.
  */
@@ -48,8 +47,8 @@ window.SupabaseAuth = (() => {
     setTimeout(() => { if (_authReadyResolve) { _authReadyResolve(null); _authReadyResolve = null; } }, 5000);
 
     function _enabled() {
-        try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) === 'supabase'; }
-        catch { return false; }
+        try { return localStorage.getItem(STORAGE_KEYS.SYNC_BACKEND) !== 'firebase'; }
+        catch { return true; }
     }
 
     function _client() {
@@ -71,10 +70,40 @@ window.SupabaseAuth = (() => {
         return (_user && _user.app_metadata) || {};
     }
 
-    function _hasVerifiedTotp() {
-        if (!_factors) return false;
-        const all = (_factors.totp || []).concat(_factors.all || []);
-        return all.some(f => f && f.factor_type === 'totp' && f.status === 'verified');
+    function _factorType(factor) {
+        return String((factor && (factor.factor_type || factor.type)) || '').toLowerCase();
+    }
+
+    function _factorList() {
+        if (!_factors) return [];
+        const out = [];
+        const seen = new Set();
+        Object.keys(_factors).forEach(key => {
+            const bucket = _factors[key];
+            if (!Array.isArray(bucket)) return;
+            bucket.forEach(factor => {
+                if (!factor) return;
+                const id = factor.id || `${_factorType(factor)}:${out.length}`;
+                if (seen.has(id)) return;
+                seen.add(id);
+                out.push(factor);
+            });
+        });
+        return out;
+    }
+
+    function _isWebAuthnFactor(factor) {
+        const type = _factorType(factor);
+        return type === 'webauthn' || type === 'passkey' || type === 'security_key';
+    }
+
+    function _hasVerifiedFactor(predicate) {
+        const factors = _factorList();
+        if (!Array.isArray(factors)) return false;
+        return factors.some(factor => {
+            if (!factor || factor.status !== 'verified') return false;
+            return typeof predicate === 'function' ? predicate(factor) : true;
+        });
     }
 
     async function _refreshFactors() {
@@ -104,7 +133,10 @@ window.SupabaseAuth = (() => {
         if (_authReadyResolve) { _authReadyResolve(_user); _authReadyResolve = null; }
 
         // Factor list depends on the signed-in user; refresh lazily.
-        _refreshFactors().then(() => {
+        const factorsReady = _user
+            ? _refreshFactors()
+            : Promise.resolve().then(() => { _factors = null; });
+        factorsReady.then(() => {
             // Block immediately if the server-side admin flipped is_blocked.
             if (_user && _meta().is_blocked === true) {
                 console.warn('[SupabaseAuth] User is blocked — signing out');
@@ -156,7 +188,16 @@ window.SupabaseAuth = (() => {
         if (!client) throw new Error('Supabase not initialized');
         const { data, error } = await client.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        // Session is delivered via onAuthStateChange, but return it for convenience.
+        // onAuthStateChange may arrive after the login modal checks
+        // mfaEnforcementLevel(), so hydrate immediately and refresh factors
+        // before returning to the caller.
+        if (data && data.session) {
+            _session = data.session;
+            _user = data.session.user || null;
+            if (_authReadyResolve) { _authReadyResolve(_user); _authReadyResolve = null; }
+            if (_user) await _refreshFactors();
+            else _factors = null;
+        }
         return data;
     }
 
@@ -174,6 +215,13 @@ window.SupabaseAuth = (() => {
         };
         const { data, error } = await client.auth.signUp(payload);
         if (error) throw error;
+        if (data && data.session) {
+            _session = data.session;
+            _user = data.session.user || null;
+            if (_authReadyResolve) { _authReadyResolve(_user); _authReadyResolve = null; }
+            if (_user) await _refreshFactors();
+            else _factors = null;
+        }
         return data;
     }
 
@@ -311,7 +359,13 @@ window.SupabaseAuth = (() => {
         }
         const friendlyName = opts.friendlyName || _defaultPasskeyName();
         const { data, error } = await wa.register({ friendlyName });
-        if (error) throw error;
+        if (error) {
+            await _refreshFactors();
+            if (_hasVerifiedFactor(_isWebAuthnFactor)) {
+                return { alreadyEnrolled: true };
+            }
+            throw error;
+        }
         // Refresh the factor cache so mfaRequired() / hasVerifiedFactor() flips
         // immediately. register() returns a session-bearing response, so the
         // factor is verified on land.
@@ -365,13 +419,15 @@ window.SupabaseAuth = (() => {
     }
 
     /**
-     * Returns whether the user must enroll a TOTP factor before cloud sync is
-     * allowed to run. Opt-out users (local-only) are exempt.
+     * Returns whether the user must enroll at least one verified MFA factor
+     * before cloud sync is allowed to run. Opt-out users (local-only) are
+     * exempt. Supabase listFactors() returns server-owned factor status, so a
+     * verified TOTP, phone, or WebAuthn factor satisfies the gate.
      */
     function mfaRequired() {
         if (!_user) return false;
         if (!_cloudSyncEnabled()) return false;
-        return !_hasVerifiedTotp();
+        return !_hasVerifiedFactor();
     }
 
     /**
@@ -474,6 +530,7 @@ window.SupabaseAuth = (() => {
         passkeySupported: _passkeySupported,
         mfaRequired,
         mfaEnforcementLevel,
+        hasVerifiedFactor: _hasVerifiedFactor,
         recordMfaDismiss,
 
         addAuthListener,

@@ -26,7 +26,7 @@ const syncFacadeSrc    = fs.readFileSync(path.join(ROOT, 'js', 'sync-facade.js')
 
 // ── Mock Supabase client ────────────────────────────────────────────────
 
-function createMockSupabase() {
+function createMockSupabase({ isAdmin = false } = {}) {
     const users = [];
     const factors = [];
     const challenges = [];
@@ -107,7 +107,10 @@ function createMockSupabase() {
             if (users.find(u => u.email === email)) return { data: null, error: { message: 'exists' } };
             const user = {
                 id: 'u_' + Math.random().toString(36).slice(2, 8),
-                email, password, app_metadata: {}, user_metadata: {},
+                email,
+                password,
+                app_metadata: { is_admin: !!isAdmin },
+                user_metadata: {},
             };
             users.push(user);
             session = _mkSession(user);
@@ -199,9 +202,9 @@ async function loadStack({ backend = 'supabase', cloudSyncDisabled = false, isAd
     global.window.localStorage = global.localStorage;
     global.fetch = jest.fn(async () => ({ ok: true, status: 200, async json() { return {}; } }));
 
-    // Mock Auth for the sync-facade policy gate. Default: admin=true so these
-    // MFA-focused tests verify the MFA gate in isolation. Tests that need to
-    // exercise the policy gate specifically pass isAdmin:false.
+    // Mock Auth for the Firebase fallback policy gate. Default: admin=true so
+    // these MFA-focused tests verify the MFA gate in isolation. The Supabase
+    // mock mirrors that flag onto app_metadata.is_admin below.
     global.window.Auth = { isAdmin, uid: 'u_admin', isSignedIn: true };
 
     eval(storageKeysSrc);
@@ -209,7 +212,7 @@ async function loadStack({ backend = 'supabase', cloudSyncDisabled = false, isAd
     global.STORAGE_KEYS = global.window.STORAGE_KEYS;
     global.Utils = global.window.Utils;
 
-    const mockClient = createMockSupabase();
+    const mockClient = createMockSupabase({ isAdmin });
     global.window.Supabase = { isReady: true, client: mockClient, init: jest.fn(async () => true) };
 
     eval(supabaseAuthSrc);
