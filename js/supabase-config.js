@@ -54,6 +54,7 @@
                         persistSession: true,
                         autoRefreshToken: true,
                         detectSessionInUrl: false, // App is not served from a /auth/callback route
+                        experimental: { passkey: true },
                     },
                 });
                 this.url = config.url;

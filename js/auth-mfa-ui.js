@@ -1,9 +1,10 @@
 /**
- * js/auth-mfa-ui.js — Phase 3 TOTP enrollment modal driver.
+ * js/auth-mfa-ui.js — Phase 3 MFA enrollment modal driver.
  *
- * Dormant unless SYNC_BACKEND=supabase. Drives the #mfaEnrollOverlay modal
- * defined in index.html — renders the QR code from SupabaseAuth.enrollTOTP(),
- * handles the 6-digit verify form, and enforces the soft/hard dismiss policy.
+ * Dormant unless Supabase auth is active. Drives the #mfaEnrollOverlay modal
+ * defined in index.html — supports passkey/WebAuthn setup when available,
+ * renders the QR code from SupabaseAuth.enrollTOTP(), handles the 6-digit
+ * verify form, and enforces the soft/hard dismiss policy.
  *
  * Soft mode: user may dismiss once with "Set up later". We bump
  * user_metadata.mfa_dismiss_count on each dismiss; after the threshold (3)
@@ -44,6 +45,23 @@ window.AuthMFAUI = (() => {
         _mode = hard ? 'hard' : 'soft';
         _setButtonsForMode(hard);
         _showError('');
+
+        // The login path can reach this modal before Supabase's async auth
+        // listener finishes refreshing factors. Do one explicit refresh here
+        // so an already-verified TOTP/passkey factor does not get prompted to
+        // enroll again.
+        try {
+            if (typeof SupabaseAuth._refreshFactors === 'function') {
+                await SupabaseAuth._refreshFactors();
+            }
+            if (typeof SupabaseAuth.mfaRequired === 'function' && !SupabaseAuth.mfaRequired()) {
+                closeEnroll();
+                return;
+            }
+        } catch (_) {
+            // If factor refresh fails, keep the existing fail-closed path and
+            // let the enrollment request surface the useful Supabase error.
+        }
 
         // Show the passkey option iff the browser supports WebAuthn AND the
         // SDK exposes the new mfa.webauthn API. Failing either, hide both

@@ -8,7 +8,7 @@
  *   - signUp / signIn / logout round-trips
  *   - session persistence across listener fires
  *   - apiFetch injects the bearer token on outgoing requests
- *   - mfaRequired() flips false only after a verified TOTP factor is present
+ *   - mfaRequired() flips false after a verified MFA factor is present
  *   - opt-out users (CLOUD_SYNC_DISABLED=true) are exempt from MFA regardless of factors
  *   - cross-user pullBlob from Phase 2 still returns null after a different user signs in
  *
@@ -313,7 +313,7 @@ async function loadModules({ backend = 'supabase', cloudSyncDisabled = false, in
 
 describe('SupabaseAuth (Path B Phase 3)', () => {
     describe('feature-flag gating', () => {
-        test('init() resolves false when SYNC_BACKEND != "supabase"', async () => {
+        test('init() resolves false when SYNC_BACKEND is explicitly "firebase"', async () => {
             installLocalStorage();
             localStorage.setItem('altech_sync_backend', 'firebase');
             global.window = {};
@@ -324,6 +324,18 @@ describe('SupabaseAuth (Path B Phase 3)', () => {
             eval(supabaseAuthSrc);
             await expect(global.window.SupabaseAuth.init()).resolves.toBe(false);
             expect(global.window.SupabaseAuth.isSignedIn).toBe(false);
+        });
+
+        test('init() defaults to Supabase when no backend flag is set', async () => {
+            installLocalStorage();
+            global.window = {};
+            eval(storageKeysSrc);
+            eval(utilsSrc);
+            global.STORAGE_KEYS = global.window.STORAGE_KEYS;
+            global.window.Supabase = { isReady: true, client: createMockSupabase(), init: jest.fn(async () => true) };
+            eval(supabaseAuthSrc);
+            await expect(global.window.SupabaseAuth.init()).resolves.toBe(true);
+            expect(global.window.SupabaseAuth.enabled).toBe(true);
         });
     });
 
@@ -345,6 +357,19 @@ describe('SupabaseAuth (Path B Phase 3)', () => {
             await SupabaseAuth.signIn('bob@example.com', 'pw1234');
             expect(SupabaseAuth.isSignedIn).toBe(true);
             expect(SupabaseAuth.email).toBe('bob@example.com');
+        });
+
+        test('signIn refreshes factors before returning', async () => {
+            await SupabaseAuth.signUp('mona@example.com', 'pw1234');
+            const enroll = await SupabaseAuth.enrollTOTP();
+            await SupabaseAuth.verifyTOTP(enroll.factorId, '123456');
+            expect(SupabaseAuth.mfaRequired()).toBe(false);
+
+            await SupabaseAuth.logout();
+            await SupabaseAuth.signIn('mona@example.com', 'pw1234');
+
+            expect(SupabaseAuth.isSignedIn).toBe(true);
+            expect(SupabaseAuth.mfaRequired()).toBe(false);
         });
 
         test('signIn with bad password throws', async () => {
@@ -413,7 +438,7 @@ describe('SupabaseAuth (Path B Phase 3)', () => {
             expect(SupabaseAuth.mfaRequired()).toBe(false);
         });
 
-        test('true for a fresh cloud-sync user with no verified TOTP factor', async () => {
+        test('true for a fresh cloud-sync user with no verified MFA factor', async () => {
             await SupabaseAuth.signUp('gina@example.com', 'pw1234');
             await SupabaseAuth._refreshFactors();
             expect(SupabaseAuth.mfaRequired()).toBe(true);
@@ -430,6 +455,21 @@ describe('SupabaseAuth (Path B Phase 3)', () => {
             expect(SupabaseAuth.mfaRequired()).toBe(true);
 
             await SupabaseAuth.verifyTOTP(enroll.factorId, '123456');
+            expect(SupabaseAuth.mfaRequired()).toBe(false);
+            expect(SupabaseAuth.mfaEnforcementLevel()).toBeNull();
+        });
+
+        test('false after a verified WebAuthn/passkey factor is present', async () => {
+            await SupabaseAuth.signUp('passkey@example.com', 'pw1234');
+            mockClient._factors.push({
+                id: 'w_1',
+                user_id: SupabaseAuth.uid,
+                factor_type: 'webauthn',
+                status: 'verified',
+            });
+            await SupabaseAuth._refreshFactors();
+
+            expect(SupabaseAuth.hasVerifiedFactor()).toBe(true);
             expect(SupabaseAuth.mfaRequired()).toBe(false);
             expect(SupabaseAuth.mfaEnforcementLevel()).toBeNull();
         });
