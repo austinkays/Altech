@@ -1196,3 +1196,226 @@ body.dark-mode .rem-stats-divider {
     animation: celebrateMenuBurst 0.3s ease-out both !important;
     pointer-events: none;
 }
+
+/* ─────────────────────────────────────────────────────────────────
+   Reminders Popover (js/reminders-popover.js)
+   Anchored to the header bell. Fixed top-right, ~360px wide.
+   ───────────────────────────────────────────────────────────────── */
+
+.rem-popover {
+    position: fixed;
+    top: 64px;
+    right: 16px;
+    width: 360px;
+    max-width: calc(100vw - 32px);
+    max-height: 70vh;
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.18);
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+    transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.rem-popover.rem-popover-open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.rem-pop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.rem-pop-title-main {
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rem-pop-count {
+    display: inline-block;
+    background: rgba(255, 59, 48, 0.12);
+    color: #ff3b30;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.rem-pop-close {
+    background: transparent;
+    border: 0;
+    color: var(--text-secondary);
+    font-size: 22px;
+    line-height: 1;
+    padding: 0 4px;
+    cursor: pointer;
+}
+
+.rem-pop-add {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.rem-pop-input {
+    flex: 1;
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+
+.rem-pop-input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+}
+
+.rem-pop-add-btn {
+    background: var(--apple-blue);
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    width: 34px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.rem-pop-list {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 60px;
+}
+
+.rem-pop-empty {
+    padding: 20px 14px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.rem-pop-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+}
+
+.rem-pop-row:hover {
+    background: rgba(0, 0, 0, 0.025);
+}
+
+body.dark-mode .rem-pop-row:hover {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.rem-pop-check {
+    flex: 0 0 auto;
+    background: transparent;
+    border: 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 2px;
+    margin-top: 1px;
+}
+
+.rem-pop-check:hover {
+    color: var(--apple-blue);
+}
+
+.rem-pop-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.rem-pop-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.rem-pop-title {
+    font-size: 13px;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+.rem-pop-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.rem-pop-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.rem-pop-badge-overdue { background: rgba(255, 59, 48, 0.15); color: #ff3b30; }
+.rem-pop-badge-today   { background: rgba(255, 149, 0, 0.15); color: #ff9500; }
+.rem-pop-badge-soon    { background: rgba(0, 122, 255, 0.12); color: var(--apple-blue); }
+.rem-pop-badge-snoozed { background: rgba(142, 142, 147, 0.18); color: var(--text-secondary); }
+
+.rem-pop-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.rem-pop-action {
+    background: transparent;
+    border: 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    line-height: 0;
+}
+
+.rem-pop-action:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text);
+}
+
+body.dark-mode .rem-pop-action:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.rem-pop-footer {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.rem-pop-viewall {
+    color: var(--apple-blue);
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.rem-pop-viewall:hover {
+    text-decoration: underline;
+}

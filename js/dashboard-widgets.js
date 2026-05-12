@@ -1100,7 +1100,9 @@ window.DashboardWidgets = (() => {
                 ${greetingHtml}
                 ${syncStatusHtml}
                 ${cmdKHint}
-                <button class="header-notification-btn" onclick="App.navigateTo('reminders')" title="Reminders" aria-label="Reminders">
+                <button class="header-notification-btn"
+                        onclick="window.RemindersPopover ? RemindersPopover.toggle() : App.navigateTo('reminders')"
+                        title="Reminders" aria-label="Reminders">
                     ${icon('bell', 18)}
                     ${badgeHtml}
                 </button>
