@@ -808,6 +808,28 @@ Object.assign(App, {
                 // Also schedule a debounced client history save on meaningful input
                 this._scheduleClientHistorySave();
             } catch (err) {
+                // CRYPTO_LOCKED is a recoverable user-action error, not a bug:
+                // the vault is enrolled but no key is in memory. Re-prompt for
+                // unlock and quietly downgrade the log. The user just dismissed
+                // (or never saw) the unlock modal on boot. Without re-prompt
+                // they're stuck — every save fails forever until they manually
+                // go to admin → Encryption → Unlock.
+                const isLocked = err && typeof err.message === 'string'
+                    && err.message.startsWith('CRYPTO_LOCKED');
+                if (isLocked) {
+                    if (typeof VaultUI !== 'undefined' && VaultUI.openUnlock) {
+                        try { VaultUI.openUnlock(); } catch (_) {}
+                    }
+                    if (window.ActivityLog) {
+                        window.ActivityLog.add({
+                            type: 'error', area: 'intake', ok: false,
+                            message: 'Save deferred — vault locked',
+                            detail: 'Unlock the vault to resume saving',
+                        });
+                    }
+                    console.warn('[App.save] vault locked — re-prompting unlock');
+                    throw err;
+                }
                 console.error('[App.save] flush failed:', err);
                 if (window.ActivityLog) {
                     window.ActivityLog.add({

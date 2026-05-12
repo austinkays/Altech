@@ -174,8 +174,22 @@
                         detail: isLocked ? 'Unlock the vault to resume saving' : String(err && err.message || err),
                     });
                 }
-                // eslint-disable-next-line no-console
-                console.error('IntakeV2.save failed:', err);
+                // CRYPTO_LOCKED is recoverable — re-prompt the unlock modal so
+                // the user can unblock themselves instead of being stuck. Use
+                // a flag so we only re-prompt once per locked session (avoids
+                // a loop of save → fail → open modal → cancel → save again).
+                if (isLocked) {
+                    if (!this._unlockPromptedThisSession) {
+                        this._unlockPromptedThisSession = true;
+                        if (typeof VaultUI !== 'undefined' && VaultUI.openUnlock) {
+                            try { VaultUI.openUnlock(); } catch (_) {}
+                        }
+                    }
+                    console.warn('IntakeV2.save: vault locked — re-prompting unlock');
+                } else {
+                    // eslint-disable-next-line no-console
+                    console.error('IntakeV2.save failed:', err);
+                }
                 this._afterSave({ ...opts, error: err });
                 return false;
             }
