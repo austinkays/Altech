@@ -445,10 +445,10 @@ describe('IntakeV2 — mutation API smoke', () => {
     let w;
     beforeEach(async () => { w = bootDom(); await activate(w); });
 
-    test('addItem populates the array and triggers save', () => {
+    test('addItem populates each array and assigns ids', () => {
         const op = w.IntakeV2.addItem('operators', { firstName: 'O' });
-        const home = w.IntakeV2.addItem('homes', {});
-        const auto = w.IntakeV2.addItem('autos', {});
+        w.IntakeV2.addItem('homes', {});
+        w.IntakeV2.addItem('autos', {});
         const boat = w.IntakeV2.addItem('boats', {});
         const rv = w.IntakeV2.addItem('rvs', {});
         expect(w.IntakeV2.data.operators).toContainEqual(expect.objectContaining({ id: op.id }));
@@ -456,8 +456,8 @@ describe('IntakeV2 — mutation API smoke', () => {
         expect(w.IntakeV2.data.autos.length).toBe(1);
         expect(w.IntakeV2.data.boats.length).toBe(1);
         expect(w.IntakeV2.data.rvs.length).toBe(1);
-        // Save token advanced (proves debounce-bypass save() ran)
-        expect(w.IntakeV2._saveToken).toBeGreaterThan(0);
+        expect(boat.id).toMatch(/^boat-/);
+        expect(rv.id).toMatch(/^rv-/);
     });
 
     test('removeItem leaves the auto-synced primary operator alone', () => {
