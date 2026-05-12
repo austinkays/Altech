@@ -45,6 +45,7 @@
     <link rel="stylesheet" href="css/intake-assist-sidebar.css">
     <link rel="stylesheet" href="css/intake-assist-features.css">
     <link rel="stylesheet" href="css/intake-assist-polish.css">
+    <link rel="stylesheet" href="css/intake-v2.css">
     <link rel="stylesheet" href="css/auth.css">
     <link rel="stylesheet" href="css/vault.css">
     <link rel="stylesheet" href="css/admin.css">
@@ -371,6 +372,11 @@
     <div id="quotingTool" class="plugin-container">
         <!-- Plugin HTML loaded dynamically from plugins/ -->
     </div> <!-- End quotingTool container -->
+
+    <!-- PERSONAL INTAKE v2 — phone-first workspace (Home + Auto + Boat + RV) -->
+    <div id="intakeV2Tool" class="plugin-container">
+        <!-- Plugin HTML loaded dynamically from plugins/ -->
+    </div>
 
     <!-- COMMERCIAL LINES QUOTER CONTAINER -->
     <div id="commercialQuoterTool" class="plugin-container">
@@ -1283,6 +1289,29 @@
 
 <!-- Quoting tool info/picker modals (Roof Shape, Construction Style) -->
 <script src="js/quoting-info-panels.js"></script>
+
+<!-- ── Personal Intake v2 — phone-first workspace (Home + Auto + Boat + RV) ──
+     Loads after every dependency it needs: STORAGE_KEYS, Utils, CryptoHelper,
+     ActivityLog, CommandPalette, PhoneticSpeller, Sync facade, MigrationBackup,
+     and the legacy App.buildCMSMTF / buildAcordXML exporters. -->
+<script src="js/intake-v2-init.js"></script>
+<script src="js/intake-v2-fields.js"></script>
+<script src="js/intake-v2-bindability.js"></script>
+<script src="js/intake-v2-talktrack.js"></script>
+<script src="js/intake-v2-core.js"></script>
+<script src="js/intake-v2-layout.js"></script>
+<script src="js/intake-v2-keyboard.js"></script>
+<script src="js/intake-v2-defer.js"></script>
+<script src="js/intake-v2-operators.js"></script>
+<script src="js/intake-v2-autos.js"></script>
+<script src="js/intake-v2-property.js"></script>
+<script src="js/intake-v2-boats.js"></script>
+<script src="js/intake-v2-rvs.js"></script>
+<script src="js/intake-v2-coverage.js"></script>
+<script src="js/intake-v2-history.js"></script>
+<script src="js/intake-v2-export-map.js"></script>
+<script src="js/intake-v2-export.js"></script>
+<script src="js/intake-v2-review.js"></script>
 
 <!-- Boot sequence: error boundaries, SW registration, window.onload, hash router, keyboard shortcuts, SecurityInfo, 3D tilt -->
 <script src="js/app-boot.js"></script>

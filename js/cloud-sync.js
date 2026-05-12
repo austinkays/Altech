@@ -45,6 +45,8 @@ const CloudSync = (() => {
         'vaultData', 'vaultMeta',
         'commercialDraft', 'commercialQuotes',
         'carrierOverrides',
+        // Personal Intake v2 (phone-first rebuild)
+        'intakeV2Draft', 'intakeV2Quotes', 'agencyDefaults',
     ];
 
     // docType → STORAGE_KEYS slot. Used by _resolveConflict to apply the
@@ -66,6 +68,9 @@ const CloudSync = (() => {
         commercialDraft:  STORAGE_KEYS.COMMERCIAL_DRAFT,
         commercialQuotes: STORAGE_KEYS.COMMERCIAL_QUOTES,
         carrierOverrides: STORAGE_KEYS.CARRIER_OVERRIDES,
+        intakeV2Draft:    STORAGE_KEYS.INTAKE_V2,
+        intakeV2Quotes:   STORAGE_KEYS.INTAKE_V2_QUOTES,
+        agencyDefaults:   STORAGE_KEYS.AGENCY_DEFAULTS,
     });
 
     // ── State ──
@@ -339,13 +344,15 @@ const CloudSync = (() => {
         };
 
         // Decrypt encrypted fields so Firestore gets plaintext JSON
-        const [currentForm, quotes, vaultData, commercialDraft, commercialQuotes] =
+        const [currentForm, quotes, vaultData, commercialDraft, commercialQuotes, intakeV2Draft, intakeV2Quotes] =
             await Promise.all([
                 _decryptForSync(localStorage.getItem(STORAGE_KEYS.FORM)),
                 _decryptForSync(localStorage.getItem(STORAGE_KEYS.QUOTES)),
                 _decryptForSync(localStorage.getItem(STORAGE_KEYS.ACCT_VAULT)),
                 _decryptForSync(localStorage.getItem(STORAGE_KEYS.COMMERCIAL_DRAFT)),
                 _decryptForSync(localStorage.getItem(STORAGE_KEYS.COMMERCIAL_QUOTES)),
+                _decryptForSync(localStorage.getItem(STORAGE_KEYS.INTAKE_V2)),
+                _decryptForSync(localStorage.getItem(STORAGE_KEYS.INTAKE_V2_QUOTES)),
             ]);
 
         return {
@@ -363,6 +370,9 @@ const CloudSync = (() => {
             commercialDraft,
             commercialQuotes,
             carrierOverrides: tryParse(STORAGE_KEYS.CARRIER_OVERRIDES),
+            intakeV2Draft,
+            intakeV2Quotes,
+            agencyDefaults: tryParse(STORAGE_KEYS.AGENCY_DEFAULTS),
             settings: {
                 darkMode: localStorage.getItem(STORAGE_KEYS.DARK_MODE) === 'true',
                 theme: localStorage.getItem(STORAGE_KEYS.THEME) || 'default',

@@ -1,0 +1,491 @@
+/* intake-v2.css — Personal Intake v2 workspace.
+ *
+ * Single-page workspace layout: sticky topbar + left rail (jump anchors) +
+ * main column (collapsible sections) + right rail (talk track / follow-ups).
+ * No new design tokens — reuses --bg-card / --text / --apple-blue / --border /
+ * --text-secondary / --bg-input. All colors honour body.dark-mode overrides.
+ */
+
+/* ─── Workspace shell ─────────────────────────────────────────────────────── */
+.iv2-workspace {
+    display: grid;
+    grid-template-columns: 200px 1fr 280px;
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+        "top    top    top"
+        "left   main   right";
+    gap: 16px;
+    min-height: calc(100vh - 80px);
+    padding: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 14px;
+}
+.iv2-workspace.iv2-collapsed-rails {
+    grid-template-columns: 0 1fr 0;
+}
+.iv2-workspace.iv2-collapsed-rails .iv2-left-rail,
+.iv2-workspace.iv2-collapsed-rails .iv2-right-rail {
+    display: none;
+}
+
+.iv2-topbar {
+    grid-area: top;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    backdrop-filter: blur(6px);
+}
+.iv2-topbar-title {
+    font-weight: 600;
+    color: var(--text);
+}
+.iv2-topbar-spacer { flex: 1; }
+
+.iv2-left-rail, .iv2-right-rail {
+    align-self: start;
+    position: sticky;
+    top: 72px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
+}
+.iv2-left-rail  { grid-area: left;  }
+.iv2-right-rail { grid-area: right; }
+
+.iv2-main {
+    grid-area: main;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+/* ─── Sticky top-bar widgets ─────────────────────────────────────────────── */
+.iv2-mode-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--bg-input);
+}
+.iv2-mode-toggle button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.iv2-mode-toggle button.is-active {
+    background: var(--apple-blue);
+    color: #fff;
+}
+
+.iv2-bindability {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.iv2-bindability .iv2-carrier {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    cursor: help;
+    font-weight: 600;
+}
+.iv2-bindability .iv2-carrier.is-ok    { color: #1B873F; border-color: rgba(27,135,63,0.4); }
+.iv2-bindability .iv2-carrier.is-miss  { color: #B33A3A; border-color: rgba(179,58,58,0.4); }
+.iv2-bindability .iv2-carrier-mark {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.iv2-save-status {
+    font-size: 11px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.iv2-save-status.is-saving { color: var(--apple-blue); }
+.iv2-save-status.is-error  { color: #B33A3A; }
+
+/* ─── Left rail jump list ─────────────────────────────────────────────────── */
+.iv2-jump-list { list-style: none; margin: 0; padding: 0; }
+.iv2-jump-list li { margin: 2px 0; }
+.iv2-jump-list button {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text);
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+}
+.iv2-jump-list button:hover { background: var(--bg-input); }
+.iv2-jump-list button.is-current {
+    background: var(--bg-input);
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    font-weight: 600;
+}
+.iv2-jump-list .iv2-jump-badge {
+    background: var(--apple-blue);
+    color: #fff;
+    border-radius: 999px;
+    padding: 1px 6px;
+    font-size: 10px;
+    line-height: 1.4;
+}
+.iv2-jump-list .iv2-jump-badge.is-warn { background: #B33A3A; }
+
+.iv2-shortcut-hint {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.iv2-shortcut-hint kbd {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 4px;
+    font-size: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ─── Main column sections ───────────────────────────────────────────────── */
+.iv2-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    scroll-margin-top: 72px;
+}
+.iv2-section > summary,
+.iv2-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text);
+    list-style: none;
+    user-select: none;
+    margin-bottom: 12px;
+}
+.iv2-section > summary::-webkit-details-marker { display: none; }
+.iv2-section-title {
+    flex: 1;
+    font-size: 16px;
+}
+.iv2-section-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 500;
+}
+.iv2-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ─── Field grid ─────────────────────────────────────────────────────────── */
+.iv2-field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+.iv2-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+.iv2-field label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.iv2-field input,
+.iv2-field select,
+.iv2-field textarea {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.iv2-field input:focus,
+.iv2-field select:focus,
+.iv2-field textarea:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 2px rgba(0,122,255,0.18);
+}
+
+/* deferred = "Ask Later" — yellow border, dimmed value */
+.iv2-field[data-deferred="true"] input,
+.iv2-field[data-deferred="true"] select,
+.iv2-field[data-deferred="true"] textarea {
+    border-color: #C58800;
+    background: rgba(197,136,0,0.04);
+}
+.iv2-field-defer-badge {
+    font-size: 10px;
+    color: #C58800;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* Quick mode hides .iv2-full-only fields */
+.iv2-workspace[data-mode="quick"] .iv2-full-only { display: none !important; }
+
+/* ─── Entity cards (operator / home / auto / boat / rv) ──────────────────── */
+.iv2-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    background: var(--bg-input);
+}
+.iv2-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.iv2-card-title {
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+}
+.iv2-card-status {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #B0B0B0;
+    cursor: help;
+}
+.iv2-card-status.is-ok    { background: #1B873F; }
+.iv2-card-status.is-warn  { background: #C58800; }
+.iv2-card-status.is-block { background: #B33A3A; }
+
+.iv2-card-actions {
+    display: flex;
+    gap: 4px;
+}
+.iv2-icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    cursor: pointer;
+}
+.iv2-icon-btn:hover { color: var(--text); border-color: var(--apple-blue); }
+.iv2-icon-btn.is-danger:hover { color: #B33A3A; border-color: #B33A3A; }
+
+.iv2-add-btn {
+    background: var(--apple-blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.iv2-add-btn.is-ghost {
+    background: transparent;
+    color: var(--apple-blue);
+    border: 1px dashed var(--apple-blue);
+}
+
+/* ─── Properties section: product-type add toolbar ───────────────────────── */
+.iv2-product-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+/* ─── Operator chip picker (used inside auto/boat/rv cards) ──────────────── */
+.iv2-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+.iv2-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--text);
+}
+.iv2-chip.is-selected {
+    background: var(--apple-blue);
+    color: #fff;
+    border-color: var(--apple-blue);
+}
+.iv2-chip.is-primary::before {
+    content: '★';
+    font-size: 10px;
+    margin-right: 2px;
+}
+.iv2-chip-add {
+    background: transparent;
+    border: 1px dashed var(--apple-blue);
+    color: var(--apple-blue);
+    cursor: pointer;
+}
+
+/* ─── Right rail: talk track + follow-ups + last entries ─────────────────── */
+.iv2-right-rail h4 {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin: 0 0 8px 0;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+.iv2-right-rail h4:first-child { padding-top: 0; border-top: none; }
+.iv2-talk-track {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+}
+.iv2-talk-track .iv2-talk-quote {
+    background: var(--bg-input);
+    padding: 8px 10px;
+    border-radius: 8px;
+    border-left: 3px solid var(--apple-blue);
+    margin: 6px 0;
+}
+.iv2-followup-list { list-style: none; margin: 0; padding: 0; }
+.iv2-followup-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text);
+}
+.iv2-followup-list li:hover { color: var(--apple-blue); }
+.iv2-followup-list .iv2-followup-empty { color: var(--text-secondary); font-style: italic; }
+
+.iv2-last-entries {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    color: var(--text-secondary);
+    max-height: 100px;
+    overflow-y: auto;
+}
+.iv2-last-entries .iv2-le {
+    display: flex;
+    gap: 6px;
+    padding: 2px 0;
+}
+.iv2-last-entries .iv2-le-time { opacity: 0.6; }
+.iv2-last-entries .iv2-le-path { color: var(--apple-blue); }
+
+/* ─── Floating quick-add ─────────────────────────────────────────────────── */
+.iv2-fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--apple-blue);
+    color: #fff;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    z-index: 50;
+}
+.iv2-fab:hover { transform: scale(1.04); }
+
+/* ─── Mini-form (inline operator add, etc.) ──────────────────────────────── */
+.iv2-mini-form {
+    background: var(--bg-card);
+    border: 1px solid var(--apple-blue);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    align-items: end;
+}
+.iv2-mini-form .iv2-mini-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+/* ─── Review section status legend ───────────────────────────────────────── */
+.iv2-status-legend {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.iv2-status-legend .iv2-card-status {
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+/* ─── Responsive: collapse rails under 1100px ────────────────────────────── */
+@media (max-width: 1100px) {
+    .iv2-workspace {
+        grid-template-columns: 1fr;
+        grid-template-areas: "top" "main";
+    }
+    .iv2-left-rail, .iv2-right-rail { display: none; }
+}

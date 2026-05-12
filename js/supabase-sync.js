@@ -42,6 +42,9 @@ window.SupabaseSync = (() => {
         vaultMeta:        STORAGE_KEYS.ACCT_VAULT_META,
         commercialDraft:  STORAGE_KEYS.COMMERCIAL_DRAFT,
         commercialQuotes: STORAGE_KEYS.COMMERCIAL_QUOTES,
+        intakeV2Draft:    STORAGE_KEYS.INTAKE_V2,
+        intakeV2Quotes:   STORAGE_KEYS.INTAKE_V2_QUOTES,
+        agencyDefaults:   STORAGE_KEYS.AGENCY_DEFAULTS,
     });
 
     // Per-browser device id, shared with CloudSync's DEVICE_ID so the server
