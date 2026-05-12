@@ -931,6 +931,19 @@ Object.assign(App, {
             if(el) {
                 if(el.type === 'checkbox') {
                     el.checked = this.data[k];
+                } else if (el.type === 'file') {
+                    // <input type="file"> rejects any value except ''. Setting
+                    // a non-empty value throws InvalidStateError and aborts
+                    // the rest of applyData's forEach, leaving the form
+                    // half-populated (no name in header, no reminders, etc).
+                    // File inputs aren't restorable from storage anyway —
+                    // browser security forbids re-attaching a file by path.
+                    if (this.data[k] == null || this.data[k] === '') {
+                        el.value = '';
+                    }
+                    // Non-empty value: skip silently. If something stuffed a
+                    // string into a file-input storage key, just leave the
+                    // file input untouched.
                 } else {
                     el.value = this.data[k];
                 }
