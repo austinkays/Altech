@@ -272,6 +272,17 @@ const COLLECTIONS = {
             { idStem: 'op-suspended',       path: 'licenseSuspended5y', label: 'License suspended in last 5 yrs', type: 'checkbox', mode: 'full' },
             { idStem: 'op-goodStudent',     path: 'goodStudent',        label: 'Good student (B+ avg, < 25)',     type: 'checkbox', mode: 'full' },
             { idStem: 'op-distantStudent',  path: 'distantStudent',     label: 'Distant student (away 100+ mi)',  type: 'checkbox', mode: 'full' },
+            // ── Discounts + MVR ──────────────────────────────────────────
+            // Defensive-driving course + mature driver discount + MVR
+            // status all feed EZLynx's discount block. The DDC completion
+            // date is paired with the checkbox because most carriers
+            // honor the discount for 3 years from the course date.
+            { idStem: 'op-disc-header',     path: '__header.discounts', label: 'Discounts & MVR',                 type: 'header', mode: 'full' },
+            { idStem: 'op-ddc',             path: 'defensiveDriving',   label: 'Defensive driving course',        type: 'checkbox', mode: 'full' },
+            { idStem: 'op-ddcDate',         path: 'defensiveDrivingAt', label: 'DDC completion date',             type: 'date',   mode: 'full' },
+            { idStem: 'op-matureDriver',    path: 'matureDriver',       label: 'Mature driver (55+) discount',    type: 'checkbox', mode: 'full' },
+            { idStem: 'op-mvrStatus',       path: 'mvrStatus',          label: 'MVR status',                       type: 'select',
+              options: ['', 'Clean', 'Reviewed — clean', 'Reviewed — minor', 'Reviewed — major', 'Pending pull'], mode: 'full' },
         ],
     },
 
@@ -351,7 +362,11 @@ const COLLECTIONS = {
             { idStem: 'auto-year',          path: 'year',          label: 'Year',      type: 'number', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'auto-make',          path: 'make',          label: 'Make',      type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'auto-model',         path: 'model',         label: 'Model',     type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', bindable: requiredBy('progressive'), speller: 'vin' },
+            // `decode: 'vin'` adds a "Decode VIN" action button next to the
+            // speller — clicking validates + sanitizes + fetches NHTSA and
+            // auto-fills the year/make/model fields of this same auto card.
+            // See VinDecoder.decodeForIntake in js/vin-decoder.js.
+            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', bindable: requiredBy('progressive'), speller: 'vin', decode: 'vin' },
             // License plate + plate state are HawkSoft-required and used by
             // EZLynx for ID-card generation. Added May 2026 — historically
             // intake v2 leaned on VIN alone, which left agents copy/pasting
@@ -374,6 +389,10 @@ const COLLECTIONS = {
             { idStem: 'auto-oneWayMiles',    path: 'oneWayMiles',           label: 'One-way miles to work', type: 'number', mode: 'full' },
             { idStem: 'auto-daysPerWeek',    path: 'daysPerWeek',           label: 'Days/week to work',     type: 'number', mode: 'full' },
             { idStem: 'auto-antiTheft',      path: 'antiTheftDevice',       label: 'Anti-theft device',     type: 'select', options: ['', 'None', 'Active disabling', 'Passive disabling', 'Recovery (LoJack)', 'Alarm only'], mode: 'full' },
+            { idStem: 'auto-purchaseDate',   path: 'purchaseDate',          label: 'Purchase Date',          type: 'date',     mode: 'full' },
+            { idStem: 'auto-originalOwner',  path: 'originalOwner',         label: 'Original owner',         type: 'checkbox', mode: 'full' },
+            { idStem: 'auto-existingDamage', path: 'existingDamage',        label: 'Existing damage',        type: 'select',
+              options: ['', 'None', 'Minor cosmetic', 'Body damage', 'Mechanical', 'Frame / structural'], mode: 'full' },
             // ── Lien holder ───────────────────────────────────────────────
             // Required for binding any financed or leased vehicle. Carrier
             // issues a Loss Payee endorsement to this entity.

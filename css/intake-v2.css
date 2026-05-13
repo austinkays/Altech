@@ -340,6 +340,33 @@
      * not yet invalid, just outstanding for at least one carrier. */
     border-bottom: 2px solid #C58800;
 }
+
+/* "Decode VIN" pill — renders below the VIN input on auto cards when
+ * `field.decode === 'vin'`. Click fires VinDecoder.decodeForIntake
+ * (delegated handler in intake-v2-autos.js's onBoot) which writes
+ * year/make/model back into the same auto item. */
+.iv2-decode-btn {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    background: var(--bg-input);
+    color: var(--apple-blue);
+    border: 1px solid var(--apple-blue);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.iv2-decode-btn:hover { background: rgba(10, 132, 255, 0.12); }
+.iv2-decode-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+.iv2-decode-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
 .iv2-field-defer-badge {
     font-size: 10px;
     color: #C58800;

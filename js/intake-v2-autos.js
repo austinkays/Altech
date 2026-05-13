@@ -63,9 +63,19 @@ function renderField(item, collKey, f) {
         // I/O/Q), license plate gets mode='plate' (uppercase + strip
         // whitespace). Click delegation + Alt+P shortcut live in
         // intake-v2-layout.js so this stays a pure renderer.
-        control = f.speller
-            ? `<div class="iv2-input-wrap">${input}<button type="button" class="iv2-speller-btn" data-speller-mode="${escAttr(f.speller)}" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button></div>`
-            : input;
+        //
+        // VIN fields additionally render a "Decode VIN" pill that calls
+        // VinDecoder.decodeForIntake and writes year/make/model back
+        // onto this same item via the auto-decode click handler in
+        // wireAutoVinDecode (intake-v2-autos.js, below).
+        const decodeBtn = f.decode === 'vin'
+            ? `<button type="button" class="iv2-decode-btn" data-iv2-decode-vin data-collection="${escAttr(collKey)}" data-item-id="${escAttr(item.id)}" title="Look up year/make/model from this VIN">Decode VIN</button>`
+            : '';
+        if (f.speller || f.decode) {
+            control = `<div class="iv2-input-wrap">${input}${f.speller ? `<button type="button" class="iv2-speller-btn" data-speller-mode="${escAttr(f.speller)}" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button>` : ''}</div>${decodeBtn}`;
+        } else {
+            control = input;
+        }
     }
     return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
         <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" tabindex="0" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}</label>
@@ -199,9 +209,91 @@ async function decodeVinIntoCard(input) {
     window.IntakeV2.requestRerender('autos');
 }
 
+// Delegated click handler for every "Decode VIN" pill stamped by
+// renderField when `f.decode === 'vin'`. Reads the sibling VIN input,
+// calls VinDecoder.decodeForIntake (NHTSA + local), and writes the
+// resolved year/make/model back into the owning auto item via the
+// existing mutateItem flow — that fires the same save/rerender chain a
+// manual keystroke would.
+async function _wireVinDecode(btn) {
+    if (btn.dataset.busy === '1') return;
+    const collKey = btn.getAttribute('data-collection');
+    const itemId  = btn.getAttribute('data-item-id');
+    if (!collKey || !itemId) return;
+    const wrap = btn.parentElement && btn.parentElement.querySelector('.iv2-input-wrap input');
+    if (!wrap) return;
+    const vin = wrap.value;
+    if (!vin || vin.length < 17) {
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast('Need a 17-character VIN to decode.', { type: 'info', duration: 2500 });
+        }
+        return;
+    }
+    if (!window.VinDecoder || typeof window.VinDecoder.decodeForIntake !== 'function') return;
+
+    btn.dataset.busy = '1';
+    const original = btn.textContent;
+    btn.textContent = 'Decoding…';
+    btn.disabled = true;
+    try {
+        const result = await window.VinDecoder.decodeForIntake(vin);
+        if (!result) {
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast(`Could not decode VIN ${vin}`, { type: 'error', duration: 3000 });
+            }
+            return;
+        }
+        // Only overwrite blank fields — never clobber an agent's manual
+        // typo correction with the NHTSA value if they've already
+        // entered something.
+        const item = window.IntakeV2.getItem(collKey, itemId);
+        if (!item) return;
+        // Only overwrite blank fields — never clobber a manual typo
+        // correction with the NHTSA value the agent just rejected.
+        const candidates = { year: result.year, make: result.make, model: result.model, trim: result.trim };
+        const writes = [];
+        for (const [path, value] of Object.entries(candidates)) {
+            if (!value) continue;
+            const current = item[path];
+            if (current && String(current).trim() !== '') continue;
+            writes.push([path, value]);
+        }
+        if (writes.length === 0) {
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast('VIN decoded — no blank fields to fill.', { type: 'info', duration: 2500 });
+            }
+            return;
+        }
+        for (const [path, value] of writes) {
+            window.IntakeV2.setItemField(collKey, itemId, path, value);
+        }
+        // setItemField schedules a debounced save; force the renderer
+        // to repaint the card immediately so the agent sees the
+        // year/make/model populated without waiting for the next save.
+        window.IntakeV2.requestRerender('autos');
+        if (typeof App !== 'undefined' && App.toast) {
+            App.toast(`✓ Decoded: ${[result.year, result.make, result.model].filter(Boolean).join(' ')}`, { type: 'success', duration: 2500 });
+        }
+    } finally {
+        btn.dataset.busy = '0';
+        btn.textContent = original;
+        btn.disabled = false;
+    }
+}
+
 window.IntakeV2.onBoot(function () {
     this.registerRenderer('autos', renderAutos);
     renderAutos();
+
+    // Delegated decode-button handler — wired once at boot. Uses
+    // event delegation because the auto cards re-render on every
+    // mutation; binding per-button would leak listeners.
+    document.addEventListener('click', (e) => {
+        const btn = e.target && e.target.closest && e.target.closest('[data-iv2-decode-vin]');
+        if (!btn) return;
+        if (!btn.closest('#intakeV2Tool')) return;
+        _wireVinDecode(btn);
+    });
 });
 
 // Expose helpers for boats / rvs / homes
