@@ -70,11 +70,19 @@ function renderField(item, collKey, f) {
 
     // Lock the synced fields on the primary-applicant / co-applicant card.
     // Edits would be discarded anyway by the next syncApplicantOperators().
+    // Two reasons we lock a field: synced from Quick Start, or computed
+    // from other inputs (Age Licensed). Both flow through the same
+    // readonly + tabindex=-1 markup so neither traps the tab order.
     const isSynced = (item.isPrimaryApplicant || item.isCoApplicant)
         && (SYNCED_FIELD_PATHS.has(f.path) || (item.isCoApplicant && f.path === 'relationship'));
-    const lockAttr  = isSynced ? ' readonly tabindex="-1" title="Synced with the Quick Start block — edit it there"' : '';
-    const lockSelAttr = isSynced ? ' disabled title="Synced with the Quick Start block — edit it there"' : '';
-    const lockStyle = isSynced ? ' style="opacity:0.65; cursor:not-allowed;"' : '';
+    const isComputed = !!f.computed;
+    const isLocked = isSynced || isComputed;
+    const lockTooltip = isComputed
+        ? 'Computed automatically from other fields'
+        : 'Synced with the Quick Start block — edit it there';
+    const lockAttr  = isLocked ? ` readonly tabindex="-1" title="${escAttr(lockTooltip)}"` : '';
+    const lockSelAttr = isLocked ? ` disabled title="${escAttr(lockTooltip)}"` : '';
+    const lockStyle = isLocked ? ' style="opacity:0.65; cursor:not-allowed;"' : '';
 
     // data-field-wrap matches the format used elsewhere
     // (`${collKey}#${itemId}.${path}`) so the defer system's primary
@@ -111,7 +119,7 @@ function renderField(item, collKey, f) {
             : input;
     }
     return `<div class="iv2-field${fullClass}"${wrapAttr}>
-        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" tabindex="0" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}${isSynced ? ' <span class="iv2-lock-mark" tabindex="0" aria-label="Synced from Quick Start — edit the primary applicant\'s value there" title="Synced from Quick Start — edit the primary applicant\'s value there">🔒</span>' : ''}</label>
+        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}${isLocked ? ` <span class="iv2-lock-mark" role="img" aria-label="${escAttr(lockTooltip)}" title="${escAttr(lockTooltip)}">🔒</span>` : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;

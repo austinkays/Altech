@@ -255,7 +255,12 @@ const COLLECTIONS = {
             { idStem: 'op-dl-num',         path: 'dl.num',          label: 'DL Number',  type: 'text',   mode: 'full',  speller: 'dl' },
             { idStem: 'op-dl-state',       path: 'dl.state',        label: 'DL State',   type: 'select', options: usStateOptions(), mode: 'quick' },
             { idStem: 'op-dl-status',      path: 'dl.status',       label: 'License Status', type: 'select', options: ['', 'Valid', 'Permit', 'Suspended', 'Revoked', 'None'], mode: 'full' },
-            { idStem: 'op-dl-ageLicensed', path: 'dl.ageLicensed',  label: 'Age Licensed (auto)', type: 'number', mode: 'full' },
+            // `computed: true` marks a field as derived from other inputs
+            // (here: licensing age = current year - DOB year - yrsDriving).
+            // The renderer stamps `readonly tabindex="-1"` so the field
+            // skips the tab order — the agent shouldn't be landing in a
+            // value the form recomputes on every save anyway.
+            { idStem: 'op-dl-ageLicensed', path: 'dl.ageLicensed',  label: 'Age Licensed (auto)', type: 'number', mode: 'full', computed: true },
             { idStem: 'op-yearsAuto',      path: 'dl.yearsAuto',    label: 'Yrs Driving',type: 'number', mode: 'full' },
             { idStem: 'op-yearsBoat',      path: 'dl.yearsBoat',    label: 'Yrs Boating',type: 'number', mode: 'full' },
             { idStem: 'op-yearsRV',        path: 'dl.yearsRV',      label: 'Yrs RV',     type: 'number', mode: 'full' },

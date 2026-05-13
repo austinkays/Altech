@@ -344,12 +344,8 @@
     color: var(--text-secondary);
     cursor: help;
 }
-.iv2-bindable-mark:focus-visible,
-.iv2-lock-mark:focus-visible {
-    outline: 2px solid var(--apple-blue);
-    outline-offset: 1px;
-    border-radius: 2px;
-}
+/* role="img" + aria-label exposes the meaning to assistive tech without
+ * adding a tab stop the agent would have to skip past every field. */
 .iv2-field[data-bindable-empty="true"] input,
 .iv2-field[data-bindable-empty="true"] select,
 .iv2-field[data-bindable-empty="true"] textarea {
