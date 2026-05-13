@@ -38,16 +38,16 @@ const requiredBy = (...carriers) => carriers.reduce((m, c) => (m[c] = true, m), 
 const SCALAR = [
     // ── Applicant ─────────────────────────────────────────────────────────
     { id: 'iv2-prefix',         path: 'applicant.prefix',         label: 'Prefix',           type: 'select', options: ['', 'Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Mx.'], section: 'quick', mode: 'full' },
-    { id: 'iv2-firstName',      path: 'applicant.firstName',      label: 'First Name',       type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-    { id: 'iv2-middleName',     path: 'applicant.middleName',     label: 'Middle',           type: 'text',   section: 'quick', mode: 'full' },
-    { id: 'iv2-lastName',       path: 'applicant.lastName',       label: 'Last Name',        type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+    { id: 'iv2-firstName',      path: 'applicant.firstName',      label: 'First Name',       type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
+    { id: 'iv2-middleName',     path: 'applicant.middleName',     label: 'Middle',           type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
+    { id: 'iv2-lastName',       path: 'applicant.lastName',       label: 'Last Name',        type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
     { id: 'iv2-suffix',         path: 'applicant.suffix',         label: 'Suffix',           type: 'select', options: ['', 'Jr.', 'Sr.', 'II', 'III', 'IV'], section: 'quick', mode: 'full' },
     { id: 'iv2-dob',            path: 'applicant.dob',            label: 'Date of Birth',    type: 'date',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
     { id: 'iv2-ssn',            path: 'applicant.ssn',            label: 'SSN (optional, for credit pull)', type: 'text', section: 'quick', mode: 'full' },
     { id: 'iv2-gender',         path: 'applicant.gender',         label: 'Gender',           type: 'select', options: ['', 'Male', 'Female', 'Nonbinary', 'Prefer not to say'], section: 'quick', mode: 'full' },
     { id: 'iv2-maritalStatus',  path: 'applicant.maritalStatus',  label: 'Marital Status',   type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], section: 'quick', mode: 'quick' },
     { id: 'iv2-phone',          path: 'applicant.phone',          label: 'Phone',            type: 'tel',    section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-    { id: 'iv2-email',          path: 'applicant.email',          label: 'Email',            type: 'email',  section: 'quick', mode: 'quick' },
+    { id: 'iv2-email',          path: 'applicant.email',          label: 'Email',            type: 'email',  section: 'quick', mode: 'quick', speller: 'email' },
     { id: 'iv2-occupation',     path: 'applicant.occupation',     label: 'Occupation',       type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-industry',       path: 'applicant.industry',       label: 'Industry',         type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-education',      path: 'applicant.education',      label: 'Education',        type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], section: 'quick', mode: 'full' },
@@ -55,28 +55,28 @@ const SCALAR = [
     // ── Co-Applicant (visible when coApplicant.present === true) ──────────
     { id: 'iv2-coPresent',       path: 'coApplicant.present',      label: 'Co-Applicant?',   type: 'checkbox', section: 'quick', mode: 'quick' },
     { id: 'iv2-coRelationship',  path: 'coApplicant.relationship', label: 'Relationship',    type: 'select', options: ['', 'Spouse', 'Domestic Partner', 'Parent', 'Child', 'Sibling', 'Other'], section: 'quick', mode: 'quick' },
-    { id: 'iv2-coFirstName',     path: 'coApplicant.firstName',    label: 'Co-App First',    type: 'text',   section: 'quick', mode: 'quick' },
-    { id: 'iv2-coLastName',      path: 'coApplicant.lastName',     label: 'Co-App Last',     type: 'text',   section: 'quick', mode: 'quick' },
+    { id: 'iv2-coFirstName',     path: 'coApplicant.firstName',    label: 'Co-App First',    type: 'text',   section: 'quick', mode: 'quick', speller: 'general' },
+    { id: 'iv2-coLastName',      path: 'coApplicant.lastName',     label: 'Co-App Last',     type: 'text',   section: 'quick', mode: 'quick', speller: 'general' },
     { id: 'iv2-coDob',           path: 'coApplicant.dob',          label: 'Co-App DOB',      type: 'date',   section: 'quick', mode: 'quick' },
     { id: 'iv2-coGender',        path: 'coApplicant.gender',       label: 'Co-App Gender',   type: 'select', options: ['', 'Male', 'Female', 'Nonbinary', 'Prefer not to say'], section: 'quick', mode: 'full' },
     { id: 'iv2-coMaritalStatus', path: 'coApplicant.maritalStatus',label: 'Co-App Marital',  type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], section: 'quick', mode: 'full' },
     { id: 'iv2-coPhone',         path: 'coApplicant.phone',        label: 'Co-App Phone',    type: 'tel',    section: 'quick', mode: 'full' },
-    { id: 'iv2-coEmail',         path: 'coApplicant.email',        label: 'Co-App Email',    type: 'email',  section: 'quick', mode: 'full' },
+    { id: 'iv2-coEmail',         path: 'coApplicant.email',        label: 'Co-App Email',    type: 'email',  section: 'quick', mode: 'full',  speller: 'email' },
     { id: 'iv2-coOccupation',    path: 'coApplicant.occupation',   label: 'Co-App Occupation', type: 'text', section: 'quick', mode: 'full' },
     { id: 'iv2-coIndustry',      path: 'coApplicant.industry',     label: 'Co-App Industry', type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-coEducation',     path: 'coApplicant.education',    label: 'Co-App Education',type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], section: 'quick', mode: 'full' },
 
     // ── Mailing Address ───────────────────────────────────────────────────
-    { id: 'iv2-addrStreet', path: 'address.street', label: 'Street Address', type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-    { id: 'iv2-addrCity',   path: 'address.city',   label: 'City',           type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+    { id: 'iv2-addrStreet', path: 'address.street', label: 'Street Address', type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
+    { id: 'iv2-addrCity',   path: 'address.city',   label: 'City',           type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
     { id: 'iv2-addrState',  path: 'address.state',  label: 'State',          type: 'select', options: usStateOptions(), section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
     { id: 'iv2-addrZip',    path: 'address.zip',    label: 'ZIP Code',       type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-    { id: 'iv2-county',     path: 'address.county', label: 'County',         type: 'text',   section: 'quick', mode: 'full' },
+    { id: 'iv2-county',     path: 'address.county', label: 'County',         type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
     { id: 'iv2-yearsAt',    path: 'address.yearsAt',label: 'Years at Address', type: 'number', section: 'quick', mode: 'full' },
 
     // Previous address (full mode only)
-    { id: 'iv2-prevAddrStreet', path: 'address.previous.street', label: 'Previous Street', type: 'text',   section: 'quick', mode: 'full' },
-    { id: 'iv2-prevAddrCity',   path: 'address.previous.city',   label: 'Previous City',   type: 'text',   section: 'quick', mode: 'full' },
+    { id: 'iv2-prevAddrStreet', path: 'address.previous.street', label: 'Previous Street', type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
+    { id: 'iv2-prevAddrCity',   path: 'address.previous.city',   label: 'Previous City',   type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
     { id: 'iv2-prevAddrState',  path: 'address.previous.state',  label: 'Previous State',  type: 'select', options: usStateOptions(), section: 'quick', mode: 'full' },
     { id: 'iv2-prevAddrZip',    path: 'address.previous.zip',    label: 'Previous ZIP',    type: 'text',   section: 'quick', mode: 'full' },
 
@@ -84,7 +84,7 @@ const SCALAR = [
     { id: 'iv2-homeownership',   path: 'household.homeownership', label: 'Homeownership', type: 'select', options: ['', 'Own home', 'Rent', 'Condo', 'Manufactured home'], section: 'quick', mode: 'quick' },
     { id: 'iv2-contactMethod',   path: 'household.contactMethod', label: 'Preferred Contact', type: 'select', options: ['', 'Phone', 'Email', 'Text'], section: 'quick', mode: 'full' },
     { id: 'iv2-contactTime',     path: 'household.contactTime',   label: 'Best Time to Call', type: 'select', options: ['', 'Morning', 'Afternoon', 'Evening'], section: 'quick', mode: 'full' },
-    { id: 'iv2-referralSource',  path: 'household.referralSource',label: 'Referral Source', type: 'text', section: 'quick', mode: 'full' },
+    { id: 'iv2-referralSource',  path: 'household.referralSource',label: 'Referral Source', type: 'text', section: 'quick', mode: 'full',  speller: 'general' },
     // tcpaConsent and creditCheckAuth are visible in Quick mode because the
     // talk-track sidebar's `tcpa-consent` and `credit-pull` prompts both ask
     // the agent to capture these on the call — keeping them in Full-only made
@@ -137,13 +137,13 @@ const COLLECTIONS = {
         itemPath: 'operators',
         min: 1, // primary applicant must always exist as an operator
         fields: [
-            { idStem: 'op-firstName',      path: 'firstName',       label: 'First Name', type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-            { idStem: 'op-lastName',       path: 'lastName',        label: 'Last Name',  type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+            { idStem: 'op-firstName',      path: 'firstName',       label: 'First Name', type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
+            { idStem: 'op-lastName',       path: 'lastName',        label: 'Last Name',  type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
             { idStem: 'op-dob',            path: 'dob',             label: 'DOB',        type: 'date',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'op-relationship',   path: 'relationship',    label: 'Relationship', type: 'select', options: ['', 'Self', 'Spouse', 'Domestic Partner', 'Child', 'Parent', 'Sibling', 'Other'], mode: 'quick' },
             { idStem: 'op-gender',         path: 'gender',          label: 'Gender',     type: 'select', options: ['', 'Male', 'Female', 'Nonbinary'], mode: 'full' },
             { idStem: 'op-maritalStatus',  path: 'maritalStatus',   label: 'Marital',    type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], mode: 'full' },
-            { idStem: 'op-dl-num',         path: 'dl.num',          label: 'DL Number',  type: 'text',   mode: 'full' },
+            { idStem: 'op-dl-num',         path: 'dl.num',          label: 'DL Number',  type: 'text',   mode: 'full',  speller: 'dl' },
             { idStem: 'op-dl-state',       path: 'dl.state',        label: 'DL State',   type: 'select', options: usStateOptions(), mode: 'quick' },
             { idStem: 'op-dl-status',      path: 'dl.status',       label: 'License Status', type: 'select', options: ['', 'Valid', 'Permit', 'Suspended', 'Revoked', 'None'], mode: 'full' },
             { idStem: 'op-dl-ageLicensed', path: 'dl.ageLicensed',  label: 'Age Licensed (auto)', type: 'number', mode: 'full' },
@@ -230,9 +230,9 @@ const COLLECTIONS = {
             // Required for binding any mortgaged home — the carrier issues
             // a Mortgagee Clause certificate to this entity.
             { idStem: 'home-mort-header',  path: '__header.mortgage',         label: 'Mortgage / Lien Holder', type: 'header', mode: 'full' },
-            { idStem: 'home-mort-name',    path: 'mortgageCompany.name',      label: 'Mortgage Company',     type: 'text', mode: 'full' },
-            { idStem: 'home-mort-loanNum', path: 'mortgageCompany.loanNumber',label: 'Loan #',               type: 'text', mode: 'full' },
-            { idStem: 'home-mort-address', path: 'mortgageCompany.address',   label: 'Mortgagee Address',    type: 'text', mode: 'full' },
+            { idStem: 'home-mort-name',    path: 'mortgageCompany.name',      label: 'Mortgage Company',     type: 'text', mode: 'full', speller: 'general' },
+            { idStem: 'home-mort-loanNum', path: 'mortgageCompany.loanNumber',label: 'Loan #',               type: 'text', mode: 'full', speller: 'dl' },
+            { idStem: 'home-mort-address', path: 'mortgageCompany.address',   label: 'Mortgagee Address',    type: 'text', mode: 'full', speller: 'general' },
         ],
     },
 
@@ -242,7 +242,13 @@ const COLLECTIONS = {
             { idStem: 'auto-year',          path: 'year',          label: 'Year',      type: 'number', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'auto-make',          path: 'make',          label: 'Make',      type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'auto-model',         path: 'model',         label: 'Model',     type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', bindable: requiredBy('progressive') },
+            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', bindable: requiredBy('progressive'), speller: 'vin' },
+            // License plate + plate state are HawkSoft-required and used by
+            // EZLynx for ID-card generation. Added May 2026 — historically
+            // intake v2 leaned on VIN alone, which left agents copy/pasting
+            // plates from the prior carrier's dec page into the export.
+            { idStem: 'auto-licensePlate',  path: 'licensePlate',  label: 'License Plate', type: 'text', mode: 'full', speller: 'plate' },
+            { idStem: 'auto-plateState',    path: 'plateState',    label: 'Plate State',   type: 'select', options: usStateOptions(), mode: 'full' },
             { idStem: 'auto-garagingZip',   path: 'garagingZip',   label: 'Garaging ZIP', type: 'text',  mode: 'quick' },
             { idStem: 'auto-useType',       path: 'useType',       label: 'Use',       type: 'select', options: ['', 'Pleasure', 'Commute', 'Business', 'Farm', 'Artisan'], mode: 'quick' },
             { idStem: 'auto-annualMiles',   path: 'annualMiles',   label: 'Annual Miles', type: 'number', mode: 'full' },
@@ -263,9 +269,9 @@ const COLLECTIONS = {
             // Required for binding any financed or leased vehicle. Carrier
             // issues a Loss Payee endorsement to this entity.
             { idStem: 'auto-lien-header',    path: '__header.lien',         label: 'Lien holder', type: 'header', mode: 'full' },
-            { idStem: 'auto-lien-name',      path: 'lienHolder.name',       label: 'Lien Holder Name',     type: 'text', mode: 'full' },
-            { idStem: 'auto-lien-address',   path: 'lienHolder.address',    label: 'Lien Holder Address',  type: 'text', mode: 'full' },
-            { idStem: 'auto-lien-loanNum',   path: 'lienHolder.loanNumber', label: 'Loan / Lease #',       type: 'text', mode: 'full' },
+            { idStem: 'auto-lien-name',      path: 'lienHolder.name',       label: 'Lien Holder Name',     type: 'text', mode: 'full', speller: 'general' },
+            { idStem: 'auto-lien-address',   path: 'lienHolder.address',    label: 'Lien Holder Address',  type: 'text', mode: 'full', speller: 'general' },
+            { idStem: 'auto-lien-loanNum',   path: 'lienHolder.loanNumber', label: 'Loan / Lease #',       type: 'text', mode: 'full', speller: 'dl' },
         ],
     },
 
@@ -369,9 +375,43 @@ const COLLECTIONS = {
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 function usStateOptions() {
-    return ['', 'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA',
-        'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC',
-        'ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+    // Return `[value, label]` tuples; the renderer detects array-of-arrays
+    // and emits `<option value=value>label</option>` directly. Tuples let
+    // the dropdown show the full state name while the stored value stays
+    // the 2-letter USPS code (what EZLynx + HawkSoft + every carrier API
+    // parses). Built fresh each call rather than cached in a const above
+    // because SCALAR_FIELDS initialization at module top calls this
+    // function — referencing a `const` declared later in the file would
+    // trip a TDZ ReferenceError under `'use strict'`.
+    return [
+        ['', ''],
+        ['AL', 'Alabama (AL)'],         ['AK', 'Alaska (AK)'],
+        ['AZ', 'Arizona (AZ)'],         ['AR', 'Arkansas (AR)'],
+        ['CA', 'California (CA)'],      ['CO', 'Colorado (CO)'],
+        ['CT', 'Connecticut (CT)'],     ['DE', 'Delaware (DE)'],
+        ['DC', 'District of Columbia (DC)'],
+        ['FL', 'Florida (FL)'],         ['GA', 'Georgia (GA)'],
+        ['HI', 'Hawaii (HI)'],          ['ID', 'Idaho (ID)'],
+        ['IL', 'Illinois (IL)'],        ['IN', 'Indiana (IN)'],
+        ['IA', 'Iowa (IA)'],            ['KS', 'Kansas (KS)'],
+        ['KY', 'Kentucky (KY)'],        ['LA', 'Louisiana (LA)'],
+        ['ME', 'Maine (ME)'],           ['MD', 'Maryland (MD)'],
+        ['MA', 'Massachusetts (MA)'],   ['MI', 'Michigan (MI)'],
+        ['MN', 'Minnesota (MN)'],       ['MS', 'Mississippi (MS)'],
+        ['MO', 'Missouri (MO)'],        ['MT', 'Montana (MT)'],
+        ['NE', 'Nebraska (NE)'],        ['NV', 'Nevada (NV)'],
+        ['NH', 'New Hampshire (NH)'],   ['NJ', 'New Jersey (NJ)'],
+        ['NM', 'New Mexico (NM)'],      ['NY', 'New York (NY)'],
+        ['NC', 'North Carolina (NC)'],  ['ND', 'North Dakota (ND)'],
+        ['OH', 'Ohio (OH)'],            ['OK', 'Oklahoma (OK)'],
+        ['OR', 'Oregon (OR)'],          ['PA', 'Pennsylvania (PA)'],
+        ['RI', 'Rhode Island (RI)'],    ['SC', 'South Carolina (SC)'],
+        ['SD', 'South Dakota (SD)'],    ['TN', 'Tennessee (TN)'],
+        ['TX', 'Texas (TX)'],           ['UT', 'Utah (UT)'],
+        ['VT', 'Vermont (VT)'],         ['VA', 'Virginia (VA)'],
+        ['WA', 'Washington (WA)'],      ['WV', 'West Virginia (WV)'],
+        ['WI', 'Wisconsin (WI)'],       ['WY', 'Wyoming (WY)'],
+    ];
 }
 
 // FieldMapV2 — mirror of v1's FieldMap (js/fields.js:230) but path-based.

@@ -35,7 +35,13 @@ function renderField(item, collKey, f) {
     const dataAttrs = ` data-collection="${escAttr(collKey)}" data-item-id="${escAttr(item.id)}" data-field-path="${escAttr(f.path)}"`;
     let control;
     if (f.type === 'select') {
-        const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}" ${String(v ?? '') === String(opt) ? 'selected' : ''}>${esc(opt || '—')}</option>`).join('');
+        // Plain strings → value === label; [value, label] tuples (used by
+        // the state list) preserve a distinct USPS value while showing the
+        // full state name. See US_STATES in intake-v2-fields.js.
+        const opts = (f.options || []).map(opt => {
+            const [value, label] = Array.isArray(opt) ? opt : [opt, opt];
+            return `<option value="${escAttr(value)}" ${String(v ?? '') === String(value) ? 'selected' : ''}>${esc(label || '—')}</option>`;
+        }).join('');
         control = `<select id="${escAttr(elId)}"${dataAttrs}>${opts}</select>`;
     } else if (f.type === 'checkbox') {
         return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
@@ -45,7 +51,14 @@ function renderField(item, collKey, f) {
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(elId)}"${dataAttrs} rows="2">${esc(v ?? '')}</textarea>`;
     } else {
-        control = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs} value="${escAttr(v ?? '')}">`;
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs} value="${escAttr(v ?? '')}">`;
+        // Inset phonetic-speller button — VIN gets mode='vin' (warns on
+        // I/O/Q), license plate gets mode='plate' (uppercase + strip
+        // whitespace). Click delegation + Alt+P shortcut live in
+        // intake-v2-layout.js so this stays a pure renderer.
+        control = f.speller
+            ? `<div class="iv2-input-wrap">${input}<button type="button" class="iv2-speller-btn" data-speller-mode="${escAttr(f.speller)}" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button></div>`
+            : input;
     }
     return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
         <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind">✦</span>' : ''}</label>

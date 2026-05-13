@@ -48,18 +48,40 @@ function renderQuickSection() {
     }).join('');
 }
 
+// Inset speller button — wraps a text/email input in `.iv2-input-wrap` and
+// stamps a small phonetic-trigger button inside the right edge of the
+// input. Driven by `field.speller`: 'general' | 'vin' | 'dl' | 'plate' |
+// 'email'. The wrapper + extra right-padding live in
+// css/phonetic-speller.css (`.iv2-input-wrap` + `.iv2-speller-btn`). Click
+// delegation in `_wireSpellerDelegation` (below) reads `data-speller-mode`
+// off the button to drive PhoneticSpeller.open's mode argument.
+function spellerInsetButton(mode) {
+    const m = String(mode || 'general');
+    return `<button type="button" class="iv2-speller-btn" data-speller-mode="${escAttr(m)}" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button>`;
+}
+
 function renderScalarField(f) {
     const fullClass = f.mode === 'full' ? ' iv2-full-only' : '';
     let control;
     if (f.type === 'select') {
-        const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}">${esc(opt || '—')}</option>`).join('');
+        // Options come in two shapes:
+        //   1. plain strings — `value` and label are the same
+        //   2. [value, label] tuples — the state list uses this so the
+        //      stored USPS code stays "AL" while the user reads "Alabama (AL)"
+        const opts = (f.options || []).map(opt => {
+            const [value, label] = Array.isArray(opt) ? opt : [opt, opt];
+            return `<option value="${escAttr(value)}">${esc(label || '—')}</option>`;
+        }).join('');
         control = `<select id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">${opts}</select>`;
     } else if (f.type === 'checkbox') {
         return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}" rows="3"></textarea>`;
     } else {
-        control = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">`;
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">`;
+        control = f.speller
+            ? `<div class="iv2-input-wrap">${input}${spellerInsetButton(f.speller)}</div>`
+            : input;
     }
     return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}">
         <label for="${escAttr(f.id)}">${esc(f.label)}</label>
@@ -154,6 +176,68 @@ function renderLastEntries() {
         const val = e.value === '' ? '(cleared)' : (typeof e.value === 'boolean' ? (e.value ? '✓' : '☐') : String(e.value));
         return `<div class="iv2-le"><span class="iv2-le-time">${esc(ts)}</span><span class="iv2-le-path">${esc(e.path)}</span><span>= ${esc(val)}</span></div>`;
     }).join('');
+}
+
+// Delegated click + keyboard handlers for every inset speller button
+// stamped by `spellerInsetButton()`. Wires once at boot. The button has
+// `data-speller-mode` (general | vin | dl | plate | email); the sibling
+// `<input>` is the field we read from + write back to. PhoneticSpeller's
+// `onCommit` callback fires when the user clicks "Apply" in the modal.
+function wireSpellerDelegation() {
+    if (wireSpellerDelegation._wired) return;
+    wireSpellerDelegation._wired = true;
+
+    const MODE_HINTS = Object.freeze({
+        vin:    '17 alphanumeric characters. VINs never use I, O, or Q — those are 1, 0, and 0.',
+        dl:     'DL formats vary by state. Read each character with its APCO word for confirmation.',
+        plate:  'Letters and digits, uppercase only. Spaces and dashes are dropped.',
+        email:  'Reads "@" as "at" and "." as "dot" so the client doesn\'t miss them on a call.',
+        general:'',
+    });
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('.iv2-speller-btn');
+        if (!btn) return;
+        if (!btn.closest('#intakeV2Tool')) return;
+        const wrap = btn.closest('.iv2-input-wrap');
+        const input = wrap && wrap.querySelector('input');
+        if (!input) return;
+        if (typeof window.PhoneticSpeller === 'undefined') return;
+        const mode = btn.getAttribute('data-speller-mode') || 'general';
+        const hint = MODE_HINTS[mode] || '';
+        window.PhoneticSpeller.open({
+            seed: input.value,
+            mode,
+            hint,
+            onCommit: (val) => {
+                if (input.value === val) return;
+                input.value = val;
+                // Re-fire `input` so IntakeV2.core's save handler picks
+                // the change up — without this the sanitized VIN /
+                // plate would only land on disk after another keystroke.
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            },
+        });
+    });
+
+    // Alt+P shortcut — opens the speller for whichever input the agent
+    // is focused on, as long as that input is inside an .iv2-input-wrap
+    // (i.e. the field already opted into spelling via `speller: '…'`).
+    // Plain Alt+P on a non-speller field is a no-op so the keystroke
+    // stays consistent across the form.
+    document.addEventListener('keydown', (e) => {
+        if (!e.altKey || e.key.toLowerCase() !== 'p') return;
+        const el = document.activeElement;
+        if (!el || el.tagName !== 'INPUT') return;
+        if (!el.closest('#intakeV2Tool')) return;
+        const wrap = el.closest('.iv2-input-wrap');
+        if (!wrap) return;
+        const btn = wrap.querySelector('.iv2-speller-btn');
+        if (btn) {
+            e.preventDefault();
+            btn.click();
+        }
+    });
 }
 
 function wireTopbarHandlers() {
@@ -268,6 +352,7 @@ window.IntakeV2.onBoot(function () {
 
     renderQuickSection();
     wireTopbarHandlers();
+    wireSpellerDelegation();
     renderJumpBadges();
     renderTopbarStatus();
     renderTalkTrack();
