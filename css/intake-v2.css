@@ -175,6 +175,23 @@
 }
 .iv2-jump-list .iv2-jump-badge.is-warn { background: #B33A3A; }
 
+/* Per-section completion chip — minimal, right-edge of each jump
+ * button. Color reflects depth: gray "—" when no bindables exist
+ * for the section, amber when started, blue when ≥60% captured,
+ * green ✓ when complete. Updated on every save by
+ * renderJumpProgress() in intake-v2-layout.js. */
+.iv2-jump-list .iv2-jump-progress {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    min-width: 28px;
+    text-align: right;
+}
+.iv2-jump-list .iv2-jump-progress[data-state="early"] { color: #C58800; }
+.iv2-jump-list .iv2-jump-progress[data-state="near"]  { color: var(--apple-blue); }
+.iv2-jump-list .iv2-jump-progress[data-state="done"]  { color: #1B873F; }
+
 .iv2-shortcut-hint {
     margin-top: 12px;
     padding-top: 8px;

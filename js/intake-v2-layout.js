@@ -217,6 +217,112 @@ function renderJumpBadges() {
     if (fc) fc.textContent = String(followups);
     const fc2 = document.getElementById('iv2FollowupCount2');
     if (fc2) fc2.textContent = String(followups);
+
+    renderJumpProgress();
+}
+
+// Per-section completion % rendered into the left-rail jump list.
+// Counts bindable-flagged fields (the ✦ marks) for each section: how
+// many the agent has captured vs how many exist. Sections without any
+// bindable fields show no progress chip — there's nothing to track.
+//
+// Implementation reads directly from IntakeV2Bindability's missing
+// list (already keyed by section via the field's path → schema lookup)
+// rather than recomputing — keeps the two surfaces in lock-step with
+// each other.
+function renderJumpProgress() {
+    const fields = window.IntakeV2Fields && window.IntakeV2Fields.scalar;
+    const bind   = window.IntakeV2.bindability;
+    if (!fields || !bind) return;
+
+    // Section → list of bindable-field paths (scalar + collection-derived).
+    // Quick section gets the applicant + co-applicant + address + household
+    // fields; Household gets the operator collection; Properties covers all
+    // four product collections; Coverage gets prior-insurance + discounts.
+    const SECTION_BUCKETS = {
+        'iv2-quick':       new Set(),
+        'iv2-household':   new Set(),
+        'iv2-properties':  new Set(),
+        'iv2-coverage':    new Set(),
+    };
+    for (const f of fields) {
+        if (!f.bindable) continue;
+        const sec = f.section === 'history' ? null
+                  : f.section === 'coverage' ? 'iv2-coverage'
+                  : f.section === 'review' ? null
+                  : 'iv2-quick';
+        if (sec && SECTION_BUCKETS[sec]) SECTION_BUCKETS[sec].add(f.path);
+    }
+
+    // Per-carrier bucketing — union across all carriers so the progress
+    // ring reflects "fields any carrier needs", not just one carrier's.
+    const missingPaths = new Set();
+    for (const c of Object.keys(bind)) {
+        const arr = bind[c] && bind[c].missing;
+        if (!Array.isArray(arr)) continue;
+        for (const m of arr) {
+            if (!m || !m.path) continue;
+            // Collection paths look like "autos#auto-1.year" — collapse to
+            // the section bucket via the prefix. Scalar paths land directly
+            // in their schema-defined section.
+            if (m.path.startsWith('operators#'))      missingPaths.add(`__op:${m.path}`);
+            else if (m.path.startsWith('homes#'))     missingPaths.add(`__prop:${m.path}`);
+            else if (m.path.startsWith('autos#'))     missingPaths.add(`__prop:${m.path}`);
+            else if (m.path.startsWith('boats#'))     missingPaths.add(`__prop:${m.path}`);
+            else if (m.path.startsWith('rvs#'))       missingPaths.add(`__prop:${m.path}`);
+            else                                      missingPaths.add(m.path);
+        }
+    }
+
+    // Total scalar bindables per section
+    const totals = {
+        'iv2-quick':      SECTION_BUCKETS['iv2-quick'].size,
+        'iv2-household':  0,
+        'iv2-properties': 0,
+        'iv2-coverage':   SECTION_BUCKETS['iv2-coverage'].size,
+    };
+    // Add per-item totals for collections — each instance of a bindable
+    // collection field contributes to its section's denominator. Reuses
+    // the field schemas so we don't double-maintain the list.
+    const cFields = window.IntakeV2Fields.collections || {};
+    function colTotal(collKey) {
+        const items = (window.IntakeV2.data[collKey] || []);
+        const bind  = (cFields[collKey]?.fields || []).filter(f => f.bindable).length;
+        return items.length * bind;
+    }
+    totals['iv2-household']  = colTotal('operators');
+    totals['iv2-properties'] = colTotal('homes') + colTotal('autos') + colTotal('boats') + colTotal('rvs');
+
+    // Missing per section
+    function missingFor(prefix) {
+        let n = 0;
+        for (const p of missingPaths) {
+            if (p.startsWith(prefix)) n++;
+        }
+        return n;
+    }
+    const missing = {
+        'iv2-quick':      Array.from(missingPaths).filter(p => SECTION_BUCKETS['iv2-quick'].has(p)).length,
+        'iv2-coverage':   Array.from(missingPaths).filter(p => SECTION_BUCKETS['iv2-coverage'].has(p)).length,
+        'iv2-household':  missingFor('__op:'),
+        'iv2-properties': missingFor('__prop:'),
+    };
+
+    document.querySelectorAll('[data-progress]').forEach(el => {
+        const sec = el.getAttribute('data-progress');
+        const total = totals[sec] || 0;
+        const miss  = missing[sec] || 0;
+        if (total === 0) {
+            el.textContent = '—';
+            el.removeAttribute('data-state');
+            return;
+        }
+        const filled = Math.max(0, total - miss);
+        const pct = Math.round((filled / total) * 100);
+        el.textContent = pct === 100 ? '✓' : `${pct}%`;
+        el.setAttribute('data-state',
+            pct === 100 ? 'done' : pct >= 60 ? 'near' : 'early');
+    });
 }
 
 function renderTalkTrack() {

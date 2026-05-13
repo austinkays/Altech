@@ -39,10 +39,14 @@
   <!-- ── Left rail: jump-to anchors + counts ─────────────────────────────── -->
   <aside class="iv2-left-rail" id="iv2LeftRail" aria-label="Section navigation">
     <ul class="iv2-jump-list" id="iv2JumpList">
-      <li><button type="button" data-jump="iv2-quick">      <span>Quick Start</span></button></li>
-      <li><button type="button" data-jump="iv2-household">  <span>Household & Operators</span> <span class="iv2-jump-badge" data-count="operators">0</span></button></li>
-      <li><button type="button" data-jump="iv2-properties"> <span>Properties to Insure</span>  <span class="iv2-jump-badge" data-count="products">0</span></button></li>
-      <li><button type="button" data-jump="iv2-coverage">   <span>Coverage</span></button></li>
+      <!-- Each jump button gets a completion ring on the right edge —
+           shows what fraction of the bindable fields in that section the
+           agent has captured. Filled by renderJumpProgress() in
+           intake-v2-layout.js after every save. -->
+      <li><button type="button" data-jump="iv2-quick">      <span>Quick Start</span>           <span class="iv2-jump-progress" data-progress="iv2-quick"     >—</span></button></li>
+      <li><button type="button" data-jump="iv2-household">  <span>Household & Operators</span> <span class="iv2-jump-progress" data-progress="iv2-household" >—</span> <span class="iv2-jump-badge" data-count="operators">0</span></button></li>
+      <li><button type="button" data-jump="iv2-properties"> <span>Properties to Insure</span>  <span class="iv2-jump-progress" data-progress="iv2-properties">—</span> <span class="iv2-jump-badge" data-count="products">0</span></button></li>
+      <li><button type="button" data-jump="iv2-coverage">   <span>Coverage</span>              <span class="iv2-jump-progress" data-progress="iv2-coverage"  >—</span></button></li>
       <li><button type="button" data-jump="iv2-history">    <span>History</span></button></li>
       <li><button type="button" data-jump="iv2-review">     <span>Review & Export</span></button></li>
     </ul>
