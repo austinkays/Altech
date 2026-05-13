@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **feat(supabase-only): Firebase removed entirely — Supabase is the sole auth + sync backend** (May 13, 2026):
+  - **Deleted files**: `js/firebase-config.js`, `js/cloud-sync.js`, `js/admin-panel.js`, `js/migration-ui.js`, `js/migration-backup.js`, `api/admin.js`, `firebase.json`, `firestore.rules`. Firebase CDN scripts were already absent from `index.html`; this PR rips out the JS modules that depended on them.
+  - **Rewrote `js/auth.js`** from ~977 lines (dual-backend Firebase/Supabase) to ~520 lines (Supabase-only) while preserving the `Auth.*` API surface that ~40 plugins read directly. `_useSupabase()`/`FirebaseConfig`/`_friendlyError`/`_syncUserProfile` are gone; signup/login/reset/logout/changePassword/updateName/resendVerification all route through `SupabaseAuth` and the Supabase JS v2 client (`window.Supabase.client.auth.*`).
+  - **Simplified `js/sync-facade.js`** — removed `legacy()`, `_isRealFirebaseAuthSingleton`, and the `apiFetch` shim. `window.Sync` and `window.AuthFacade` are now thin pass-throughs to `SupabaseSync` / `SupabaseAuth`.
+  - **Migrated remaining Firebase call sites** to Supabase blobs:
+    - **Rentcast usage counter** (`js/app-property-rentcast.js`) — moved from Firestore `users/{uid}/sync/rentcastUsage` to a Supabase `user_blobs` row with `doc_key='rentcastUsage'`. Same `{count, periodDay, periodStart}` shape, just plain JSON instead of atomic Firestore increment (acceptable for single-user counter).
+    - **Rentcast overage log** — moved from Firestore subcollection `users/{uid}/rentcast_overage_log/{ts}` to a single `user_blobs` row `doc_key='rentcast_overage_log'` whose payload is an array of consent entries.
+    - **Paywall subscription** — moved from `users/{uid}/sync/subscription` Firestore doc to `user_blobs` row `doc_key='subscription'` (plain JSON; Stripe webhook will need a follow-up to write here instead of Firestore).
+    - **Reminders daily digest** — moved from `users/{uid}/sync/dailyDigest` Firestore doc to `user_blobs` row `doc_key='dailyDigest'` (cron in `api/reminders-sweep.js` needs a follow-up to write here).
+    - **Accounting export recovery** — replaced `firebase.auth.EmailAuthProvider.credential` re-auth with `client.auth.signInWithPassword` against the user's current email.
+  - **Cleaned up 13 plugin files** that called `CloudSync.schedulePush()` / `CloudSync.refreshUI()` — batch-replaced with `window.Sync.*` (the facade). Files: `crypto-helper.js`, `onboarding.js`, `accounting-export.js`, `call-logger.js`, `app-ai-settings.js`, `commercial-quoter.js`, `app-vehicles.js`, `app-quotes.js`, `reminders.js`, `app-ui-utils.js`, `intake-assist.js`, `task-sheet.js`, `vault-ui.js`.
+  - **Updated `js/dashboard-widgets.js`, `js/app-navigation.js`** to drop the dead `firebase.auth().currentUser` fallback in their greeting logic — `Auth.user` is now the sole source.
+  - **Simplified `js/app-boot.js`** — removed the `FirebaseConfig.sdkLoaded` branch; just calls `Auth.init()` directly.
+  - **API**: `api/config.js` no longer serves `?type=firebase`; `api/admin.js` is deleted (replaced by existing `api/admin-supabase.js`).
+  - **Added `carrierOverrides` to `SupabaseSync.DOC_LOCAL_KEYS`** — this was registered for the legacy CloudSync but not the Supabase one, so broadform rule edits weren't actually syncing on the Supabase backend.
+  - **Tests**: deleted `auth-cloudsync.test.js`, `cloud-sync-aad.test.js`, `migration-aftercare.test.js`, `migration-backup.test.js`, `migration-ui-pipeline.test.js`, `sync-conflict-ui.test.js`, `hotfix-429-and-scrub.test.js` (all tested the deleted modules). Rewrote `admin-only-sync.test.js` to assert sync-facade.js + auth.js patterns. Updated `call-logger.test.js`, `compliance-state-preservation.test.js`, `today-view.test.js`, `boot-loading.test.js`, `broadform.test.js`, `mfa-enforcement.test.js`, `auth-bridge-race.test.js` to drop Firebase mocks. **59/59 suites, 2327/2327 tests pass.**
+  - **Docs**: updated `CLAUDE.md` — Sync Backend section rewritten, Storage Keys table cleaned, "What NOT To Do" rows updated.
+  - **Follow-ups intentionally NOT in this PR** (separate concerns): `api/reminders-sweep.js` cron + `api/stripe.js` webhook still write to Firestore for legacy users; both need to be updated to write to Supabase `user_blobs`. The `STORAGE_KEYS.SYNC_BACKEND` flag is left in place (now effectively dead) so a future cleanup can detect users who flipped to `'firebase'` and migrate them off.
+
 ### Added
 - **feat(intake): Personal Intake v2 — phone-first ground-up rebuild for Home + Auto + Boat + RV** (May 12, 2026):
   - **The original 7-step wizard is replaced by a single-page workspace** designed for an agent on a live phone call. No Next/Prev — every field is reachable instantly. Boats and RVs now have full first-class field schemas covering everything Progressive, Foremost, Travelers, and Safeco need to quote (HIN, hull material, propulsion, mooring ZIP, navigation waters, lay-up, full-timer flag, RV class, total-loss-replacement, etc).

@@ -198,7 +198,7 @@
             _toast('🔒 End-to-end encryption is on.', 'success');
 
             // Refresh UI that reflects the new state.
-            if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
             refreshSettingsRow();
         } catch (err) {
             console.error('[Vault] Onboarding step 2 failed:', err);
@@ -270,7 +270,7 @@
             _q('#vaultUnlockPass').value = '';
             _hideModal('#vaultUnlockModal');
             _toast('🔓 Vault unlocked', 'success');
-            if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
             // Mirror the passphrase-unlock path: re-pull encrypted docs from
             // the cloud so reminders / CGL / etc. that couldn't decrypt
             // pre-unlock land in localStorage and the consuming modules
@@ -323,7 +323,7 @@
             _q('#vaultUnlockPass').value = '';
             _hideModal('#vaultUnlockModal');
             _toast('🔓 Vault unlocked', 'success');
-            if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
             // Re-pull encrypted docs from the cloud now that we have a key.
             // Earlier in the boot, SupabaseSync may have tried to hydrate
             // reminders / cglState / clientHistory and failed silently
@@ -540,7 +540,7 @@
             await VaultMeta.save(newMeta);
             _hideModal('#vaultRecoverModal');
             _toast('🔒 Passphrase reset. Vault unlocked.', 'success');
-            if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
         } catch (err) {
             console.error('[Vault] Recovery step 2 failed:', err);
             _setError('#vaultRecoverModal', err.message || 'Unable to save new passphrase.');
@@ -561,7 +561,7 @@
             await VaultMeta.clear();
             _toast('End-to-end encryption disabled', 'info');
             refreshSettingsRow();
-            if (typeof CloudSync !== 'undefined' && CloudSync.refreshUI) CloudSync.refreshUI();
+            if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
         } catch (err) {
             console.error('[Vault] Disable failed:', err);
             _toast('Unable to disable encryption', 'error');

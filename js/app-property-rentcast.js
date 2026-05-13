@@ -18,30 +18,55 @@ Object.assign(App, {
         return new Date(now.getFullYear(), now.getMonth() + 1, periodDay);
     },
 
+    // Phase D: Rentcast usage now lives in Supabase user_blobs under doc_key
+    // 'rentcastUsage'. The blob is plain JSON (not encrypted) — it's
+    // operational metering data, not PII, and we want it readable for
+    // overage diagnostics. Shape: `{ count, periodDay, periodStart }`.
+
+    async _readRentcastBlob() {
+        if (typeof window.Sync === 'undefined' || typeof window.Sync.pullBlob !== 'function') return null;
+        try {
+            const blob = await window.Sync.pullBlob('rentcastUsage');
+            if (!blob || !blob.ciphertext) return null;
+            try { return JSON.parse(blob.ciphertext); } catch { return null; }
+        } catch (e) {
+            console.warn('[RentcastCounter] pullBlob failed:', e && e.message);
+            return null;
+        }
+    },
+
+    async _writeRentcastBlob(payload) {
+        if (typeof window.Sync === 'undefined' || typeof window.Sync.pushBlob !== 'function') return false;
+        try {
+            const res = await window.Sync.pushBlob('rentcastUsage', JSON.stringify(payload));
+            return !!(res && res.ok);
+        } catch (e) {
+            console.warn('[RentcastCounter] pushBlob failed:', e && e.message);
+            return false;
+        }
+    },
+
     /**
-     * Reads the Rentcast usage doc from users/{uid}/sync/rentcastUsage.
-     * Returns { count, periodDay, nextReset } — count is auto-zeroed if a new period has started.
+     * Reads the Rentcast usage blob. Returns { count, periodDay, nextReset } —
+     * count is auto-zeroed if a new period has started since the last write.
      */
     async _getRentcastCounter() {
         const fallback = { count: 0, periodDay: 1, nextReset: this._rentcastNextReset(1) };
         try {
             const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
-            const db  = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
-            if (!uid || !db) return fallback;
-            const docRef = db.collection('users').doc(uid).collection('sync').doc('rentcastUsage');
-            const snap = await docRef.get();
-            if (!snap.exists) return fallback;
-            const d = snap.data();
+            if (!uid) return fallback;
+            const d = await this._readRentcastBlob();
+            if (!d) return fallback;
             const periodDay    = d.periodDay || 1;
             const periodStart  = d.periodStart || '';
             const nextReset    = this._rentcastNextReset(periodDay);
             const lastReset    = this._rentcastPeriodStart(periodDay);
             const lastResetStr = lastReset.toISOString().slice(0, 10);
-            // If stored periodStart is older than the last computed reset → new cycle
+            // If stored periodStart is older than the last computed reset → new cycle.
             if (periodStart < lastResetStr) {
-                // Auto-reset: write the new period asynchronously (fire-and-forget)
-                docRef.set({ count: 0, periodDay, periodStart: lastResetStr }, { merge: true })
-                    .catch(err => console.warn('[RentcastCounter] Auto-reset write failed:', err.message));
+                // Auto-reset: write the new period asynchronously (fire-and-forget).
+                this._writeRentcastBlob({ count: 0, periodDay, periodStart: lastResetStr })
+                    .catch(err => console.warn('[RentcastCounter] Auto-reset write failed:', err && err.message));
                 return { count: 0, periodDay, nextReset };
             }
             return { count: d.count || 0, periodDay, nextReset };
@@ -52,45 +77,47 @@ Object.assign(App, {
     },
 
     /**
-     * Increments the usage counter by 1. If a new billing period has started since the
-     * last write, resets to 1 instead of incrementing.
+     * Increments the usage counter by 1. If a new billing period has started
+     * since the last write, resets to 1 instead of incrementing.
+     *
+     * Phase D: previously used a Firestore atomic increment. Single-device
+     * users see no behavioral change. Multi-device race is unlikely (a single
+     * Rentcast call from each of two devices in the same millisecond) and
+     * worst case is one undercount that the next read auto-reconciles via
+     * the periodStart check.
      */
     async _incrementRentcastCounter() {
         try {
             const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
-            const db  = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
-            if (!uid || !db) return;
-            const docRef = db.collection('users').doc(uid).collection('sync').doc('rentcastUsage');
-            const snap = await docRef.get();
-            const d = snap.exists ? snap.data() : {};
-            const periodDay   = d.periodDay || 1;
-            const lastReset   = this._rentcastPeriodStart(periodDay);
+            if (!uid) return;
+            const d = (await this._readRentcastBlob()) || {};
+            const periodDay    = d.periodDay || 1;
+            const lastReset    = this._rentcastPeriodStart(periodDay);
             const lastResetStr = lastReset.toISOString().slice(0, 10);
-            const isNewPeriod = !d.periodStart || d.periodStart < lastResetStr;
-            if (isNewPeriod) {
-                await docRef.set({ count: 1, periodDay, periodStart: lastResetStr }, { merge: true });
-            } else {
-                await docRef.set({ count: firebase.firestore.FieldValue.increment(1) }, { merge: true });
-            }
+            const isNewPeriod  = !d.periodStart || d.periodStart < lastResetStr;
+            const nextCount    = isNewPeriod ? 1 : (Number(d.count || 0) + 1);
+            const nextStart    = isNewPeriod ? lastResetStr : d.periodStart;
+            await this._writeRentcastBlob({ count: nextCount, periodDay, periodStart: nextStart });
         } catch (e) {
             console.warn('[RentcastCounter] Failed to increment:', e.message);
         }
     },
 
     /**
-     * Saves a specific count and/or periodDay to Firestore.
-     * Used by the settings modal to correct the count to match the real Rentcast dashboard.
+     * Saves a specific count and/or periodDay. Used by the settings modal to
+     * correct the count to match the real Rentcast dashboard.
      */
     async _setRentcastCounter(count, periodDay) {
         try {
             const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
-            const db  = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
-            if (!uid || !db) { this.toast('Sign in to save Rentcast settings', 'error'); return false; }
+            if (!uid) { this.toast('Sign in to save Rentcast settings', 'error'); return false; }
             const lastReset    = this._rentcastPeriodStart(periodDay);
             const lastResetStr = lastReset.toISOString().slice(0, 10);
-            await db.collection('users').doc(uid).collection('sync').doc('rentcastUsage')
-                .set({ count, periodDay, periodStart: lastResetStr }, { merge: true });
-            return true;
+            const ok = await this._writeRentcastBlob({ count, periodDay, periodStart: lastResetStr });
+            if (!ok) {
+                this.toast('Failed to save Rentcast settings', 'error');
+            }
+            return ok;
         } catch (e) {
             console.warn('[RentcastCounter] Failed to set counter:', e.message);
             this.toast('Failed to save Rentcast settings', 'error');
@@ -267,26 +294,39 @@ Object.assign(App, {
     },
 
     /**
-     * Writes a permanent consent record to Firestore when user approves an overage lookup.
-     * No-op in test environments. These records must never be deleted.
+     * Writes a permanent consent record when user approves an overage lookup.
+     * Phase D: previously a Firestore subcollection at
+     * users/{uid}/rentcast_overage_log/{docId}. Now appended to a single
+     * Supabase blob `rentcast_overage_log` whose payload is an array of
+     * consent entries. Worst case for a multi-device race is one append
+     * being clobbered — acceptable for an overage audit trail since the
+     * user has to click "approve" interactively (no high-throughput
+     * concurrent writes).
      */
     async _logRentcastOverage(address, currentCount) {
         try {
             const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
-            const db = typeof FirebaseConfig !== 'undefined' ? FirebaseConfig.db : null;
-            if (!uid || !db) return;
+            if (!uid) return;
+            if (typeof window.Sync === 'undefined' || typeof window.Sync.pushBlob !== 'function') return;
             const timestamp = new Date().toISOString();
-            const docId = timestamp.replace(/[:.]/g, '-');
-            const email = (typeof firebase !== 'undefined' && firebase.auth().currentUser?.email) || 'unknown';
-            await db.collection('users').doc(uid)
-                .collection('rentcast_overage_log').doc(docId)
-                .set({
-                    timestamp,
-                    address,
-                    monthlyCount: currentCount,
-                    approvedBy: email,
-                    action: 'approved_overage'
-                });
+            const email = (typeof Auth !== 'undefined' && Auth.email) || 'unknown';
+            const entry = {
+                timestamp,
+                address,
+                monthlyCount: currentCount,
+                approvedBy: email,
+                action: 'approved_overage',
+            };
+            let existing = [];
+            try {
+                const blob = await window.Sync.pullBlob('rentcast_overage_log');
+                if (blob && blob.ciphertext) {
+                    const parsed = JSON.parse(blob.ciphertext);
+                    if (Array.isArray(parsed)) existing = parsed;
+                }
+            } catch { /* first write — existing stays empty */ }
+            existing.push(entry);
+            await window.Sync.pushBlob('rentcast_overage_log', JSON.stringify(existing));
         } catch (e) {
             console.warn('[RentcastCounter] Failed to log overage:', e.message);
         }

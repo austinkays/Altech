@@ -39,10 +39,6 @@ function createBootDom(url = 'http://localhost:8000') {
     ready: jest.fn().mockResolvedValue(undefined),
     apiFetch: jest.fn(() => Promise.resolve({ ok: true, json: async () => ({ apiKey: 'k_server' }) }))
   };
-  w.FirebaseConfig = {
-    sdkLoaded: false,
-    init: jest.fn().mockResolvedValue(undefined)
-  };
   w.DashboardWidgets = {
     init: jest.fn(),
     refreshAll: jest.fn(),
@@ -71,12 +67,13 @@ describe('App Boot + First-Load Reliability', () => {
     expect(source).toContain('DashboardWidgets.renderHeader()');
   });
 
-  test('boot initializes Auth bridge even when Firebase SDK is absent', () => {
+  test('boot initializes Auth (Supabase-only) and loads Places API', () => {
     const source = fs.readFileSync(path.join(ROOT, 'js/app-boot.js'), 'utf8');
-    const noFirebaseBranch = source.match(/} else \{\s*if \(typeof Auth !== 'undefined'\) \{([\s\S]*?)if \(typeof window\.loadPlacesAPI === 'function'\) window\.loadPlacesAPI\(\);\s*\}/);
-
-    expect(noFirebaseBranch).not.toBeNull();
-    expect(noFirebaseBranch[1]).toContain('Auth.init()');
+    // Phase D: Firebase is gone, so boot just calls Auth.init() then loadPlacesAPI.
+    expect(source).toMatch(/Auth\.init\(\)/);
+    expect(source).toMatch(/window\.loadPlacesAPI === 'function'/);
+    // Regression: no FirebaseConfig branch should remain in boot.
+    expect(source).not.toMatch(/FirebaseConfig/);
   });
 
   test('loadPlacesAPI uses server key and injects Google script', async () => {

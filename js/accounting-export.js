@@ -94,7 +94,7 @@ const AccountingExport = {
         const hash = await this._hashPIN(pin, salt);
         const meta = { pinHash: hash, pinSalt: salt };
         localStorage.setItem(this._META_KEY, JSON.stringify(meta));
-        if (typeof CloudSync !== 'undefined') CloudSync.schedulePush();
+        if (typeof window.Sync !== 'undefined') window.Sync.schedulePush();
 
         // Initialize empty vault if none exists
         if (!localStorage.getItem(this._VAULT_KEY)) {
@@ -191,13 +191,17 @@ const AccountingExport = {
         const pw = document.getElementById('acctRecoveryPassword')?.value || '';
         if (!pw) { App.toast('Enter your password', 'error'); return; }
         try {
-            const user = firebase.auth().currentUser;
-            if (!user || !user.email) throw new Error('Not signed in');
-            const cred = firebase.auth.EmailAuthProvider.credential(user.email, pw);
-            await user.reauthenticateWithCredential(cred);
+            const email = (typeof Auth !== 'undefined' && Auth.email) || null;
+            if (!email) throw new Error('Not signed in');
+            const sb = (typeof window !== 'undefined') ? window.Supabase : null;
+            if (!sb || !sb.client || !sb.client.auth) throw new Error('Supabase not initialized');
+            // Re-auth via Supabase signInWithPassword. On success the session
+            // is refreshed; on failure the catch path runs.
+            const { error } = await sb.client.auth.signInWithPassword({ email, password: pw });
+            if (error) throw error;
             // Re-auth success — clear PIN so user can set a new one
             localStorage.removeItem(this._META_KEY);
-            if (typeof CloudSync !== 'undefined') CloudSync.schedulePush();
+            if (typeof window.Sync !== 'undefined') window.Sync.schedulePush();
             this._failedAttempts = 0;
             this._lockoutUntil = 0;
             App.toast('Identity verified — set a new PIN', 'success');
@@ -254,7 +258,7 @@ const AccountingExport = {
             } else {
                 localStorage.setItem(this._VAULT_KEY, JSON.stringify(data));
             }
-            if (typeof CloudSync !== 'undefined') CloudSync.schedulePush();
+            if (typeof window.Sync !== 'undefined') window.Sync.schedulePush();
         } catch (e) {
             console.warn('[AccountingExport] saveVault error:', e);
         }

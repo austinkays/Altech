@@ -685,8 +685,8 @@ window.CommercialQuoter = (() => {
             } else {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(_data));
             }
-            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-                CloudSync.schedulePush();
+            if (window.Sync && window.Sync.schedulePush) {
+                window.Sync.schedulePush();
             }
         } catch (e) {
             console.warn('[CommercialQuoter] save error', e);
@@ -701,8 +701,8 @@ window.CommercialQuoter = (() => {
             } else {
                 localStorage.setItem(QUOTES_KEY, JSON.stringify(_quotes));
             }
-            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-                CloudSync.schedulePush();
+            if (window.Sync && window.Sync.schedulePush) {
+                window.Sync.schedulePush();
             }
         } catch (e) {
             console.warn('[CommercialQuoter] quotes save error', e);

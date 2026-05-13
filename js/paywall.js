@@ -29,24 +29,25 @@ window.Paywall = (() => {
     let _subscription = null;
 
     /**
-     * Load subscription data from Firestore.
+     * Load subscription data from the subscription blob in Supabase.
      * Called automatically when user signs in.
+     *
+     * Phase D note: subscription data was previously a Firestore doc at
+     * users/{uid}/sync/subscription. After Firebase removal it migrates to
+     * the user_blobs table under doc_key='subscription'. The blob is
+     * plain JSON (no AAD wrap) because it's server-managed via Stripe
+     * webhooks, not encrypted at rest by the client.
      */
     async function loadSubscription() {
         _subscription = null;
-        if (typeof FirebaseConfig === 'undefined' || !FirebaseConfig.isReady) return;
         if (typeof Auth === 'undefined' || !Auth.isSignedIn) return;
+        if (typeof window.Sync === 'undefined' || typeof window.Sync.pullBlob !== 'function') return;
 
         try {
-            const doc = await FirebaseConfig.db
-                .collection('users')
-                .doc(Auth.uid)
-                .collection('sync')
-                .doc('subscription')
-                .get();
-
-            if (doc.exists) {
-                _subscription = doc.data();
+            const blob = await window.Sync.pullBlob('subscription');
+            if (blob && blob.ciphertext) {
+                try { _subscription = JSON.parse(blob.ciphertext); }
+                catch { _subscription = null; }
             }
         } catch (e) {
             console.warn('[Paywall] Failed to load subscription:', e.message);

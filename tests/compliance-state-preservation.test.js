@@ -48,7 +48,7 @@ function loadDashboard() {
         set: () => Promise.resolve()
     };
     window.Auth = { apiFetch: () => Promise.resolve({ ok: false, status: 501 }) };
-    window.CloudSync = { schedulePush: () => {} };
+    window.Sync = { schedulePush: () => {} };
     window.App = { toast: () => {} };
     window.AbortSignal = window.AbortSignal || { timeout: () => undefined };
 

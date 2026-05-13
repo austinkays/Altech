@@ -358,17 +358,4 @@ describe('MFA enforcement (sync-facade gate)', () => {
         });
     });
 
-    describe('Firebase backend (default): gate is inert', () => {
-        test('Sync.mfaBlocked is false and Supabase methods are no-ops', async () => {
-            await loadStack({ backend: 'firebase' });
-            const { Sync } = global.window;
-            expect(Sync.backend).toBe('firebase');
-            expect(Sync.mfaBlocked).toBe(false);
-
-            // On firebase, supabase-only methods still return the default (not
-            // an mfa-required skip) because the gate short-circuits on backend.
-            await expect(Sync.pushBlob('currentForm', 'x'))
-                .resolves.toEqual({ ok: false, skipped: true });
-        });
-    });
 });

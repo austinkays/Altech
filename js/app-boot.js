@@ -204,32 +204,15 @@ window.onload = async () => {
         if (typeof IdleLock !== 'undefined') IdleLock.init();
     } catch (e) { console.error('[Boot] IdleLock init error:', e); }
 
-    // Initialize legacy Auth compatibility, then load Places API (needs Auth for key fetch).
-    // In the Phase D Supabase default, Firebase SDK scripts are absent; Auth.init()
-    // still must run because it wires the Supabase -> Auth.user bridge used by
-    // older tool gates and dashboard greeting code.
+    // Initialize Auth (Supabase facade), then load Places API (needs Auth for key fetch).
     try {
-        if (typeof FirebaseConfig !== 'undefined' && FirebaseConfig.sdkLoaded) {
-            FirebaseConfig.init().then(async () => {
-                if (typeof Auth !== 'undefined') {
-                    Auth.init();
-                    try { await Auth.ready(); } catch (_) { /* continue anyway */ }
-                }
-                if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
-            }).catch(e => {
-                console.warn('[App] Firebase init skipped:', e.message);
-                if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
-            });
-        } else {
-            if (typeof Auth !== 'undefined') {
-                try { Auth.init(); } catch (e) { console.warn('[Boot] Auth init skipped:', e && e.message); }
-            }
-            if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
+        if (typeof Auth !== 'undefined') {
+            try { Auth.init(); } catch (e) { console.warn('[Boot] Auth init skipped:', e && e.message); }
         }
-    } catch (e) { console.error('[Boot] Firebase/Places init error:', e); }
+        if (typeof window.loadPlacesAPI === 'function') window.loadPlacesAPI();
+    } catch (e) { console.error('[Boot] Auth/Places init error:', e); }
 
-    // Supabase Auth — default backend as of Phase D. Runs in parallel with
-    // any explicit Firebase fallback so neither blocks the other.
+    // Supabase Auth — the sole auth/sync backend after Phase D cleanup.
     try {
         if (typeof SupabaseAuth !== 'undefined') {
             SupabaseAuth.init().catch(e => console.warn('[Boot] SupabaseAuth init skipped:', e && e.message));

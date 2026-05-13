@@ -95,9 +95,8 @@ function bootstrap({ reminders, policies, activity } = {}) {
     w.App = { navigateTo: () => {}, goHome: () => {} };
 
     // Stub everything dashboard-widgets.js needs but doesn't matter for this test.
-    w.firebase = undefined;
-    w.CloudSync = undefined;
     w.SupabaseSync = undefined;
+    w.Sync = undefined;
     w.Auth = undefined;
     w.fetch = () => Promise.reject(new Error('no network'));
 

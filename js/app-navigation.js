@@ -521,13 +521,7 @@ Object.assign(App, {
         const greeting = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
 
         // Use signed-in user's display name, fall back to onboarding name, then prompt.
-        // `Auth.user` is backend-agnostic — Firebase populates it via
-        // onAuthStateChanged; Supabase populates it via the bridge listener
-        // installed in Auth.init (#90). The previous code only checked
-        // firebase.auth().currentUser, so Supabase users saw "Good afternoon ☀️
-        // Sign in" even though they WERE signed in via Supabase.
-        const user = (typeof Auth !== 'undefined' && Auth.user)
-            || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+        const user = (typeof Auth !== 'undefined' && Auth.user) || null;
         if (user) {
             const rawName = user.displayName || (user.email ? user.email.split('@')[0] : 'User');
             const name = rawName.charAt(0).toUpperCase() + rawName.slice(1);

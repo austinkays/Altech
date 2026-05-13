@@ -79,12 +79,12 @@ describe('Persistence', () => {
     expect(source).toContain('JSON.stringify({ policyId, callType, agentInitials, channelType: _selectedChannel, activityType: _selectedActivityType })');
   });
 
-  test('_save calls CloudSync.schedulePush when available', () => {
-    expect(source).toContain('CloudSync.schedulePush');
+  test('_save calls Sync.schedulePush when available', () => {
+    expect(source).toContain('window.Sync.schedulePush');
   });
 
-  test('_save guards against missing CloudSync', () => {
-    expect(source).toContain("typeof CloudSync !== 'undefined'");
+  test('_save guards against missing Sync facade', () => {
+    expect(source).toContain('window.Sync && window.Sync.schedulePush');
   });
 });
 
@@ -256,8 +256,8 @@ describe('CallLogger — Behavioral (JSDOM)', () => {
         window.App = { toast: function(msg, type) { window._lastToast = { msg, type }; }, data: {} };
         // Mock Auth
         window.Auth = { apiFetch: null };
-        // Mock CloudSync
-        window.CloudSync = { schedulePush: function() { window._pushCalled = true; } };
+        // Mock Sync facade
+        window.Sync = { schedulePush: function() { window._pushCalled = true; } };
       </script>
       <script>${storageKeysSource}</script>
       <script>${utilsSource}</script>
@@ -984,7 +984,7 @@ describe('Client & Policy Lookup — Behavioral', () => {
           getClientHistory: function() { return window._mockClientHistory || []; }
         };
         window.Auth = { apiFetch: null };
-        window.CloudSync = { schedulePush: function() {} };
+        window.Sync = { schedulePush: function() {} };
       </script>
       <script>${storageKeysSource}</script>
       <script>${utilsSource}</script>

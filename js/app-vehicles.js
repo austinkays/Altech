@@ -600,8 +600,8 @@ Object.assign(App, {
             safeSave(this.storageKey, JSON.stringify(this.data));
         }
         // Queue cloud sync so driver/vehicle edits propagate across devices
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            try { CloudSync.schedulePush(); } catch (e) { /* ok */ }
+        if (window.Sync && window.Sync.schedulePush) {
+            try { window.Sync.schedulePush(); } catch (e) { /* ok */ }
         }
     },
 
