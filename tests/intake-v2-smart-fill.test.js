@@ -112,14 +112,17 @@ describe('IntakeV2SmartFill — mergeResults priority', () => {
         expect(out.merged['roof.shape']).toBeUndefined();
     });
 
-    test('Booleans (pool, trampoline) — true wins; later false never overwrites true', () => {
+    test('ArcGIS pool=true still auto-merges (only VISION booleans moved to confirmation)', () => {
+        // Phase 22 removed vision booleans from the merge dict (they
+        // now route through extractVisionHazards as confirmation
+        // prompts). ArcGIS booleans are still authoritative — county
+        // records aren't a guess from a satellite photo, so they
+        // continue to merge directly when the field is unset.
         const out = SF.mergeResults({
-            arcgis: { data: { pool: false }, source: 'County ArcGIS' },
-            zillow: null, fire: null,
-            vision: { data: { has_pool: true, has_trampoline: true }, source: 'AI Vision' },
+            arcgis: { data: { pool: true }, source: 'County ArcGIS' },
+            zillow: null, fire: null, vision: null,
         });
         expect(out.merged['hazards.pool']).toBe(true);
-        expect(out.merged['hazards.trampoline']).toBe(true);
     });
 
     test('Fire station data merges directly without overlap conflict', () => {
@@ -143,5 +146,84 @@ describe('IntakeV2SmartFill — mergeResults priority', () => {
         const out = SF.mergeResults({ arcgis: null, zillow: null, fire: null, vision: null });
         expect(out.merged).toEqual({});
         expect(out.sources).toEqual({});
+    });
+});
+
+describe('IntakeV2SmartFill — vision confidence tightening', () => {
+    const SF = loadSmartFill();
+
+    test('Confidence "high" or "medium" → merged; "low" → skipped', () => {
+        const high = SF.mergeResults({
+            arcgis: null, zillow: null, fire: null,
+            vision: { data: { exterior_walls: 'Brick', confidence: { exterior_walls: 'high' } }, source: 'V' },
+        });
+        expect(high.merged.exterior).toBe('Brick');
+        const low = SF.mergeResults({
+            arcgis: null, zillow: null, fire: null,
+            vision: { data: { exterior_walls: 'Brick', confidence: { exterior_walls: 'low' } }, source: 'V' },
+        });
+        expect(low.merged.exterior).toBeUndefined();
+    });
+
+    test('Missing confidence string is treated as low (does not merge)', () => {
+        // v1 used `conf !== 'low'` which would also accept undefined.
+        // v2 tightened to require an explicit 'high'/'medium' string.
+        const out = SF.mergeResults({
+            arcgis: null, zillow: null, fire: null,
+            vision: { data: { exterior_walls: 'Brick' }, source: 'V' },  // no confidence field
+        });
+        expect(out.merged.exterior).toBeUndefined();
+    });
+
+    test('Vision booleans no longer enter the merge dict directly', () => {
+        // Phase 22: pool / trampoline routed through extractVisionHazards
+        // for explicit confirmation, not auto-merged into the form.
+        const out = SF.mergeResults({
+            arcgis: null, zillow: null, fire: null,
+            vision: { data: { has_pool: true, has_trampoline: true }, source: 'V' },
+        });
+        expect(out.merged['hazards.pool']).toBeUndefined();
+        expect(out.merged['hazards.trampoline']).toBeUndefined();
+    });
+});
+
+describe('IntakeV2SmartFill — extractVisionHazards', () => {
+    const SF = loadSmartFill();
+
+    test('Returns no hazards when vision payload is null / data missing', () => {
+        expect(SF.extractVisionHazards(null)).toEqual([]);
+        expect(SF.extractVisionHazards({ data: null })).toEqual([]);
+    });
+
+    test('Extracts pool + trampoline when booleans are explicitly true', () => {
+        const out = SF.extractVisionHazards({
+            data: { has_pool: true, has_trampoline: true },
+        });
+        const ids = out.map(h => h.id).sort();
+        expect(ids).toEqual(['pool', 'trampoline']);
+    });
+
+    test('Ignores false / null booleans (no row for unconfirmed sightings)', () => {
+        const out = SF.extractVisionHazards({
+            data: { has_pool: false, has_trampoline: null, tree_overhang_roof: undefined },
+        });
+        expect(out).toEqual([]);
+    });
+
+    test('Brush clearance is the inverse — false means inadequate, surfaces as a risk', () => {
+        const out = SF.extractVisionHazards({
+            data: { brush_clearance_adequate: false },
+        });
+        expect(out.length).toBe(1);
+        expect(out[0].id).toBe('brushClearance');
+        expect(out[0].severity).toBe('risk');
+    });
+
+    test('Tree overhang is detected when boolean is true', () => {
+        const out = SF.extractVisionHazards({
+            data: { tree_overhang_roof: true },
+        });
+        expect(out.length).toBe(1);
+        expect(out[0].id).toBe('treeOverhang');
     });
 });

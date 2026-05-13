@@ -239,19 +239,92 @@ function _readZillow(data) {
 }
 function _readVision(data) {
     if (!data) return {};
-    // Vision returns per-field confidence; v1 only merges medium/high
-    // values into the primary form (low-confidence stays in the side
-    // panel for manual review). Same gate here.
-    const ok = (val, conf) => (val != null && val !== '' && conf !== 'low') ? val : undefined;
+    // Vision returns per-field confidence; we only merge values where
+    // confidence is explicitly 'high' or 'medium'. v1 used `conf !==
+    // 'low'`, which would also accept missing/null/undefined confidence
+    // — tightened here so an absent confidence string is treated as low.
+    //
+    // Boolean hazards (pool / trampoline / tree overhang / brush
+    // clearance) no longer auto-merge from this function; they're
+    // surfaced as confirmation prompts by extractVisionHazards() and
+    // routed through the review modal so the agent can confirm each
+    // sighting before it lands in the form.
+    const ok = (val, conf) => (val != null && val !== '' && (conf === 'high' || conf === 'medium')) ? val : undefined;
     const conf = data.confidence || {};
     return {
         exterior:    ok(data.exterior_walls, conf.exterior_walls),
         'roof.shape':ok(data.roof_shape,    conf.roof_shape),
         'roof.type': ok(data.roof_material, conf.roof_material),
         numStories:  ok(data.stories,       conf.stories),
-        'hazards.pool':       data.has_pool === true,
-        'hazards.trampoline': data.has_trampoline === true,
     };
+}
+
+// Vision hazard prompts — booleans + scoring the satellite/Street-View
+// AI returns alongside the structural fields. Each entry is a row the
+// review modal renders as a checkbox the agent confirms or unchecks
+// before apply. The booleans deliberately don't enter `_readVision`'s
+// auto-merge dict — they represent things you might miss on a phone
+// call and the agent should look at the imagery before saying yes.
+//
+// Each hazard entry:
+//   { id, icon, label, path?, applyFn?, severity }
+//   - `path`     — if set, applyFn writes a string value via
+//                  setItemField (used for the dropdown-style fields
+//                  pool/trampoline where v2 stores "Yes"/"No"
+//                  rather than true/false).
+//   - `applyFn`  — custom apply (used for the freeform hazards that
+//                  drop into the home's notes field instead of a
+//                  dedicated path).
+//   - `severity` — drives the chip color in the modal.
+const VISION_HAZARD_HANDLERS = Object.freeze({
+    pool: {
+        icon: '🏊',
+        label: 'Pool visible from satellite',
+        detect: (d) => d.has_pool === true,
+        applyTo: (homeId) => window.IntakeV2.setItemField('homes', homeId, 'hazards.pool', true),
+        severity: 'warn',
+    },
+    trampoline: {
+        icon: '🎪',
+        label: 'Trampoline visible from satellite',
+        detect: (d) => d.has_trampoline === true,
+        applyTo: (homeId) => window.IntakeV2.setItemField('homes', homeId, 'hazards.trampoline', true),
+        severity: 'warn',
+    },
+    treeOverhang: {
+        icon: '🌲',
+        label: 'Tree overhang over roof',
+        detect: (d) => d.tree_overhang_roof === true,
+        // No dedicated path — append a note instead so the agent can
+        // mention it during the call and reflect it in coverage.
+        applyTo: (homeId, home) => {
+            const next = [home.notes || '', '⚠ Tree overhang on roof (AI vision).'].filter(Boolean).join(' ');
+            window.IntakeV2.setItemField('homes', homeId, 'notes', next);
+        },
+        severity: 'warn',
+    },
+    brushClearance: {
+        icon: '🔥',
+        label: 'Brush clearance inadequate',
+        detect: (d) => d.brush_clearance_adequate === false,
+        applyTo: (homeId, home) => {
+            const next = [home.notes || '', '⚠ Brush clearance inadequate (AI vision).'].filter(Boolean).join(' ');
+            window.IntakeV2.setItemField('homes', homeId, 'notes', next);
+        },
+        severity: 'risk',
+    },
+});
+
+function extractVisionHazards(visionPayload) {
+    if (!visionPayload || !visionPayload.data) return [];
+    const d = visionPayload.data;
+    const out = [];
+    for (const [id, h] of Object.entries(VISION_HAZARD_HANDLERS)) {
+        if (h.detect(d)) {
+            out.push({ id, icon: h.icon, label: h.label, severity: h.severity });
+        }
+    }
+    return out;
 }
 function _readFire(data) {
     if (!data) return {};
@@ -372,12 +445,24 @@ async function run(homeId, options = {}) {
     }
 
     const { merged, sources } = mergeResults({ arcgis, zillow, fire, vision });
+    const hazards = extractVisionHazards(vision);
+    // Underwriter notes from the vision endpoint: a freeform summary
+    // (`notes`) + an array of bullet-point flags (`visible_hazards`).
+    // Surface these in the review modal as a read-only callout so the
+    // agent sees the AI's qualitative observations alongside the
+    // checkbox prompts.
+    const visionNotes = (vision && vision.data && (vision.data.notes || (vision.data.visible_hazards && vision.data.visible_hazards.length)))
+        ? {
+            summary: vision.data.notes || '',
+            bullets: Array.isArray(vision.data.visible_hazards) ? vision.data.visible_hazards : [],
+        }
+        : null;
 
     // If onPreview is provided, hand the merged dict to a review modal
     // instead of applying directly. (Phase 17 wires this; Phase 16
     // keeps the silent-apply path so the existing button keeps working.)
     if (typeof options.onPreview === 'function') {
-        return { ok: true, parts, merged, sources, arcgis, zillow, fire, vision };
+        return { ok: true, parts, merged, sources, hazards, visionNotes, arcgis, zillow, fire, vision };
     }
 
     const filled = _applyToHome(homeId, merged);
@@ -486,10 +571,14 @@ function _closeModal() {
 // checkbox state. Re-runs on every row toggle.
 function _updateApplyCount() {
     if (!_modalEl) return;
-    const checked = _modalEl.querySelectorAll('.iv2-smartfill-row input[type=checkbox]:checked').length;
+    // Count both scalar field rows AND vision hazard prompts — either
+    // class of suggestion contributes to the "Apply N selected" total.
+    const scalar  = _modalEl.querySelectorAll('.iv2-smartfill-row input[type=checkbox]:checked').length;
+    const hazards = _modalEl.querySelectorAll('.iv2-smartfill-hazard input[type=checkbox]:checked').length;
+    const total = scalar + hazards;
     const btn = _modalEl.querySelector('.iv2-smartfill-apply');
-    btn.textContent = checked === 0 ? 'Nothing selected' : `Apply ${checked} selected`;
-    btn.disabled = checked === 0;
+    btn.textContent = total === 0 ? 'Nothing selected' : `Apply ${total} selected`;
+    btn.disabled = total === 0;
 }
 
 function _showReviewModal(homeId, payload) {
@@ -509,14 +598,53 @@ function _showReviewModal(homeId, payload) {
             return (sa === -1 ? 99 : sa) - (sb === -1 ? 99 : sb);
         });
 
-    if (rows.length === 0) {
+    // Vision findings — hazard prompts (pool / trampoline / tree / brush)
+    // surface at the top of the modal, BEFORE the scalar field rows.
+    // Each prompt is a checkbox the agent confirms or rejects; rejected
+    // hazards never write to the form. Underwriter notes (the
+    // freeform `notes` + `visible_hazards` bullets the vision endpoint
+    // returns) render as a read-only callout under the checkboxes.
+    let hazardHTML = '';
+    const hazards = Array.isArray(payload.hazards) ? payload.hazards : [];
+    if (hazards.length || payload.visionNotes) {
+        const hazardRows = hazards.map(h => {
+            const id = `iv2-sf-hazard-${h.id}`;
+            return `<label class="iv2-smartfill-hazard iv2-smartfill-hazard-${_esc(h.severity)}" for="${id}">
+                <input type="checkbox" id="${id}" data-hazard-id="${_esc(h.id)}">
+                <span class="iv2-smartfill-hazard-icon" aria-hidden="true">${h.icon}</span>
+                <span class="iv2-smartfill-hazard-label">${_esc(h.label)}</span>
+                <span class="iv2-smartfill-hazard-hint">Confirm if you spot it in the imagery</span>
+            </label>`;
+        }).join('');
+        let notesHTML = '';
+        if (payload.visionNotes) {
+            const summary = _esc(payload.visionNotes.summary);
+            const bullets = (payload.visionNotes.bullets || []).map(b => `<li>${_esc(b)}</li>`).join('');
+            notesHTML = `<div class="iv2-smartfill-vision-notes">
+                <strong>Underwriter notes from satellite + Street View</strong>
+                ${summary ? `<p>${summary}</p>` : ''}
+                ${bullets ? `<ul>${bullets}</ul>` : ''}
+            </div>`;
+        }
+        hazardHTML = `<section class="iv2-smartfill-section">
+            <h4 class="iv2-smartfill-section-title">🛰️ Vision findings</h4>
+            ${hazardRows ? `<div class="iv2-smartfill-hazards">${hazardRows}</div>` : ''}
+            ${notesHTML}
+        </section>`;
+    }
+
+    if (rows.length === 0 && !hazards.length) {
         body.innerHTML = `<p class="iv2-smartfill-empty">No new property data found for that address. Try a different format (street, city, state, ZIP), or fill manually.</p>`;
         el.querySelector('.iv2-smartfill-apply').style.display = 'none';
     } else {
         el.querySelector('.iv2-smartfill-apply').style.display = '';
-        body.innerHTML = rows.map(([path, value]) =>
-            _renderReviewRow(path, value, payload.sources[path])
-        ).join('');
+        const scalarHTML = rows.length
+            ? `<section class="iv2-smartfill-section">
+                ${hazards.length ? `<h4 class="iv2-smartfill-section-title">📋 Property details</h4>` : ''}
+                ${rows.map(([path, value]) => _renderReviewRow(path, value, payload.sources[path])).join('')}
+            </section>`
+            : '';
+        body.innerHTML = hazardHTML + scalarHTML;
     }
 
     // Source summary — list every source that actually returned data so
@@ -542,15 +670,35 @@ function _showReviewModal(homeId, payload) {
     const clone = applyBtn.cloneNode(true);
     applyBtn.parentNode.replaceChild(clone, applyBtn);
     clone.addEventListener('click', () => {
+        // Scalar fields — checked rows write via _applyToHome's
+        // gap-fill rules (never overwrites an agent's typed value).
         const subset = {};
-        body.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
+        body.querySelectorAll('input[type=checkbox][data-path]:checked').forEach(cb => {
             const p = cb.getAttribute('data-path');
             subset[p] = payload.merged[p];
         });
         const filled = _applyToHome(homeId, subset);
+
+        // Vision hazards — each checked checkbox calls its handler's
+        // applyTo(homeId, home). Handlers know how to translate the
+        // hazard into the right v2 path (pool/trampoline → hazard
+        // dropdown; tree/brush → notes append).
+        let hazardsApplied = 0;
+        const home = window.IntakeV2.getItem('homes', homeId);
+        body.querySelectorAll('input[type=checkbox][data-hazard-id]:checked').forEach(cb => {
+            const hid = cb.getAttribute('data-hazard-id');
+            const handler = VISION_HAZARD_HANDLERS[hid];
+            if (!handler || !home) return;
+            try { handler.applyTo(homeId, home); hazardsApplied++; } catch (_) {}
+        });
+
         _closeModal();
         if (window.App && window.App.toast) {
-            window.App.toast(`✓ Applied ${filled} field${filled === 1 ? '' : 's'} from Smart Scan`, { type: 'success', duration: 3000 });
+            const parts = [];
+            if (filled)         parts.push(`${filled} field${filled === 1 ? '' : 's'}`);
+            if (hazardsApplied) parts.push(`${hazardsApplied} hazard${hazardsApplied === 1 ? '' : 's'}`);
+            const summary = parts.length ? parts.join(' + ') : 'nothing';
+            window.App.toast(`✓ Applied ${summary} from Smart Scan`, { type: 'success', duration: 3000 });
         }
         if (window.IntakeV2 && typeof window.IntakeV2.requestRerender === 'function') {
             window.IntakeV2.requestRerender();
@@ -579,6 +727,6 @@ async function runWithReview(homeId) {
     return result;
 }
 
-window.IntakeV2SmartFill = { run, runWithReview, parseAddress, mergeResults };
+window.IntakeV2SmartFill = { run, runWithReview, parseAddress, mergeResults, extractVisionHazards };
 
 })();
