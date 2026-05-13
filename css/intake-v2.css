@@ -336,7 +336,15 @@
  * already tabbed off it — it's an "info" cue, not an error, since
  * empty-on-load is normal. */
 .iv2-bindable-mark {
-    color: var(--apple-blue);
+    /* Conventional required-field indicator: red asterisk, slightly
+     * larger than label text so it scans cleanly. Inside the <label>
+     * with role="img" + aria-label so assistive tech reads "Required
+     * to bind" as part of the field name (no extra tab stop). */
+    color: var(--danger);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+    margin-left: 2px;
     cursor: help;
 }
 .iv2-lock-mark {
@@ -344,8 +352,23 @@
     color: var(--text-secondary);
     cursor: help;
 }
-/* role="img" + aria-label exposes the meaning to assistive tech without
- * adding a tab stop the agent would have to skip past every field. */
+
+/* Inline keyboard-shortcut hint — used in places like "Add operator [N]"
+ * where a hotkey duplicates a button. Bare "(N)" reads like placeholder
+ * text; the boxed letter makes it obvious it's a hotkey. */
+.iv2-kbd-hint {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    line-height: 1.3;
+    vertical-align: middle;
+}
 .iv2-field[data-bindable-empty="true"] input,
 .iv2-field[data-bindable-empty="true"] select,
 .iv2-field[data-bindable-empty="true"] textarea {

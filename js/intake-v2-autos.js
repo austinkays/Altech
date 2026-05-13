@@ -47,10 +47,10 @@ function renderField(item, collKey, f) {
         // Switch variant via kind:'switch'; default is the standard
         // square checkbox row. Wraps a real <input type="checkbox"> so
         // core's save/load handlers continue to match. The bindable
-        // star (✦) is appended inside the label span so it inherits
-        // the row's vertical centering instead of floating above.
+        // mark (`*`, red) is appended inside the label span so it
+        // inherits the row's vertical centering instead of floating above.
         const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
-        const labelHTML = `${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}`;
+        const labelHTML = `${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">*</span>' : ''}`;
         return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
             <label class="${rowClass}" for="${escAttr(elId)}"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs} ${v ? 'checked' : ''}> <span>${labelHTML}</span></label>
             <span class="iv2-field-defer-badge" style="display:none">deferred</span>
@@ -78,7 +78,7 @@ function renderField(item, collKey, f) {
         }
     }
     return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
-        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}</label>
+        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">*</span>' : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;

@@ -119,7 +119,7 @@ function renderField(item, collKey, f) {
             : input;
     }
     return `<div class="iv2-field${fullClass}"${wrapAttr}>
-        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}${isLocked ? ` <span class="iv2-lock-mark" role="img" aria-label="${escAttr(lockTooltip)}" title="${escAttr(lockTooltip)}">🔒</span>` : ''}</label>
+        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">*</span>' : ''}${isLocked ? ` <span class="iv2-lock-mark" role="img" aria-label="${escAttr(lockTooltip)}" title="${escAttr(lockTooltip)}">🔒</span>` : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;
@@ -165,7 +165,7 @@ function render() {
     const cards = ops.map(renderOperatorCard).join('');
     root.innerHTML = `
         ${cards}
-        <button type="button" class="iv2-add-btn is-ghost" data-add-op>+ Add operator (N)</button>
+        <button type="button" class="iv2-add-btn is-ghost" data-add-op title="Press N anywhere in this section to quick-add">+ Add operator <kbd class="iv2-kbd-hint">N</kbd></button>
         <span style="font-size:11px; color:var(--text-secondary); margin-left:8px">All household drivers, boat operators, and RV operators. Applicant + co-applicant auto-sync from above.</span>
     `;
 
