@@ -128,6 +128,13 @@ function renderScalarField(f, span) {
     </div>`;
 }
 
+// Three-state readiness model: green when nothing's missing, amber when
+// only one or two fields stand between the agent and a bind (close — the
+// agent can grab them on the same call), red otherwise. The 1-2 threshold
+// is the audit recommendation and matches how desk-leads triage in-flight
+// quotes. Tooltip lists up to 6 specific missing fields so the agent can
+// jump straight to them without re-scanning the form.
+const BINDABILITY_NEAR_THRESHOLD = 2;
 function renderTopbarStatus() {
     const bind = window.IntakeV2.bindability;
     const root = document.getElementById('iv2BindabilityIndicator');
@@ -136,11 +143,20 @@ function renderTopbarStatus() {
         const carrier = carrierEl.getAttribute('data-carrier');
         const info = bind[carrier];
         if (!info) continue;
-        carrierEl.classList.toggle('is-ok', !!info.ok);
-        carrierEl.classList.toggle('is-miss', !info.ok);
-        carrierEl.title = info.ok
+        const missingCount = info.missing ? info.missing.length : 0;
+        const isOk   = !!info.ok;
+        const isNear = !isOk && missingCount > 0 && missingCount <= BINDABILITY_NEAR_THRESHOLD;
+        const isMiss = !isOk && !isNear;
+        carrierEl.classList.toggle('is-ok',   isOk);
+        carrierEl.classList.toggle('is-near', isNear);
+        carrierEl.classList.toggle('is-miss', isMiss);
+        carrierEl.setAttribute('aria-label',
+            isOk   ? `${info.label}: ready to quote`
+          : isNear ? `${info.label}: ${missingCount} field${missingCount===1?'':'s'} left`
+          :          `${info.label}: ${missingCount} fields missing`);
+        carrierEl.title = isOk
             ? `${info.label}: ready to quote`
-            : `${info.label}: missing ${info.missing.length} field(s)\n` + info.missing.slice(0, 6).map(m => '• ' + m.label + (m.itemLabel ? ` — ${m.itemLabel}` : '')).join('\n') + (info.missing.length > 6 ? `\n…and ${info.missing.length - 6} more` : '');
+            : `${info.label}: ${missingCount} field${missingCount===1?'':'s'} ${isNear ? 'left to bind' : 'missing'}\n` + info.missing.slice(0, 6).map(m => '• ' + m.label + (m.itemLabel ? ` — ${m.itemLabel}` : '')).join('\n') + (missingCount > 6 ? `\n…and ${missingCount - 6} more` : '');
     }
 
     // Save status pill — accurate message per failure mode. The old text

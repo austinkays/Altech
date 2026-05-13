@@ -112,12 +112,14 @@
     cursor: help;
     font-weight: 600;
 }
-.iv2-bindability .iv2-carrier.is-ok    { color: #1B873F; border-color: rgba(27,135,63,0.4); }
-.iv2-bindability .iv2-carrier.is-miss  { color: #B33A3A; border-color: rgba(179,58,58,0.4); }
+.iv2-bindability .iv2-carrier.is-ok    { color: #1B873F; border-color: rgba(27,135,63,0.45); background: rgba(27,135,63,0.08); }
+.iv2-bindability .iv2-carrier.is-near  { color: #C58800; border-color: rgba(197,136,0,0.45); background: rgba(197,136,0,0.08); }
+.iv2-bindability .iv2-carrier.is-miss  { color: #B33A3A; border-color: rgba(179,58,58,0.45); background: rgba(179,58,58,0.08); }
 .iv2-bindability .iv2-carrier-mark {
     width: 8px; height: 8px;
     border-radius: 50%;
     background: currentColor;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .iv2-save-status {
