@@ -131,6 +131,14 @@
 }
 .iv2-save-status.is-saving { color: var(--apple-blue); }
 .iv2-save-status.is-error  { color: #B33A3A; }
+/* Briefly highlights "✓ Saved" right after a real save (driven by
+ * SAVED_FLASH_MS in intake-v2-layout.js). After the flash window
+ * expires renderTopbarStatus repaints and the pill returns to the
+ * muted "All changes saved" idle state. */
+.iv2-save-status.is-flash {
+    color: #1B873F;
+    font-weight: 600;
+}
 
 /* ─── Left rail jump list ─────────────────────────────────────────────────── */
 .iv2-jump-list { list-style: none; margin: 0; padding: 0; }
@@ -302,6 +310,35 @@
 .iv2-field[data-deferred="true"] textarea {
     border-color: #C58800;
     background: rgba(197,136,0,0.04);
+}
+
+/* Bindable star (✦) + sync lock (🔒) — kept inline in the <label>
+ * markup. Both get tabindex=0 so the tooltip is also reachable by
+ * keyboard via focus-visible (not just hover). The amber underline
+ * variant fires when a bindable field is empty AFTER the agent has
+ * already tabbed off it — it's an "info" cue, not an error, since
+ * empty-on-load is normal. */
+.iv2-bindable-mark {
+    color: var(--apple-blue);
+    cursor: help;
+}
+.iv2-lock-mark {
+    font-size: 10px;
+    color: var(--text-secondary);
+    cursor: help;
+}
+.iv2-bindable-mark:focus-visible,
+.iv2-lock-mark:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 1px;
+    border-radius: 2px;
+}
+.iv2-field[data-bindable-empty="true"] input,
+.iv2-field[data-bindable-empty="true"] select,
+.iv2-field[data-bindable-empty="true"] textarea {
+    /* Amber underline, NOT a full red error border — the field is
+     * not yet invalid, just outstanding for at least one carrier. */
+    border-bottom: 2px solid #C58800;
 }
 .iv2-field-defer-badge {
     font-size: 10px;

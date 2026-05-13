@@ -161,6 +161,10 @@ function renderTopbarStatus() {
 
     // Save status pill — accurate message per failure mode. The old text
     // claimed "Save failed — retrying" but no retry mechanism existed.
+    // The success state is split in two: an "is-flash" highlighted "✓
+    // Saved" that lives for SAVED_FLASH_MS right after a real save, then
+    // a muted "All changes saved" idle state. Without the split the pill
+    // read "Saved" all the time, which trained agents to ignore it.
     const status = document.getElementById('iv2SaveStatus');
     if (status) {
         if (window.IntakeV2._lastSaveLocked) {
@@ -172,12 +176,22 @@ function renderTopbarStatus() {
             status.className = 'iv2-save-status is-error';
             status.title = 'Most recent save failed — the next keystroke will retry. Check console for details.';
         } else {
-            status.textContent = 'Saved';
-            status.className   = 'iv2-save-status';
+            const sinceSave = Date.now() - (window.IntakeV2._lastSaveAt || 0);
+            const fresh = window.IntakeV2._lastSaveAt && sinceSave < SAVED_FLASH_MS;
+            status.textContent = fresh ? '✓ Saved' : 'All changes saved';
+            status.className   = fresh ? 'iv2-save-status is-flash' : 'iv2-save-status';
             status.title = '';
+            // Re-paint the pill once the flash window expires so it
+            // transitions to the idle copy without needing another
+            // save event to retrigger the renderer.
+            if (fresh) {
+                clearTimeout(renderTopbarStatus._flashTimer);
+                renderTopbarStatus._flashTimer = setTimeout(renderTopbarStatus, SAVED_FLASH_MS - sinceSave + 50);
+            }
         }
     }
 }
+const SAVED_FLASH_MS = 1400;
 
 function renderJumpBadges() {
     const ops    = (window.IntakeV2.data.operators || []).length;
@@ -294,6 +308,42 @@ function wireSpellerDelegation() {
     });
 }
 
+// Amber-underline a required-to-bind field once the agent tabs away
+// while it's still empty. Detection key is `.iv2-bindable-mark` in the
+// label (the ✦ icon the renderers stamp when `f.bindable` is set) —
+// avoids needing every renderer to emit a parallel data-bindable
+// attribute. Cleared the moment the agent types anything into the
+// field so a real value drops the warning without waiting for blur.
+function wireBindableUnderlines() {
+    if (wireBindableUnderlines._wired) return;
+    wireBindableUnderlines._wired = true;
+
+    function isEmptyValue(el) {
+        if (el.type === 'checkbox') return !el.checked;
+        const v = el.value;
+        return v === '' || v == null;
+    }
+
+    document.addEventListener('focusout', (e) => {
+        const el = e.target;
+        if (!el || typeof el.matches !== 'function') return;
+        if (!el.matches('input, select, textarea')) return;
+        if (!el.closest('#intakeV2Tool')) return;
+        const wrap = el.closest('.iv2-field');
+        if (!wrap || !wrap.querySelector('.iv2-bindable-mark')) return;
+        wrap.toggleAttribute('data-bindable-empty', isEmptyValue(el));
+    });
+
+    document.addEventListener('input', (e) => {
+        const el = e.target;
+        if (!el || typeof el.matches !== 'function') return;
+        if (!el.matches('input, select, textarea')) return;
+        const wrap = el.closest && el.closest('.iv2-field');
+        if (!wrap || !wrap.hasAttribute('data-bindable-empty')) return;
+        if (!isEmptyValue(el)) wrap.removeAttribute('data-bindable-empty');
+    });
+}
+
 function wireTopbarHandlers() {
     // Mode toggle
     document.querySelectorAll('[data-mode-set]').forEach(btn => {
@@ -407,6 +457,7 @@ window.IntakeV2.onBoot(function () {
     renderQuickSection();
     wireTopbarHandlers();
     wireSpellerDelegation();
+    wireBindableUnderlines();
     renderJumpBadges();
     renderTopbarStatus();
     renderTalkTrack();

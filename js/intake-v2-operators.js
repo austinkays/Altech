@@ -111,7 +111,7 @@ function renderField(item, collKey, f) {
             : input;
     }
     return `<div class="iv2-field${fullClass}"${wrapAttr}>
-        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind a carrier">✦</span>' : ''}${isSynced ? ' <span style="font-size:10px; color:var(--text-secondary)">🔒</span>' : ''}</label>
+        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" tabindex="0" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}${isSynced ? ' <span class="iv2-lock-mark" tabindex="0" aria-label="Synced from Quick Start — edit the primary applicant\'s value there" title="Synced from Quick Start — edit the primary applicant\'s value there">🔒</span>' : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;
