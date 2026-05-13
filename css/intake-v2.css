@@ -272,6 +272,141 @@
     letter-spacing: 0.04em;
 }
 
+/* ─── Checkbox + Switch rows ───────────────────────────────────────────
+ *
+ * Previously every checkbox in v2 was hand-rolled with inline
+ * flex-direction:row on the <label> — the little square floated above
+ * the label text whenever the inline style failed (e.g. when a parent
+ * grid forced `align-items: stretch` on the wrapper) and the result
+ * was a forest of disconnected toggles. The new shared classes pull
+ * those three properties — checkbox kind, label position, gap — into
+ * CSS so every yes/no field looks the same.
+ *
+ *   .iv2-checkbox-row → square checkbox with label to the right
+ *   .iv2-switch-row   → larger toggle pill, used for "is X enabled?"
+ *                       headlines like the Co-Applicant gate
+ *
+ * Both wrap a real <input type="checkbox"> so the existing core
+ * save/load handlers (intake-v2-core.js — `if (el.type==='checkbox')`
+ * branches) keep working unchanged. The visual swap is pure CSS.
+ */
+.iv2-checkbox-row,
+.iv2-switch-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    /* The grid containing these rows applies `align-items: stretch`
+     * to each .iv2-field — without `align-self` the row stretches and
+     * the checkbox drifts upward. */
+    align-self: start;
+}
+.iv2-checkbox-row > input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border: 1.5px solid var(--border);
+    background: var(--bg-input);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+    transition: border-color 0.15s, background 0.15s;
+}
+.iv2-checkbox-row > input[type="checkbox"]:hover {
+    border-color: var(--apple-blue);
+}
+.iv2-checkbox-row > input[type="checkbox"]:checked {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+}
+.iv2-checkbox-row > input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.iv2-checkbox-row > input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+/* Switch — a 34×20 pill that pairs with a slightly larger label for
+ * yes/no fields the agent looks at on the very first pass (Co-Applicant
+ * present, "no vehicles on policy", etc). */
+.iv2-switch-row > input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 34px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.iv2-switch-row > input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.15s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.iv2-switch-row > input[type="checkbox"]:checked {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+}
+.iv2-switch-row > input[type="checkbox"]:checked::after {
+    transform: translateX(14px);
+}
+.iv2-switch-row > input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+/* Grouped checkbox fieldset — wraps a set of related toggles under a
+ * shared header (e.g. Underwriting flags, Home endorsements). Use via
+ * data-field-group="<title>" on the parent .iv2-field wrap, OR by
+ * letting consecutive .iv2-checkbox-row rows after a type='header' field
+ * collapse into a `.iv2-checkbox-group`. */
+.iv2-checkbox-group {
+    grid-column: 1 / -1;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.015);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+}
+.iv2-checkbox-group-header {
+    width: 100%;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+
 /* Quick mode hides .iv2-full-only fields */
 .iv2-workspace[data-mode="quick"] .iv2-full-only { display: none !important; }
 

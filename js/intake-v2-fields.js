@@ -53,7 +53,11 @@ const SCALAR = [
     { id: 'iv2-education',      path: 'applicant.education',      label: 'Education',        type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], section: 'quick', mode: 'full' },
 
     // ── Co-Applicant (visible when coApplicant.present === true) ──────────
-    { id: 'iv2-coPresent',       path: 'coApplicant.present',      label: 'Co-Applicant?',   type: 'checkbox', section: 'quick', mode: 'quick' },
+    // Headline gate — rendered as a switch (toggle pill) instead of a
+    // square checkbox so the agent can see at a glance whether a
+    // co-applicant is on the policy. `kind: 'switch'` is read by all
+    // three renderers (intake-v2-layout/-operators/-autos).
+    { id: 'iv2-coPresent',       path: 'coApplicant.present',      label: 'Add Co-Applicant', type: 'checkbox', kind: 'switch', section: 'quick', mode: 'quick' },
     { id: 'iv2-coRelationship',  path: 'coApplicant.relationship', label: 'Relationship',    type: 'select', options: ['', 'Spouse', 'Domestic Partner', 'Parent', 'Child', 'Sibling', 'Other'], section: 'quick', mode: 'quick' },
     { id: 'iv2-coFirstName',     path: 'coApplicant.firstName',    label: 'Co-App First',    type: 'text',   section: 'quick', mode: 'quick', speller: 'general' },
     { id: 'iv2-coLastName',      path: 'coApplicant.lastName',     label: 'Co-App Last',     type: 'text',   section: 'quick', mode: 'quick', speller: 'general' },

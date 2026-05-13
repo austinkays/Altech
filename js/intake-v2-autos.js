@@ -44,8 +44,15 @@ function renderField(item, collKey, f) {
         }).join('');
         control = `<select id="${escAttr(elId)}"${dataAttrs}>${opts}</select>`;
     } else if (f.type === 'checkbox') {
+        // Switch variant via kind:'switch'; default is the standard
+        // square checkbox row. Wraps a real <input type="checkbox"> so
+        // core's save/load handlers continue to match. The bindable
+        // star (✦) is appended inside the label span so it inherits
+        // the row's vertical centering instead of floating above.
+        const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
+        const labelHTML = `${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind">✦</span>' : ''}`;
         return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
-            <label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs} ${v ? 'checked' : ''}> ${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind">✦</span>' : ''}</label>
+            <label class="${rowClass}" for="${escAttr(elId)}"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs} ${v ? 'checked' : ''}> <span>${labelHTML}</span></label>
             <span class="iv2-field-defer-badge" style="display:none">deferred</span>
         </div>`;
     } else if (f.type === 'textarea') {
