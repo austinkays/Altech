@@ -1047,8 +1047,8 @@ window.IntakeAssist = (() => {
         if (changed) {
             if (typeof App.save === 'function') App.save();
             if (typeof App.saveDriversVehicles === 'function') App.saveDriversVehicles();
-            if (typeof CloudSync !== 'undefined' && typeof CloudSync.schedulePush === 'function') {
-                CloudSync.schedulePush();
+            if (window.Sync && typeof window.Sync.schedulePush === 'function') {
+                window.Sync.schedulePush();
             }
         }
     }

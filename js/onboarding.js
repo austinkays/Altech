@@ -150,8 +150,8 @@ window.Onboarding = (() => {
         }
 
         // Trigger cloud sync for the name
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            CloudSync.schedulePush();
+        if (window.Sync && window.Sync.schedulePush) {
+            window.Sync.schedulePush();
         }
     }
 

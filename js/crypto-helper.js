@@ -1014,8 +1014,8 @@ const CryptoHelper = (() => {
 function safeSave(key, value) {
     try {
         localStorage.setItem(key, value);
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            CloudSync.schedulePush();
+        if (window.Sync && window.Sync.schedulePush) {
+            window.Sync.schedulePush();
         }
         return true;
     } catch (e) {

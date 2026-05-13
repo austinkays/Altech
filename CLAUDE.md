@@ -4,7 +4,7 @@
 
 ## Project
 
-Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`). Firebase compat for auth + Firestore (Supabase migration in progress — see "Sync Backend" below).
+Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`). **Supabase is the sole auth + sync backend as of May 2026** — Firebase was fully removed in the Phase D cleanup. Encryption + row-level security via Supabase RLS + AES-GCM AAD envelopes.
 
 ```bash
 npm run dev               # node server.js — port 8000 (override with PORT env)
@@ -27,7 +27,6 @@ npx jest --no-coverage    # faster
 | `window.ActivityLog` | `js/activity-log.js` | Local-only ring buffer (cap 100) of save/sync/export/AI/error events. API: `add({type,area,message,ok,detail})`, `list()`, `lastStatus()`, `subscribe(fn)`, `openPanel()`, `clear()`. Header status pill flips red on `ok:false`. **Never synced.** |
 | `window.CommandPalette` | `js/command-palette.js` | Cmd/Ctrl+K palette. API: `open()`, `close()`, `toggle()`, `register({id,label,hint,icon,run})`. Built-ins: New quote, Add reminder, Phonetic speller, Today view, Open activity log, Toggle dark mode, Go to dashboard, Export files. Auto-includes every `App.toolConfig` tool + last ~30 clients from `CLIENT_HISTORY`. |
 | `window.PhoneticSpeller` | `js/phonetic-speller.js` | APCO alphabet popup. `open(seed?)` — pre-fills with any text (name, email, VIN). Globally accessible via Cmd+K. |
-| `window.MigrationBackup` | `js/migration-backup.js` | Pre-Firebase-→-Supabase localStorage snapshot + restore. `snapshot()`, `restore()`, `exists()`, `ageMs()`, `clear()`. 30-day TTL with auto-clean. |
 
 ### App Assembly — `Object.assign` Pattern
 
@@ -85,7 +84,7 @@ Plugins are lazy-loaded: `App.navigateTo(key)` fetches `htmlFile`, injects into 
 Authoritative source: `index.html` (search `<script src=`). Summary:
 
 ```
-CDN libraries (firebase-compat + supabase-js — jszip/jspdf/pdf.js/pdf-lib are lazy-loaded on demand)
+CDN libraries (supabase-js — jszip/jspdf/pdf.js/pdf-lib are lazy-loaded on demand)
   ↓ synchronous <script> tags:
 Globals first (must precede App):
   pdf-lib-loader.js, crypto-helper.js, storage-keys.js, utils.js, fields.js
@@ -115,10 +114,9 @@ Plugin IIFEs (in load order):
 
 Backend / auth / sync (order matters):
   data-backup.js, bug-report.js,
-  firebase-config.js → auth.js → admin-panel.js → cloud-sync.js,
   supabase-config.js → supabase-sync.js → supabase-auth.js → auth-mfa-ui.js
-    → sync-facade.js (window.Sync / window.AuthFacade router),
-  vault-meta.js, vault-ui.js, migration-ui.js,
+    → auth.js (Supabase-only `Auth.*` facade) → sync-facade.js (`window.Sync` / `window.AuthFacade`),
+  vault-meta.js, vault-ui.js,
   paywall.js, onboarding.js, quoting-info-panels.js
 
 Last:
@@ -168,51 +166,51 @@ Key entries (see `js/storage-keys.js` for full list):
 | `PASSPHRASE_SALT` | `altech_passphrase_salt` | Per-device cache of v2 passphrase salt — never sync |
 | `E2E_CRYPTO_V2` | `altech_e2e_crypto_v2` | Feature flag: `'1'` = v2 vault active |
 | `VAULT_LOCAL_META` | `altech_vault_meta_local` | Vault meta cache (also offline fallback for the Supabase router) |
-| `SYNC_BACKEND` | `altech_sync_backend` | `'firebase'` (default) \| `'supabase'` |
-| `MIGRATION_ENABLED` | `altech_migration_enabled` | `'1'` = show migration modal (admin/dev only during rollout) |
-| `MIGRATION_STATE` | `altech_migration_state` | Resume-on-crash state for the Phase 4 pipeline |
-| `MIGRATION_DRY_RUN` | `altech_migration_dry_run` | `'1'` = Session 2 pipeline copies but doesn't flip backend |
-| `PRE_MIGRATION_BACKUP` | `altech_pre_migration_backup` | Snapshot taken before Session 2 runs; 30-day TTL, auto-clean |
+| `SYNC_BACKEND` | `altech_sync_backend` | Dead flag (Firebase removed May 2026). Safe to ignore — kept only so removal scripts can tell users who flipped to `'firebase'` that they need to clear it. |
 | `ACTIVITY_LOG` | `altech_activity_log` | `ActivityLog` ring buffer (cap 100 entries). **Local-only — never synced** (would bloat sync without benefit and would leak per-device activity to other devices). |
 
 ---
 
-## Sync Backend (Firebase ↔ Supabase migration)
+## Sync Backend (Supabase only)
 
-The app is mid-migration from Firebase (Firestore + Firebase Auth) to Supabase. **Both stacks ship in production**; the active backend is selected by `localStorage[STORAGE_KEYS.SYNC_BACKEND]` (`'firebase'` default | `'supabase'`).
+Firebase was removed in the Phase D cleanup (May 2026). Supabase is the sole auth + sync backend. The facade pattern stays in place so future backend swaps don't touch 40+ plugin call sites:
 
-Prefer the facade in new code:
-
-| Use | Not |
-|-----|-----|
-| `window.Sync.xxx` | `CloudSync.xxx` |
-| `window.AuthFacade.xxx` | `Auth.xxx` |
-
-The facade (`js/sync-facade.js`) routes calls to either `CloudSync` (Firebase) or `SupabaseSync` (Supabase). Existing direct call sites still work — Phase 4 migrates them as the per-user migration modal flips users over (`MIGRATION_ENABLED` / `MIGRATION_STATE` flags).
-
-### Firebase sync (`js/cloud-sync.js`, `CloudSync`)
-
-All synced Firestore doc types live in one array (~line 42):
-
-```javascript
-const SYNC_DOCS = [
-    'settings', 'currentForm', 'cglState', 'clientHistory',
-    'quickRefCards', 'quickRefNumbers', 'quickRefEmojis', 'reminders', 'glossary',
-    'vaultData', 'vaultMeta',
-    'commercialDraft', 'commercialQuotes',
-    'carrierOverrides',
-];
-```
-
-**To add a new sync type:** add one string to `SYNC_DOCS`. Push and delete pick it up automatically — no other changes required.
-
-**After any write to a synced key:** call `CloudSync.schedulePush()` (debounced 3 s) — or `window.Sync.schedulePush()` to stay backend-agnostic.
-
-**Firestore paths:** `users/{uid}/sync/{docType}` | quotes: `users/{uid}/quotes/{id}`
+| Use | Notes |
+|-----|-------|
+| `window.Sync.xxx` | Routes to `SupabaseSync.*`. Some methods (e.g. `pushToCloud`) map to `SupabaseSync.pushAllBlobs` for backward-compat with legacy CloudSync callers. |
+| `window.AuthFacade.xxx` | Routes to `SupabaseAuth.*`. |
+| `Auth.xxx` | `js/auth.js` is a thin Supabase-only facade — preserves the legacy `Auth.user`/`Auth.uid`/`Auth.apiFetch` API surface that ~40 plugins read directly. |
 
 ### Supabase sync (`js/supabase-sync.js`, `SupabaseSync`)
 
-Mirrors `CloudSync`'s API. Backed by Postgres tables `public.user_blobs` (key-value, keyed by `(user_id, doc_key)`) and `public.user_quotes` (one row per draft, keyed by `id`). Vault metadata lives in `public.user_crypto_meta`. Auth via `js/supabase-auth.js`. MFA UI in `js/auth-mfa-ui.js`. Per-user E2E key (`E2E_CRYPTO_V2`) is passphrase-derived; salt + wrapped MK + KDF parameters are stored on `user_crypto_meta` and routed through [js/vault-meta.js](js/vault-meta.js) (router with localStorage offline cache). Never sync `ENCRYPTION_SALT`, `PASSPHRASE_SALT`, or `*_RECOVERY` keys.
+Backed by Postgres tables `public.user_blobs` (key-value, keyed by `(user_id, doc_key)`) and `public.user_quotes` (one row per draft, keyed by `id`). Vault metadata lives in `public.user_crypto_meta`. Auth via `js/supabase-auth.js`. MFA UI in `js/auth-mfa-ui.js`. Per-user E2E key (`E2E_CRYPTO_V2`) is passphrase-derived; salt + wrapped MK + KDF parameters are stored on `user_crypto_meta` and routed through [js/vault-meta.js](js/vault-meta.js). Never sync `ENCRYPTION_SALT`, `PASSPHRASE_SALT`, or `*_RECOVERY` keys.
+
+All synced doc keys live in `DOC_LOCAL_KEYS` at the top of `supabase-sync.js`:
+
+```javascript
+const DOC_LOCAL_KEYS = Object.freeze({
+    currentForm:      STORAGE_KEYS.FORM,
+    cglState:         STORAGE_KEYS.CGL_STATE,
+    clientHistory:    STORAGE_KEYS.CLIENT_HISTORY,
+    quickRefCards:    STORAGE_KEYS.QUICKREF_CARDS,
+    quickRefNumbers:  STORAGE_KEYS.QUICKREF_NUMBERS,
+    quickRefEmojis:   STORAGE_KEYS.QUICKREF_EMOJIS,
+    reminders:        STORAGE_KEYS.REMINDERS,
+    glossary:         STORAGE_KEYS.AGENCY_GLOSSARY,
+    vaultData:        STORAGE_KEYS.ACCT_VAULT,
+    vaultMeta:        STORAGE_KEYS.ACCT_VAULT_META,
+    commercialDraft:  STORAGE_KEYS.COMMERCIAL_DRAFT,
+    commercialQuotes: STORAGE_KEYS.COMMERCIAL_QUOTES,
+    carrierOverrides: STORAGE_KEYS.CARRIER_OVERRIDES,
+    intakeV2Draft:    STORAGE_KEYS.INTAKE_V2,
+    intakeV2Quotes:   STORAGE_KEYS.INTAKE_V2_QUOTES,
+    agencyDefaults:   STORAGE_KEYS.AGENCY_DEFAULTS,
+});
+```
+
+**To add a new sync type:** add one entry to `DOC_LOCAL_KEYS`. The `_pushAllBlobs` sweep + `restoreFromCloud()` pull pick it up automatically.
+
+**After any write to a synced key:** call `window.Sync.schedulePush()` (debounced 3 s).
 
 ## E2E Crypto — four hardened layers (Phases A–D, May 2026)
 
@@ -224,8 +222,8 @@ The v2 vault (`STORAGE_KEYS.E2E_CRYPTO_V2='1'`) goes deeper than just AES-GCM. N
 | **A. HKDF tree** | [js/crypto-helper.js](js/crypto-helper.js) | New vaults set `kdfTree: 'hkdf-v1'`. MK becomes a master *seed*; the AES data key is `HKDF-SHA256(MK, info='altech.data.v1')`. Future subkeys (`altech.blind.v1`, `altech.agency.v1`) use distinct info strings — leak of one role can't be replayed against another. | Vaults without `kdfTree` use MK directly as the data key. Promoting a vault from "no tree" → `hkdf-v1` would require re-encrypting all data, so it never auto-upgrades. |
 | **A. AAD builder** | [js/crypto-aad.js](js/crypto-aad.js) | `CryptoAAD.buildAAD({ table, rowId, userId, envelopeVersion })` — single source of truth for AAD bytes. **CI lint** ([scripts/lint-aad.mjs](scripts/lint-aad.mjs), runs as `pretest`) fails the build if any file outside `crypto-aad.js`/`crypto-helper.js` passes `additionalData:` directly. | n/a — additive primitive. |
 | **B. AAD envelope** | [js/crypto-helper.js](js/crypto-helper.js), [js/supabase-sync.js](js/supabase-sync.js) | `encryptForRow(data, identity)` → JSON envelope `{v:2, iv, ct}` with AAD bound to `(table, rowId, userId)`. `decryptForRow` handles both v=2 envelopes AND legacy base64 ciphertexts. `pushBlob`/`pushQuote` accept an optional `identity` and transparently re-wrap the localStorage value into a v=2 envelope before pushing — server can no longer move ciphertexts between rows or relabel them. **Side effect**: plaintext-stored docs (`CGL_STATE`, `REMINDERS`) now also become AAD-bound ciphertext on the wire. | When v2 is locked or wrapping fails, legacy ciphertext passes through untouched (fail-open, never corrupt a row). Pull side still returns raw — caller routes through `decryptForRow` to handle either shape. |
-| **C. VaultMeta router** | [js/vault-meta.js](js/vault-meta.js) | When `SYNC_BACKEND='supabase'` + signed in, vault meta reads/writes `public.user_crypto_meta`; otherwise localStorage-only. **Save writes local FIRST** (never blocks on network) and mirrors to Supabase best-effort. **Load prefers server** with local cache as offline fallback. Field mapping is centralized in `JS_TO_DB`/`DB_TO_JS` — adding a new vault-meta field is one line. | API contract unchanged; existing `vault-ui.js` call sites needed no edits. |
-| **D. RLS + safety net** | [db/migrations/0005_rls_audit.sql](db/migrations/0005_rls_audit.sql), [scripts/verify-rls.mjs](scripts/verify-rls.mjs), [js/migration-backup.js](js/migration-backup.js) | (1) Self-checking SQL audit: refuses to apply if any public table lacks RLS or any policy. (2) Operator script that anon-connects to a live Supabase project and asserts cross-user reads return 0 rows / writes are rejected. (3) `MigrationBackup.snapshot()` captures every `altech_*` localStorage key (excluding `MIGRATION_*`/`SYNC_BACKEND`/`DEVICE_ID`) before Session 2 of `migration-ui.js` runs; `restore()` puts the device back exactly as it was on hard failure. 30-day TTL with auto-clean. (4) `MIGRATION_DRY_RUN` flag for "verify but don't flip backend." | Wired: `runMigration()` in `js/migration-ui.js` snapshots at step 1, honors `isDryRun()` at step 9, restores on hard failure, and `open()` restores when it detects a stale `MIGRATION_STATE='in-progress'`. Tests in `tests/migration-ui-pipeline.test.js`. |
+| **C. VaultMeta router** | [js/vault-meta.js](js/vault-meta.js) | When Supabase is reachable + signed in, vault meta reads/writes `public.user_crypto_meta`; otherwise localStorage-only. **Save writes local FIRST** (never blocks on network) and mirrors to Supabase best-effort. **Load prefers server** with local cache as offline fallback. Field mapping is centralized in `JS_TO_DB`/`DB_TO_JS` — adding a new vault-meta field is one line. | API contract unchanged. |
+| **D. RLS** | [db/migrations/0005_rls_audit.sql](db/migrations/0005_rls_audit.sql), [scripts/verify-rls.mjs](scripts/verify-rls.mjs) | (1) Self-checking SQL audit: refuses to apply if any public table lacks RLS or any policy. (2) Operator script that anon-connects to a live Supabase project and asserts cross-user reads return 0 rows / writes are rejected. | n/a |
 
 **Cipher envelope dispatch**: `decryptForRow(envelopeOrLegacy, identity)` is the entry point that handles both shapes. Use it for any pull from `user_blobs`/`user_quotes`. For local-only `CryptoHelper.encrypt()`/`decrypt()` (no row identity), nothing changed — those still produce/consume the legacy base64 string.
 
@@ -522,7 +520,7 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 - **Vanilla JS only** — no React, Vue, Svelte, or any framework
 - **No ES modules in plugins** — plain `<script>` tags; use IIFE pattern
 - **No build step** — edit files, reload browser
-- **Firebase compat mode** — `firebase.auth()`, `firebase.firestore()` (not modular imports)
+- **Supabase JS v2** for all auth + sync — `window.Supabase.client.auth.*` / `from(...)` patterns
 - **`@keyframes` in `animations.css` only** — never in plugin CSS files
 - **Field IDs are storage keys** — never rename an `<input id="...">` without a migration in `App.load()`
 - **All form writes via `App.save()`** — never write to `STORAGE_KEYS.FORM` directly
@@ -535,7 +533,7 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 | Hardcode `'altech_reminders'` | Use `STORAGE_KEYS.REMINDERS` |
 | Define `escapeHTML` in a plugin | Call `Utils.escapeHTML()` |
 | Write `localStorage.setItem('altech_v6', ...)` | Call `App.save()` |
-| Call `CloudSync.xxx` directly in new code | Call `window.Sync.xxx` (routes to Firebase or Supabase) |
+| Call `CloudSync.xxx` directly in new code | `CloudSync` is gone. Use `window.Sync.xxx` (routes to `SupabaseSync`) |
 | Cloud-sync a key without adding it to `SYNC_DOCS` | Add the doc name once — push/delete pick it up |
 | Sync `ENCRYPTION_SALT` / `PASSPHRASE_SALT` / `*_RECOVERY` | Local-only, never |
 | Use `var(--accent)` or `var(--muted)` | Use `var(--apple-blue)` or `var(--text-secondary)` |
@@ -546,7 +544,7 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 | Pass a string to `App.toast` as the 2nd arg (`toast('hi', 'success')`) | The 2nd arg is `duration` or `{ type, duration, dedupe }`. Use `App.toast('hi', { type: 'success' })`. The string-arg shape silently ignores the type. |
 | Add a new `onclick="..."` to a CGL render with raw `policyNumber` interpolation | Use `data-cgl-action` delegation OR route the value through `escJsAttr()` (defined at the top of `js/compliance-dashboard.js`) — the broken legacy `replace(/'/g, "\\\\'")` was a 4-backslash typo that produced `\\'` not `\'`. |
 | Hardcode `CACHE_VERSION = 'altech-v17'` in `sw.js` | Let the `.githooks/pre-commit` hook bump it automatically via `scripts/bump-sw-version.mjs`. Running `node scripts/bump-sw-version.mjs --dry-run` shows what it'd do. |
-| Sync `ACTIVITY_LOG` to Firebase / Supabase | It's local-only by design — would bloat sync and leak per-device activity to other devices. Don't add it to `SYNC_DOCS`. |
+| Sync `ACTIVITY_LOG` to Supabase | It's local-only by design — would bloat sync and leak per-device activity to other devices. Don't add it to `DOC_LOCAL_KEYS`. |
 | Skip an `ActivityLog.add` hook on a new save / sync / export site | The header status pill + Today widget + Recent column all depend on it. Three lines (feature-detected) is the cost of a green/red dot in the header that surfaces failures the user would otherwise miss. |
-| Call `Auth.ready()` and assume a non-null user on slow networks | `ready()` can resolve with `null` if Firebase takes > 15s. Use `await Auth.whenSignedIn(timeoutMs)` for code that needs an actual signed-in user (e.g. cloud-pull bootstrap). |
+| Call `Auth.ready()` and assume a non-null user on slow networks | `ready()` can resolve with `null` via the 15s safety timeout. Use `await Auth.whenSignedIn(timeoutMs)` for code that needs an actual signed-in user (e.g. cloud-pull bootstrap). |
 | Use `localStorage.setItem(STORAGE_KEY, ...)` for CGL state | Use `this._safeLSWrite(STORAGE_KEY, ...)` (defined in `js/compliance-dashboard.js`) — surfaces a one-time toast on `QuotaExceededError` instead of silently swallowing. |

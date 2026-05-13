@@ -13,7 +13,7 @@
 // would 404 and break the atomic cache.addAll() install.
 // Bumped to v16 (2026-04-28) to invalidate cached PWA icons after the
 // mountain-logo swap — old installs were still serving the yellow Tauri icon.
-const CACHE_VERSION = 'altech-v48';
+const CACHE_VERSION = 'altech-v49';
 const APP_SHELL = [
     '/',
     '/index.html',
@@ -114,12 +114,10 @@ const APP_SHELL = [
     '/js/intake-assist-prompts.js',
     '/js/hawksoft-renderers.js',
     // JS — plugins
-    '/js/admin-panel.js',
     '/js/accounting-export.js',
     '/js/auth.js',
     '/js/bug-report.js',
     '/js/call-logger.js',
-    '/js/cloud-sync.js',
     '/js/commercial-quoter.js',
     '/js/compliance-dashboard.js',
     '/js/data-backup.js',
@@ -127,7 +125,6 @@ const APP_SHELL = [
     '/js/email-composer.js',
     '/js/endorsement-parser.js',
     '/js/ezlynx-tool.js',
-    '/js/firebase-config.js',
     '/js/hawksoft-export.js',
     '/js/intake-assist.js',
     '/js/onboarding.js',

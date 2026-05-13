@@ -54,8 +54,8 @@ window.Reminders = (() => {
         // Cloud sync — picks up the new state on the next debounced push.
         if (typeof window.Sync !== 'undefined' && window.Sync.schedulePush) {
             window.Sync.schedulePush();
-        } else if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            CloudSync.schedulePush();
+        } else if (window.Sync && window.Sync.schedulePush) {
+            window.Sync.schedulePush();
         }
         _updateBadge();
     }
@@ -1305,25 +1305,26 @@ window.Reminders = (() => {
 
     // ── Daily digest (from server-side cron `/api/reminders-sweep`) ──
     //
-    // The cron writes `users/{uid}/sync/dailyDigest` at 06:00 PT each day.
-    // On first load per day we read it and show a toast — gives the user
-    // a reason to open the app even before they navigate to Reminders.
+    // The cron writes the digest to Supabase user_blobs (doc_key='dailyDigest')
+    // at 06:00 PT each day. On first load per day we read it and show a toast —
+    // gives the user a reason to open the app even before they navigate to
+    // Reminders. Phase D note: previously stored at users/{uid}/sync/dailyDigest
+    // in Firestore; api/reminders-sweep.js needs to be updated to write to the
+    // user_blobs row instead (separate follow-up).
     async function _checkDailyDigest() {
         try {
-            if (typeof FirebaseConfig === 'undefined' || !FirebaseConfig.db) return;
             if (typeof Auth === 'undefined' || !Auth.uid) return;
+            if (typeof window.Sync === 'undefined' || typeof window.Sync.pullBlob !== 'function') return;
 
             const todayStr = _toDateStr(_todayDate());
             const shownKey = STORAGE_KEYS.REMINDERS_DIGEST_SHOWN;
             if (localStorage.getItem(shownKey) === todayStr) return;
 
-            const snap = await FirebaseConfig.db
-                .collection('users').doc(Auth.uid)
-                .collection('sync').doc('dailyDigest')
-                .get();
-            if (!snap.exists) return;
+            const blob = await window.Sync.pullBlob('dailyDigest');
+            if (!blob || !blob.ciphertext) return;
 
-            const digest = snap.data();
+            let digest = null;
+            try { digest = JSON.parse(blob.ciphertext); } catch { return; }
             if (!digest || digest.date !== todayStr) return;
             const dueCount = Number(digest.dueCount || 0);
             if (dueCount <= 0) return;

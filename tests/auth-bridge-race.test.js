@@ -87,6 +87,6 @@ describe('Auth bridge — Supabase INITIAL_SESSION race', () => {
         // makes this a redundant safety net rather than the primary path,
         // but it stays as cheap insurance.
         expect(src).toContain('SupabaseAuth.user && !_user');
-        expect(src).toMatch(/SupabaseAuth\.ready\(\)\)\.then\(_mirrorSb\)/);
+        expect(src).toMatch(/SupabaseAuth\.ready\(\)\)\.then\(_mirror\)/);
     });
 });

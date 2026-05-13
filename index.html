@@ -78,11 +78,9 @@
     <!-- Supabase JS (UMD). Primary backend as of Phase D (May 2026).
          Exposes window.supabase.createClient. -->
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.4/dist/umd/supabase.min.js"></script>
-    <!-- Firebase SDK was removed in Phase D (May 2026). The js/firebase-config.js,
-         js/auth.js, js/admin-panel.js, and js/cloud-sync.js modules are kept as
-         a one-release fallback for users who explicitly opt back via
-         localStorage[altech_sync_backend]='firebase'. Those modules will be
-         deleted in the next release once no clients have flipped back. -->
+    <!-- Firebase removed entirely (May 2026). All auth + sync runs on Supabase.
+         js/auth.js is now a thin Supabase-only Auth singleton that preserves the
+         legacy `Auth.*` API surface for the ~40 call sites that read it. -->
 </head>
 <body>
 
@@ -1281,11 +1279,8 @@
 
 <script src="js/data-backup.js"></script>
 <script src="js/bug-report.js"></script>
-<script src="js/firebase-config.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/admin-panel.js"></script>
-<script src="js/cloud-sync.js"></script>
-<!-- Path B Phase 2: Supabase sync client (dormant until SYNC_BACKEND=supabase) -->
+<!-- Supabase is the sole sync + auth backend (Phase D cleanup, May 2026). -->
 <script src="js/supabase-config.js"></script>
 <script src="js/supabase-sync.js"></script>
 <!-- Path B Phase 3: Supabase auth + mandatory MFA (dormant until SYNC_BACKEND=supabase).
@@ -1298,8 +1293,6 @@
      can call into BiometricUnlock.unlock() / register() on user action. -->
 <script src="js/biometric-unlock.js"></script>
 <script src="js/vault-ui.js"></script>
-<script src="js/migration-backup.js"></script>
-<script src="js/migration-ui.js"></script>
 <script src="js/paywall.js"></script>
 <script src="js/onboarding.js"></script>
 

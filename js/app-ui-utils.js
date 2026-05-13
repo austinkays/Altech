@@ -38,8 +38,8 @@ Object.assign(App, {
             this.setTheme('default');
         }
         // Sync dark mode preference to cloud
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            CloudSync.schedulePush();
+        if (window.Sync && window.Sync.schedulePush) {
+            window.Sync.schedulePush();
         }
     },
 
@@ -71,8 +71,8 @@ Object.assign(App, {
         const sel = document.getElementById('themeSelect');
         if (sel) sel.value = themeId;
 
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            CloudSync.schedulePush();
+        if (window.Sync && window.Sync.schedulePush) {
+            window.Sync.schedulePush();
         }
     },
 

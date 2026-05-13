@@ -261,7 +261,7 @@ window.TaskSheetModule = (() => {
             const p = Utils.tryParseLS(PROFILE_KEY, {});
             p.taskSheetExcludedAgents = excluded;
             localStorage.setItem(PROFILE_KEY, JSON.stringify(p));
-            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
+            if (window.Sync && window.Sync.schedulePush) window.Sync.schedulePush();
         } catch { /* ignore */ }
     }
 

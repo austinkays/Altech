@@ -195,8 +195,8 @@ Object.assign(App, {
         this.renderClientHistory();
         this.renderStep0ClientHistory();
         // Schedule cloud sync
-        if (typeof CloudSync !== 'undefined') {
-            try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
+        if (typeof window.Sync !== 'undefined') {
+            try { window.Sync.schedulePush(); } catch(e) { /* ok */ }
         }
     },
 
@@ -208,8 +208,8 @@ Object.assign(App, {
         this.renderClientHistory();
         this.renderStep0ClientHistory();
         this.toast('🗑 Client removed from history');
-        if (typeof CloudSync !== 'undefined') {
-            try { CloudSync.schedulePush(); } catch(e) { /* ok */ }
+        if (typeof window.Sync !== 'undefined') {
+            try { window.Sync.schedulePush(); } catch(e) { /* ok */ }
         }
     },
 
@@ -399,8 +399,8 @@ Object.assign(App, {
             safeSave(this.quotesKey, JSON.stringify(quotes));
         }
         // Queue cloud sync so saved drafts propagate across devices
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            try { CloudSync.schedulePush(); } catch (e) { /* ok */ }
+        if (window.Sync && window.Sync.schedulePush) {
+            try { window.Sync.schedulePush(); } catch (e) { /* ok */ }
         }
     },
 
@@ -506,8 +506,8 @@ Object.assign(App, {
             safeSave(this.storageKey, JSON.stringify(this.data));
         }
         // Queue cloud sync so the loaded form propagates across devices
-        if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-            try { CloudSync.schedulePush(); } catch (e) { /* ok */ }
+        if (window.Sync && window.Sync.schedulePush) {
+            try { window.Sync.schedulePush(); } catch (e) { /* ok */ }
         }
         this.toast('✅ Draft loaded');
     },

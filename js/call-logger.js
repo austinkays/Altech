@@ -54,8 +54,8 @@ window.CallLogger = (() => {
             const initialsEl = document.getElementById('clAgentInitials');
             const agentInitials = initialsEl ? initialsEl.value.trim().toUpperCase() : '';
             localStorage.setItem(STORAGE_KEY, JSON.stringify({ policyId, callType, agentInitials, channelType: _selectedChannel, activityType: _selectedActivityType }));
-            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) {
-                CloudSync.schedulePush();
+            if (window.Sync && window.Sync.schedulePush) {
+                window.Sync.schedulePush();
             }
         } catch (e) {
             console.warn('[CallLogger] Save error:', e);

@@ -177,7 +177,7 @@ Object.assign(App, {
             const existing = Utils.tryParseLS(STORAGE_KEYS.AGENCY_PROFILE, {});
             existing.agencyName = trimmed || 'Altech Insurance Agency';
             localStorage.setItem(STORAGE_KEYS.AGENCY_PROFILE, JSON.stringify(existing));
-            if (typeof CloudSync !== 'undefined' && CloudSync.schedulePush) CloudSync.schedulePush();
+            if (window.Sync && window.Sync.schedulePush) window.Sync.schedulePush();
             this.toast('\u2705 Agency name saved');
         } catch (e) {
             this.toast('Could not save agency name', { type: 'error' });
