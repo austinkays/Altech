@@ -5,18 +5,116 @@
 // per-collection schemas for repeating sections (operators, homes, autos,
 // boats, rvs).
 //
-// Each scalar entry: { id, path, label, type, section, options?, mode, bindable? }
+// Each scalar entry: { id, path, label, type, section, options?, mode, bindable?, speller?, kind? }
 //   - id        — flat DOM id used on the <input> (e.g. `iv2-firstName`)
 //   - path      — canonical storage location in IntakeV2.data
 //                  (e.g. 'applicant.firstName', 'address.previous.street')
 //   - mode      — 'quick' (visible in Quick mode) | 'full' (only in Full mode)
 //                  Quick mode is the default on a call.
 //   - bindable  — which carriers REQUIRE this field. Drives the top-bar
-//                  ✓/✗ indicator and the per-card status dot. Format:
-//                  { progressive: true, foremost: true, ... }
+//                  red/amber/green readiness pill and the per-card status dot.
+//                  Format: { progressive: true, foremost: true, ... }
+//   - speller   — 'general' | 'vin' | 'dl' | 'plate' | 'email' — opts the
+//                  field into the inset phonetic-speller button. Mode drives
+//                  PhoneticSpeller.open's sanitization (uppercase / I-O-Q
+//                  warning / @-dot expansion / etc.). Click delegation +
+//                  Alt+P shortcut wired once in intake-v2-layout.js.
+//   - kind      — 'switch' for the toggle-pill checkbox variant (see
+//                  .iv2-switch-row). Used for headline gates like the
+//                  "Add Co-Applicant" toggle.
 //
 // FieldMapV2 helpers mirror v1's FieldMap (js/fields.js:230) — pathForElement
 // resolves the canonical path from a DOM node, idForPath builds the flat DOM id.
+//
+// ────────────────────────────────────────────────────────────────────────
+// EZLynx + HawkSoft schema audit (May 2026)
+// ────────────────────────────────────────────────────────────────────────
+//
+// Compiled against js/ezlynx-tool.js (formFields[] + keyMap, lines 59-150)
+// and js/app-export-cmsmtf.js (HawkSoft tagged-field writer, gen_s* /
+// drv_s* / veh_s* sections). Legend:
+//   ✅ field exists in v2 schema and exports cleanly today
+//   ⚠️ field exists but mapping is incomplete OR lives only in PDF/notes
+//   ❌ field is missing from v2 — add when the underwriter asks
+//
+// EZLynx — Personal Lines application
+//   Applicant:        FirstName ✅  LastName ✅  MiddleName ✅  DOB ✅
+//                     Gender ✅  MaritalStatus ✅  Phone ✅  Email ✅
+//                     SSN ✅  Education ✅  Industry ✅  Occupation ✅
+//                     Employer ✅  YearsAtEmployer ✅  (added May 2026)
+//                     Prefix ✅  Suffix ✅
+//   Co-Applicant:     Same surface as Applicant via coApplicant.* — Prefix
+//                     and Suffix exist on coApplicant in data shape but
+//                     aren't on the form yet ⚠️ (would need Phase-X UI work)
+//   Address:          Address ✅  City ✅  State ✅  Zip ✅  County ✅
+//                     YearsAtAddress ✅  Previous(Address|City|State|Zip) ✅
+//   Drivers:          LicenseNumber ✅  DLState ✅  AgeLicensed ✅
+//                     Accidents/Violations 35-mo tracker ✅ (history section)
+//                     DefensiveDrivingCourse ⚠️  MatureDriverDiscount ⚠️
+//                     MVRStatus ⚠️  (planned for Phase 8 driver polish)
+//   Vehicles:         VehicleYear ✅  Make ✅  Model ✅  VIN ✅
+//                     LicensePlate ✅  PlateState ✅  (added May 2026)
+//                     VehicleUse ✅  AnnualMiles ✅  OwnershipType ✅
+//                     LienHolder(Name|Address|LoanNumber) ✅
+//                     CommuteMiles ✅  DaysPerWeek ✅  AntiTheftDevice ✅
+//                     PurchaseDate ⚠️  OriginalOwner ⚠️  ExistingDamage ⚠️
+//   Home/Dwelling:    YearBuilt ✅  SqFt ✅  LotSize ✅  DwellingType ✅
+//                     DwellingUsage ✅  OccupancyType ✅  NumStories ✅
+//                     ConstructionStyle ✅  ExteriorWalls ✅  FoundationType ✅
+//                     GarageType ✅  GarageSpaces ✅  Roof(Type|Shape|Year) ✅
+//                     Heating/CoolingType ✅  Plumbing/ElectricalYr ✅
+//                     Bedrooms ✅  FullBaths ✅  HalfBaths ✅  NumOccupants ✅
+//                     Pool ✅  Trampoline ✅  WoodStove ✅  Business ✅
+//                     Mortgagee(Name|Loan|Address) ✅
+//                     BurglarAlarm/FireDetection/Sprinkler ⚠️ (single .alarms
+//                       enum today — EZLynx splits them across three fields)
+//                     SmokeDetector ❌  NumFireplaces ❌  Bedrooms vs Beds ⚠️
+//   Prior Insurance:  PriorCarrier ✅  PriorPolicyTerm ⚠️ (carrier+exp only,
+//                     no policy-number field yet — Phase-X if EZLynx needs it)
+//                     ContinuousMonths ✅  PriorLiabilityLimits ✅
+//   Coverage (auto):  BodilyInjury / PropertyDamage covered via
+//                     coverages.liab (combined 25/50/25 style) ⚠️ (EZLynx
+//                     expects them split — exporter normalizes)
+//                     Comp/Coll/UM/UIM/MedPay/Towing/Rental ✅
+//   Coverage (home):  DwellingCoverage (Cov A) ✅  PersonalProperty (C) ✅
+//                     LossOfUse (D) ✅  PersonalLiability (E) ✅
+//                     MedicalPayments (F) ✅  AllPerilsDeductible ✅
+//                     TheftDeductible ⚠️  WindDeductible ⚠️ (single
+//                     deductible value today — multi-peril split is on the
+//                     home endorsement card but not in the export map)
+//
+// HawkSoft — Client Intake (CMSMTF tagged-field format)
+//   Client (gen_s*):  LastName ✅  FirstName ✅  Address1/City/State/Zip ✅
+//                     Phone ✅  CellPhone (mirrors Phone) ⚠️
+//                     Email ✅  ClientSource (mirrors referralSource) ✅
+//                     County ✅  GAddress/GCity/GState/GZip ✅
+//                     ClientMiscData[0..29] — DOB / Gender / Marital /
+//                       Education / Industry / Occupation / Prefix / Suffix
+//                       all serialized through this catch-all ✅
+//   Household:        Co-Applicant flows through ClientMiscData ⚠️ — no
+//                     dedicated hsm_s* tags exist on the CMSMTF template
+//   Drivers (drv_s*): FirstName ✅  LastName ✅  LicenseNum ✅
+//                     LicensingState ✅  Sex ✅  MaritalStatus ✅
+//                     DriversOccupation ✅  Relationship ✅
+//                     BirthDate ⚠️ (currently in misc_data; HawkSoft has
+//                       a dedicated drv_sBirthDt slot that we don't fill)
+//   Vehicles (veh_s*):Yr ✅  Make ✅  Model ✅  VIN ✅  Use ✅
+//                     Comp/Coll/Towing/RentRemb ✅  GaragingZip ✅
+//                     LicensePlate ❌ (Phase-8 follow-up; v2 schema now
+//                       carries the field but the CMSMTF mapping doesn't
+//                       yet write veh_sPlate / veh_sPlateState)
+//   Policies (pol_s*):Policy number, effective/expiration, carrier — the
+//                     CMSMTF writer carries placeholders but most pol_s*
+//                     tags are unset today ⚠️ (intake v2 collects carrier
+//                     + expiration; explicit policy number field deferred)
+//   Risks (FSC notes):Property hazards (pool/trampoline/woodstove/business),
+//                     alarms, protection class, distance to hydrant, dogs —
+//                     all included in the FSC notes payload, not as
+//                     tagged fields ⚠️
+//
+// Caveats: boats + RVs are intentionally PDF-only on both exports (the
+// exporter-contract test pins this) — their fields don't appear in CMSMTF
+// or the EZLynx form-field array.
 
 'use strict';
 
