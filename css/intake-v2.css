@@ -121,6 +121,95 @@
     background: currentColor;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
+.iv2-bindability .iv2-carrier:hover {
+    /* Reinforce click-affordance — the pill is a button now. */
+    filter: brightness(1.08);
+}
+.iv2-bindability .iv2-carrier:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* Missing-fields popover anchored to the clicked carrier pill. The
+ * popover is appended once to <body> and reused across opens to keep
+ * the click-outside listener simple. */
+.iv2-carrier-popover {
+    position: fixed;
+    z-index: 9000;
+    max-width: 360px;
+    min-width: 260px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 12px;
+}
+.iv2-carrier-popover[hidden] { display: none; }
+.iv2-carrier-popover-empty {
+    color: #1B873F;
+    font-weight: 600;
+}
+.iv2-carrier-popover-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 6px;
+}
+.iv2-carrier-popover-head span { color: var(--text-secondary); }
+.iv2-carrier-popover-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.iv2-cp-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.35;
+}
+.iv2-cp-item:hover {
+    background: var(--bg-input);
+    border-color: var(--border);
+}
+.iv2-cp-item:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 1px;
+}
+.iv2-cp-owner {
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+.iv2-carrier-popover-foot {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    padding-top: 8px;
+    margin-top: 6px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+/* When the popover is open, every missing field across the form gets
+ * a colored left border so the agent can see them at a glance. The
+ * attribute is added/removed in _openCarrierPopover / _closeCarrierPopover. */
+.iv2-field[data-carrier-highlight] {
+    box-shadow: -3px 0 0 var(--apple-blue);
+    padding-left: 6px;
+}
 
 .iv2-save-status {
     font-size: 11px;
