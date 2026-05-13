@@ -417,6 +417,10 @@
     // ── Global hotkey ───────────────────────────────────────────────────
 
     function _onGlobalKeydown(e) {
+        // Suppress all hotkeys while the forced sign-in gate is up — opening
+        // the palette is useless without an authenticated session and the
+        // gate is supposed to be the only interactive surface.
+        if (document.body && document.body.classList.contains('auth-gated')) return;
         // Cmd+K (Mac) or Ctrl+K (Windows/Linux) toggles
         const meta = e.metaKey || e.ctrlKey;
         if (meta && e.key.toLowerCase() === 'k') {

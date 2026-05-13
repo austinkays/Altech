@@ -699,4 +699,57 @@ body.dark-mode .ez-picker-ready--ok {
     gap: 10px;
 }
 
+/* ── Auth gate (forced sign-in screen) ──────────────────────────────────
+ * Two body classes drive the gate.
+ *   - body.auth-resolving — between page load and Auth.ready() settling.
+ *     Suppresses every visual chrome element AND the auth modal so the
+ *     user sees a clean loading state instead of a brief flash of the
+ *     dashboard for ~200 ms while Supabase hydrates the session.
+ *   - body.auth-gated — Auth.ready() resolved with no user. Same chrome
+ *     suppression, but the auth modal is shown and locked open (its
+ *     close button is hidden; closeModal() is a no-op in auth.js while
+ *     the class is present).
+ *
+ * Allow-list approach (`> *:not(...)`) avoids leaking newly-added
+ * top-level overlays into the gated state — anything new defaults to
+ * hidden. #toast stays visible so login errors / sign-in success
+ * toasts still surface. Script tags are dropped from the match for
+ * cleanliness even though display:none is a no-op there.
+ */
+body.auth-resolving > *:not(#toast):not(script):not(noscript),
+body.auth-gated > *:not(#authModal):not(#toast):not(script):not(noscript) {
+    display: none !important;
+}
+
+body.auth-resolving::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--bg, #000);
+    z-index: 9999;
+}
+body.auth-resolving::after {
+    content: '';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 36px;
+    height: 36px;
+    margin: -18px 0 0 -18px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.15));
+    border-top-color: var(--apple-blue, #007AFF);
+    border-radius: 50%;
+    z-index: 10000;
+    animation: auth-gate-spin 0.8s linear infinite;
+}
+
+/* Hide the modal's close button + the "Create account" exit links that
+ * would normally route the user away — when forced, the user signs in
+ * or signs up, nothing else. The view-switch links between login /
+ * signup / reset stay functional. */
+body.auth-gated #authModal .auth-close {
+    display: none !important;
+}
+
+
 

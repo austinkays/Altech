@@ -162,6 +162,13 @@ const Auth = (() => {
         if (user) {
             console.log('[Auth] Signed in:', user.email);
             _hadSignedInUser = true;
+            // Note: don't clear `body.auth-gated` here. When sign-in
+            // happens via the forced gate (cold load with no session), the
+            // boot function already early-returned — `.app-shell` is empty.
+            // PR #106's `_scheduleAuthReload` fires in ~600 ms; keeping the
+            // gate up means the user sees the modal until the reload
+            // re-enters at a clean boot with `Auth.whenSignedIn` resolving
+            // truthy, instead of a half-rendered shell during the gap.
             // Best-effort restore from Supabase if the vault key is already
             // available. Otherwise the vault-unlock UI runs this restore.
             _restoreSupabaseCloudAfterSignIn().catch(e => console.warn('[Auth] Supabase restore failed:', e && e.message));
@@ -188,6 +195,15 @@ const Auth = (() => {
             // first; `_authReloadScheduled` then dedupes this path.
             if (_hadSignedInUser) {
                 _hadSignedInUser = false;
+                // Hide the chrome right away — PR #106 reloads in ~600 ms
+                // and the gate would appear after the reload anyway, but
+                // adding `auth-gated` now means the user doesn't see the
+                // dashboard for the bridge window. Stays safe on the
+                // fresh boot because the new boot resets the class either
+                // by signed-in (removed) or signed-out (re-added).
+                try {
+                    if (document.body) document.body.classList.add('auth-gated');
+                } catch (_) {}
                 _scheduleAuthReload('signed-out');
             }
         }
@@ -422,9 +438,29 @@ const Auth = (() => {
             if (_user !== undefined) fn(_user);
         },
 
-        showModal() {
+        /**
+         * Open the auth modal.
+         *
+         * @param {object} [opts]
+         * @param {boolean} [opts.forced]  When true, pin the modal as a forced
+         *   sign-in gate: sets `body.auth-gated` (CSS hides every other
+         *   top-level overlay + the modal close button), and `closeModal()`
+         *   becomes a no-op until the gate is lifted. Used at boot by
+         *   `_authGate` in app-boot.js when there's no signed-in user.
+         * @param {'login'|'signup'|'reset'} [opts.view]  Initial view. The
+         *   password-reset deeplink (`?code=...&type=recovery`) opens at
+         *   'reset' so the user can complete recovery without dismissing
+         *   the gate.
+         */
+        showModal(opts) {
             const modal = _getModal();
             if (!modal) return;
+
+            const forced = !!(opts && opts.forced);
+            const view = opts && opts.view;
+            if (forced) {
+                try { document.body.classList.add('auth-gated'); } catch (_) {}
+            }
 
             if (_user) {
                 _showView('account');
@@ -474,6 +510,12 @@ const Auth = (() => {
                 _showView('login');
             }
 
+            // Caller-specified view wins over the default branching above
+            // (used for the password-reset deeplink so the user lands on
+            // the reset form, not the login form). Applies in both
+            // signed-in and signed-out paths.
+            if (view) _showView(view);
+
             modal.classList.add('active');
             modal.style.display = 'flex';
             setTimeout(() => {
@@ -483,6 +525,13 @@ const Auth = (() => {
         },
 
         closeModal() {
+            // The forced sign-in gate latches the modal open until a real
+            // user appears — _onAuthStateChanged clears `auth-gated` and the
+            // page-reload helper from PR #106 then re-enters at a clean
+            // boot. Manual close attempts (X button hidden by CSS, but a
+            // stray call from a plugin or the keyboard handler) become
+            // no-ops while the gate is up.
+            if (document.body && document.body.classList.contains('auth-gated')) return;
             const modal = _getModal();
             if (!modal) return;
             modal.classList.remove('active');

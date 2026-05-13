@@ -77,8 +77,12 @@ describe('Auth — reload page on sign-in / sign-out', () => {
 
     test('_onAuthStateChanged tracks _hadSignedInUser to detect ambient sign-outs', () => {
         // Set on user→present, cleared on user→absent transition.
+        // The flexible `[\s\S]{0,800}?` budget allows additional logic
+        // between the `_hadSignedInUser = false` flip and the reload
+        // schedule (e.g. the auth-gate's chrome-hide for the multi-tab
+        // sign-out case lives between them).
         expect(src).toMatch(/_hadSignedInUser\s*=\s*true/);
-        expect(src).toMatch(/if\s*\(_hadSignedInUser\)\s*\{\s*_hadSignedInUser\s*=\s*false;\s*_scheduleAuthReload\(/);
+        expect(src).toMatch(/if\s*\(_hadSignedInUser\)\s*\{\s*_hadSignedInUser\s*=\s*false;[\s\S]{0,800}?_scheduleAuthReload\(/);
     });
 
     test('cold-load with no session does NOT trigger a reload', () => {

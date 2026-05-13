@@ -219,17 +219,66 @@ window.onload = async () => {
         }
     } catch (e) { console.error('[Boot] SupabaseAuth init error:', e); }
 
+    // ── Auth gate: forced sign-in screen when signed out ─────────────────
+    // Hide the chrome behind `body.auth-resolving` while we wait up to 2 s
+    // for Supabase to confirm the session (it usually returns in <100 ms
+    // since getSession() reads from localStorage). If no user resolves, the
+    // gate pins the forced sign-in modal via `body.auth-gated` and bails
+    // out of every downstream boot step — Onboarding, vault unlock, the
+    // hash router, dashboard widgets, the safety-net widget refresh. None
+    // of them have anything useful to render without a signed-in user.
+    //
+    // Plugins lazy-load on navigation, so leaving them uninitialized is
+    // safe; the renderLandingTools call is also skipped because the user
+    // can't see it under `body.auth-gated`. The auth modal lives outside
+    // .app-shell so the CSS still shows it.
+    //
+    // Password-reset deeplinks (`?code=...&type=recovery` from the email
+    // link) bypass the redirect path — Supabase delivers the recovery
+    // session via hash/query params and the user needs the reset form,
+    // not the login form. Same modal, different view, still gated until
+    // they pick a new password and the SDK fires SIGNED_IN → reload.
+    //
+    // After successful sign-in via this modal, PR #106's
+    // `_scheduleAuthReload` fires a window.location.reload — boot
+    // re-enters here, Auth.whenSignedIn resolves with the new user
+    // inside the 2 s budget, gate is skipped, normal flow proceeds.
+    try {
+        document.body.classList.add('auth-resolving');
+        const _isRecovery = /[?&]type=recovery\b/.test(window.location.search)
+            || /[?&]type=recovery\b/.test(window.location.hash);
+        let _gateUser = null;
+        if (typeof Auth !== 'undefined' && typeof Auth.whenSignedIn === 'function') {
+            _gateUser = await Auth.whenSignedIn(2000);
+        }
+        document.body.classList.remove('auth-resolving');
+        if (!_gateUser) {
+            document.body.classList.add('auth-gated');
+            if (typeof Auth !== 'undefined' && Auth.showModal) {
+                Auth.showModal({ forced: true, view: _isRecovery ? 'reset' : 'login' });
+            }
+            console.log('[Boot] Auth gate active — skipping downstream boot');
+            return;
+        }
+    } catch (e) {
+        console.error('[Boot] Auth gate error:', e);
+        try { document.body.classList.remove('auth-resolving'); } catch (_) {}
+    }
+
     // Build landing page tool grid from toolConfig (must run once before goHome)
     try { App.renderLandingTools(); } catch (e) { console.error('[Boot] renderLandingTools error:', e); }
 
-    // First-run onboarding for new users
+    // First-run onboarding wizard — only fires after the user has a
+    // session, so brand-new visitors hit the sign-in screen first and
+    // see the wizard on the reload that follows a fresh signup.
     try {
         if (typeof Onboarding !== 'undefined') Onboarding.init();
     } catch (e) { console.error('[Boot] Onboarding.init error:', e); }
 
-    // If E2E v2 is enabled and the vault is locked, prompt for the passphrase
-    // before the user can interact with encrypted data. Runs non-blocking — the
-    // modal renders on top of whatever the app has already drawn.
+    // If E2E v2 is enabled and the vault is locked, prompt for the
+    // passphrase before the user can interact with encrypted data.
+    // Vault unlock is meaningless without a signed-in user (the wrap
+    // metadata lives in Supabase), so it stays inside the gate.
     try {
         if (typeof VaultUI !== 'undefined' && VaultUI.maybePromptUnlockOnLoad) {
             VaultUI.maybePromptUnlockOnLoad();
