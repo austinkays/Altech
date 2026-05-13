@@ -17,6 +17,42 @@ const Auth = (() => {
     let _listeners = [];
     let _modalEl = null;
 
+    // ── Auth-driven page reload ──
+    // After a real sign-in or sign-out, refresh the page so the UI reflects
+    // the new state — locked vault data disappears on sign-out, freshly
+    // restored cloud data + signed-in chrome appear on sign-in. Without a
+    // reload, plugins that cached state at boot can hold stale data and the
+    // user has to refresh manually.
+    //
+    // `_authReloadScheduled` makes the helper idempotent — `.login()`
+    // schedules it directly, the ambient listener may also detect a
+    // transition; only the first call wins.
+    // `_suppressAuthReload` is the escape hatch for flows that need to keep
+    // the page mounted across the auth event (e.g. MFA enrollment opens an
+    // overlay immediately after sign-in and would be destroyed by a reload).
+    // `_hadSignedInUser` tracks "we previously had a real user" so the
+    // ambient listener can tell a genuine sign-out from cold-load hydration.
+    let _authReloadScheduled = false;
+    let _suppressAuthReload = false;
+    let _hadSignedInUser = false;
+    const AUTH_RELOAD_DELAY_MS = 600;
+    function _scheduleAuthReload(reason) {
+        if (_authReloadScheduled) return;
+        if (_suppressAuthReload) { _suppressAuthReload = false; return; }
+        _authReloadScheduled = true;
+        try { console.log('[Auth] Reloading page after auth change:', reason); } catch (_) {}
+        setTimeout(() => {
+            try {
+                if (typeof window !== 'undefined' && window.location && typeof window.location.reload === 'function') {
+                    window.location.reload();
+                }
+            } catch (e) {
+                console.warn('[Auth] reload failed:', e && e.message);
+                _authReloadScheduled = false;
+            }
+        }, AUTH_RELOAD_DELAY_MS);
+    }
+
     // Promise that resolves once auth state is first known (signed in or out).
     let _authReadyResolve;
     const _authReady = new Promise(resolve => { _authReadyResolve = resolve; });
@@ -125,6 +161,7 @@ const Auth = (() => {
 
         if (user) {
             console.log('[Auth] Signed in:', user.email);
+            _hadSignedInUser = true;
             // Best-effort restore from Supabase if the vault key is already
             // available. Otherwise the vault-unlock UI runs this restore.
             _restoreSupabaseCloudAfterSignIn().catch(e => console.warn('[Auth] Supabase restore failed:', e && e.message));
@@ -143,6 +180,16 @@ const Auth = (() => {
             _refreshAdminVisibility();
         } else {
             console.log('[Auth] Signed out');
+            // Ambient sign-out (multi-tab logout, expired session, server
+            // forced sign-out via is_blocked). Only fire when we previously
+            // had a real user — cold-load with no session also lands here
+            // via SIGNED_OUT events from the SDK and must NOT trigger a
+            // reload loop. Explicit `.logout()` schedules its own reload
+            // first; `_authReloadScheduled` then dedupes this path.
+            if (_hadSignedInUser) {
+                _hadSignedInUser = false;
+                _scheduleAuthReload('signed-out');
+            }
         }
     }
 
@@ -453,10 +500,24 @@ const Auth = (() => {
             try {
                 await SupabaseAuth.signUp(email, password, { metadata: { display_name: displayName || '' } });
                 if (SupabaseAuth.mfaRequired && SupabaseAuth.mfaRequired()) {
-                    if (typeof AuthMFAUI !== 'undefined') AuthMFAUI.openEnroll({ hard: true });
-                    else this.closeModal();
+                    if (typeof AuthMFAUI !== 'undefined') {
+                        // Same MFA-enroll suppression as login() — keep the
+                        // overlay alive across the SDK's SIGNED_IN event.
+                        _suppressAuthReload = true;
+                        AuthMFAUI.openEnroll({ hard: true });
+                    } else {
+                        this.closeModal();
+                    }
                 } else {
                     this.closeModal();
+                    // Only reload when signup actually created a session
+                    // (Supabase instances with email verification disabled).
+                    // When verification is required, no session exists yet —
+                    // SupabaseAuth.user is null and a reload would just drop
+                    // the user back to the signed-out landing page.
+                    if (typeof SupabaseAuth !== 'undefined' && SupabaseAuth.user) {
+                        _scheduleAuthReload('signed-up');
+                    }
                 }
             } catch (e) {
                 _showError('signup', _supabaseErrorMessage(e));
@@ -481,7 +542,15 @@ const Auth = (() => {
                 }
                 const level = SupabaseAuth.mfaEnforcementLevel && SupabaseAuth.mfaEnforcementLevel();
                 if (level && typeof AuthMFAUI !== 'undefined') {
+                    // MFA enrollment opens an overlay the user has to
+                    // complete — block the auto-reload so the modal isn't
+                    // ripped out from under them. `_suppressAuthReload` is
+                    // consumed by the next `_scheduleAuthReload` call (which
+                    // arrives shortly via the SDK's SIGNED_IN listener).
+                    _suppressAuthReload = true;
                     AuthMFAUI.openEnroll({ hard: level === 'hard' });
+                } else {
+                    _scheduleAuthReload('signed-in');
                 }
             } catch (e) {
                 _showError('login', _supabaseErrorMessage(e));
@@ -538,6 +607,7 @@ const Auth = (() => {
             try {
                 await SupabaseAuth.logout();
                 this.closeModal();
+                _scheduleAuthReload('signed-out');
             } catch (e) {
                 console.error('[Auth] Logout failed:', e);
             }
