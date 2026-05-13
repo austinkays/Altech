@@ -770,6 +770,43 @@ window.VinDecoder = (() => {
 
     // ── Public API ──
 
+    // ── DOM-less decode for embedded callers (intake-v2 auto cards) ──
+    //
+    // The public `decode()` above reads from #vinInput + paints results
+    // into the vin-decoder plugin's panel. Embedded callers (e.g. the
+    // "Decode VIN" button on an intake-v2 auto card) need the data, not
+    // the UI — `decodeForIntake(vin)` returns the merged local + NHTSA
+    // result as a plain object so the caller can splat year/make/model
+    // /trim onto its own form. Returns null if the VIN is invalid.
+    //
+    // The cancel guard (`_lastDecodeVin`) is shared with `decode()` so
+    // racing calls don't write stale data into the form.
+    async function decodeForIntake(vin) {
+        const raw = String(vin || '').trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+        if (!_isValidVin(raw)) return null;
+        const result = _decode(raw);
+        if (!result) return null;
+        _lastDecodeVin = result.vin;
+        let nhtsa = null;
+        try { nhtsa = await _fetchNHTSA(result.vin); }
+        catch (e) { /* fall through with local-only data */ }
+        if (_lastDecodeVin !== result.vin) return null; // raced by another decode
+        if (nhtsa) {
+            result.make  = nhtsa.make  || result.make;
+            result.model = nhtsa.model || result.model || null;
+            result.trim  = nhtsa.trim  || null;
+            result.body  = nhtsa.body  || null;
+        }
+        return {
+            vin: result.vin,
+            year: result.year || null,
+            make: result.make || null,
+            model: result.model || null,
+            trim: result.trim || null,
+            body: result.body || null,
+        };
+    }
+
     return {
         init,
         render,
@@ -779,6 +816,7 @@ window.VinDecoder = (() => {
         clearHistory,
         copyVin,
         copyPhonetic,
-        loadFromIntake
+        loadFromIntake,
+        decodeForIntake
     };
 })();

@@ -33,6 +33,7 @@
                 dob: '', ssn: '', gender: '', maritalStatus: '',
                 phone: '', email: '',
                 education: '', industry: '', occupation: '',
+                employerName: '', yearsEmployed: '',
             },
             coApplicant: {
                 present: false, relationship: '',
@@ -40,6 +41,7 @@
                 dob: '', ssn: '', gender: '', maritalStatus: '',
                 phone: '', email: '',
                 education: '', industry: '', occupation: '',
+                employerName: '', yearsEmployed: '',
             },
             address: {
                 street: '', city: '', state: '', zip: '', county: '', yearsAt: '',

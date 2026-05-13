@@ -149,6 +149,7 @@
 
                 this._lastSaveOk = true;
                 this._lastSaveLocked = false;
+                this._lastSaveAt = Date.now();    // drives the "✓ Saved" flash in renderTopbarStatus
                 this._saveToken++;
 
                 if (window.ActivityLog && !opts.silent) {

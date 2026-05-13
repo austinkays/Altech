@@ -240,6 +240,11 @@ body.dark-mode .dark-mode-toggle {
     to   { transform: translateY(0);     opacity: 1; }
 }
 
+/* === AUTH GATE LOADING SPINNER === */
+@keyframes auth-gate-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* === REDUCED MOTION === */
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }

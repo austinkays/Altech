@@ -182,3 +182,74 @@
     border-color: var(--apple-blue);
 }
 .phonetic-trigger-icon { font-size: 14px; }
+
+/* Mode-aware additions: the warning surface fires on VIN I/O/Q detection,
+ * the Apply button writes the cleaned value back when an onCommit callback
+ * was supplied, and the custom-hint paragraph shows above the default
+ * APCO-alphabet hint when the caller passed a `hint` string. */
+.phonetic-warning {
+    background: rgba(197, 136, 0, 0.12);
+    border: 1px solid rgba(197, 136, 0, 0.5);
+    color: #C58800;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.4;
+}
+.phonetic-custom-hint {
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 8px;
+}
+.phonetic-apply {
+    background: var(--apple-blue);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.phonetic-apply:hover { background: var(--apple-blue-hover); }
+
+/* Inset speller button — sits inside the input on the right so the
+ * trigger never overlaps the field's label or its neighbors. Use via the
+ * .iv2-input-wrap layout helper emitted by intake-v2-layout.js when a
+ * field defines `speller: 'general' | 'vin' | 'dl' | 'plate' | 'email'`.
+ * Width-side padding on the wrapped input reserves space for the button
+ * so the cursor never collides with it. */
+.iv2-input-wrap {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+.iv2-input-wrap > input { padding-right: 32px; }
+.iv2-speller-btn {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.iv2-speller-btn:hover {
+    background: rgba(10, 132, 255, 0.12);
+    color: var(--apple-blue);
+}
+.iv2-speller-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 1px;
+}

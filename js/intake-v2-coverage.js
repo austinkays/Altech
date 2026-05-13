@@ -25,7 +25,13 @@ function renderScalarField(f) {
     const fullClass = f.mode === 'full' ? ' iv2-full-only' : '';
     let control;
     if (f.type === 'select') {
-        const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}">${esc(opt || '—')}</option>`).join('');
+        // Plain strings → value === label; [value, label] tuples for
+        // dropdowns where the value is a code but the label is the
+        // human-readable name. See US_STATES in intake-v2-fields.js.
+        const opts = (f.options || []).map(opt => {
+            const [value, label] = Array.isArray(opt) ? opt : [opt, opt];
+            return `<option value="${escAttr(value)}">${esc(label || '—')}</option>`;
+        }).join('');
         control = `<select id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">${opts}</select>`;
     } else if (f.type === 'checkbox') {
         return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;

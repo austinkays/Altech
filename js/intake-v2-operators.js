@@ -70,11 +70,19 @@ function renderField(item, collKey, f) {
 
     // Lock the synced fields on the primary-applicant / co-applicant card.
     // Edits would be discarded anyway by the next syncApplicantOperators().
+    // Two reasons we lock a field: synced from Quick Start, or computed
+    // from other inputs (Age Licensed). Both flow through the same
+    // readonly + tabindex=-1 markup so neither traps the tab order.
     const isSynced = (item.isPrimaryApplicant || item.isCoApplicant)
         && (SYNCED_FIELD_PATHS.has(f.path) || (item.isCoApplicant && f.path === 'relationship'));
-    const lockAttr  = isSynced ? ' readonly tabindex="-1" title="Synced with the Quick Start block — edit it there"' : '';
-    const lockSelAttr = isSynced ? ' disabled title="Synced with the Quick Start block — edit it there"' : '';
-    const lockStyle = isSynced ? ' style="opacity:0.65; cursor:not-allowed;"' : '';
+    const isComputed = !!f.computed;
+    const isLocked = isSynced || isComputed;
+    const lockTooltip = isComputed
+        ? 'Computed automatically from other fields'
+        : 'Synced with the Quick Start block — edit it there';
+    const lockAttr  = isLocked ? ` readonly tabindex="-1" title="${escAttr(lockTooltip)}"` : '';
+    const lockSelAttr = isLocked ? ` disabled title="${escAttr(lockTooltip)}"` : '';
+    const lockStyle = isLocked ? ' style="opacity:0.65; cursor:not-allowed;"' : '';
 
     // data-field-wrap matches the format used elsewhere
     // (`${collKey}#${itemId}.${path}`) so the defer system's primary
@@ -85,17 +93,33 @@ function renderField(item, collKey, f) {
 
     let control;
     if (f.type === 'select') {
-        const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}" ${String(v ?? '') === String(opt) ? 'selected' : ''}>${esc(opt || '—')}</option>`).join('');
+        // Plain strings → value === label; [value, label] tuples preserve a
+        // distinct value (e.g. the state list stores `AL` but shows
+        // `Alabama (AL)`). See US_STATES in intake-v2-fields.js.
+        const opts = (f.options || []).map(opt => {
+            const [value, label] = Array.isArray(opt) ? opt : [opt, opt];
+            return `<option value="${escAttr(value)}" ${String(v ?? '') === String(value) ? 'selected' : ''}>${esc(label || '—')}</option>`;
+        }).join('');
         control = `<select id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle}>${opts}</select>`;
     } else if (f.type === 'checkbox') {
-        return `<div class="iv2-field${fullClass}"${wrapAttr}><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle} ${v ? 'checked' : ''}> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
+        // Switch variant via kind:'switch'; default is the standard
+        // square checkbox row. Same markup contract as the scalar
+        // renderer in intake-v2-layout.js — uses a real <input
+        // type="checkbox"> so core's save/load handlers still match.
+        const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
+        return `<div class="iv2-field${fullClass}"${wrapAttr}><label class="${rowClass}" for="${escAttr(elId)}"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs}${lockSelAttr}${lockStyle} ${v ? 'checked' : ''}> <span>${esc(f.label)}</span></label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(elId)}"${dataAttrs}${lockAttr}${lockStyle} rows="2">${esc(v ?? '')}</textarea>`;
     } else {
-        control = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs}${lockAttr}${lockStyle} value="${escAttr(v ?? '')}">`;
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs}${lockAttr}${lockStyle} value="${escAttr(v ?? '')}">`;
+        // Inset phonetic-speller button when the field opted in. Click
+        // delegation + the Alt+P shortcut live in intake-v2-layout.js.
+        control = f.speller
+            ? `<div class="iv2-input-wrap">${input}<button type="button" class="iv2-speller-btn" data-speller-mode="${escAttr(f.speller)}" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button></div>`
+            : input;
     }
     return `<div class="iv2-field${fullClass}"${wrapAttr}>
-        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span style="color:var(--apple-blue)" title="Required to bind a carrier">✦</span>' : ''}${isSynced ? ' <span style="font-size:10px; color:var(--text-secondary)">🔒</span>' : ''}</label>
+        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}${isLocked ? ` <span class="iv2-lock-mark" role="img" aria-label="${escAttr(lockTooltip)}" title="${escAttr(lockTooltip)}">🔒</span>` : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;

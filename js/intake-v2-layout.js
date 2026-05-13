@@ -29,9 +29,37 @@ function renderQuickSection() {
     // Group "quick" section fields by their natural cluster. The Co-Applicant
     // cluster always renders its toggle; the rest of its fields only render
     // when the toggle is on so the form doesn't show empty co-app inputs.
+    //
+    // `spans` maps each path to a 12-column span on desktop — the
+    // "About the Applicant" name row gets the audited Prefix(1) /
+    // First(3) / Middle(2) / Last(3) / Suffix(1) / DOB(2) shape, and
+    // each address field claims a sensible chunk. Fields outside the
+    // span map fall back to the default 12-col-wide row.
     const coFullPaths = ['coApplicant.relationship','coApplicant.firstName','coApplicant.lastName','coApplicant.dob','coApplicant.gender','coApplicant.maritalStatus','coApplicant.phone','coApplicant.email','coApplicant.occupation','coApplicant.industry','coApplicant.education'];
+    const SPANS = {
+        // Name row
+        'applicant.prefix': 1, 'applicant.firstName': 3, 'applicant.middleName': 2,
+        'applicant.lastName': 3, 'applicant.suffix': 1, 'applicant.dob': 2,
+        // SSN + ID block (full mode)
+        'applicant.ssn': 3, 'applicant.gender': 3, 'applicant.maritalStatus': 3,
+        // Contact
+        'applicant.phone': 4, 'applicant.email': 4,
+        // Occupation / Industry / Education + the new employer fields fill
+        // the row instead of leaving 4 empty cols.
+        'applicant.occupation': 4, 'applicant.industry': 4, 'applicant.education': 4,
+        'applicant.employerName': 6, 'applicant.yearsEmployed': 2,
+        // Co-applicant block
+        'coApplicant.present': 12,
+        'coApplicant.relationship': 3, 'coApplicant.firstName': 3,
+        'coApplicant.lastName': 3, 'coApplicant.dob': 3,
+        // Address
+        'address.street': 6, 'address.city': 3, 'address.state': 2, 'address.zip': 1,
+        'address.county': 3, 'address.yearsAt': 2,
+        'address.previous.street': 6, 'address.previous.city': 3,
+        'address.previous.state': 2, 'address.previous.zip': 1,
+    };
     const clusters = [
-        { title: 'About the Applicant',    paths: ['applicant.prefix','applicant.firstName','applicant.middleName','applicant.lastName','applicant.suffix','applicant.dob','applicant.ssn','applicant.gender','applicant.maritalStatus','applicant.phone','applicant.email','applicant.occupation','applicant.industry','applicant.education'] },
+        { title: 'About the Applicant',    paths: ['applicant.prefix','applicant.firstName','applicant.middleName','applicant.lastName','applicant.suffix','applicant.dob','applicant.ssn','applicant.gender','applicant.maritalStatus','applicant.phone','applicant.email','applicant.occupation','applicant.industry','applicant.education','applicant.employerName','applicant.yearsEmployed'] },
         { title: 'Co-Applicant',           paths: ['coApplicant.present', ...(coPresent ? coFullPaths : [])] },
         { title: 'Mailing Address',        paths: ['address.street','address.city','address.state','address.zip','address.county','address.yearsAt','address.previous.street','address.previous.city','address.previous.state','address.previous.zip'] },
         { title: 'Household Preferences',  paths: ['household.homeownership','household.contactMethod','household.contactTime','household.referralSource','household.tcpaConsent','household.creditCheckAuth'] },
@@ -39,35 +67,74 @@ function renderQuickSection() {
 
     root.innerHTML = clusters.map(cluster => {
         const items = cluster.paths.map(p => fields.find(f => f.path === p)).filter(Boolean);
-        const grid  = items.map(renderScalarField).join('');
+        const grid  = items.map(f => renderScalarField(f, SPANS[f.path])).join('');
         return `
             <div class="iv2-field-cluster">
                 <h4 style="margin:8px 0 6px; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">${esc(cluster.title)}</h4>
-                <div class="iv2-field-grid">${grid}</div>
+                <div class="iv2-field-grid-12">${grid}</div>
             </div>`;
     }).join('');
 }
 
-function renderScalarField(f) {
+// Inset speller button — wraps a text/email input in `.iv2-input-wrap` and
+// stamps a small phonetic-trigger button inside the right edge of the
+// input. Driven by `field.speller`: 'general' | 'vin' | 'dl' | 'plate' |
+// 'email'. The wrapper + extra right-padding live in
+// css/phonetic-speller.css (`.iv2-input-wrap` + `.iv2-speller-btn`). Click
+// delegation in `_wireSpellerDelegation` (below) reads `data-speller-mode`
+// off the button to drive PhoneticSpeller.open's mode argument.
+function spellerInsetButton(mode) {
+    const m = String(mode || 'general');
+    return `<button type="button" class="iv2-speller-btn" data-speller-mode="${escAttr(m)}" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button>`;
+}
+
+function renderScalarField(f, span) {
     const fullClass = f.mode === 'full' ? ' iv2-full-only' : '';
+    // Span is the 12-column width on desktop. Default to 12 (full row)
+    // when the caller didn't specify — keeps fields visible even if a
+    // future cluster forgets to provide a SPANS entry.
+    const spanAttr = ` data-span="${escAttr(String(span || 12))}"`;
     let control;
     if (f.type === 'select') {
-        const opts = (f.options || []).map(opt => `<option value="${escAttr(opt)}">${esc(opt || '—')}</option>`).join('');
+        // Options come in two shapes:
+        //   1. plain strings — `value` and label are the same
+        //   2. [value, label] tuples — the state list uses this so the
+        //      stored USPS code stays "AL" while the user reads "Alabama (AL)"
+        const opts = (f.options || []).map(opt => {
+            const [value, label] = Array.isArray(opt) ? opt : [opt, opt];
+            return `<option value="${escAttr(value)}">${esc(label || '—')}</option>`;
+        }).join('');
         control = `<select id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">${opts}</select>`;
     } else if (f.type === 'checkbox') {
-        return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
+        // Yes/no field. `kind: 'switch'` flips to the toggle-pill style
+        // used for headline questions like "Co-Applicant?"; otherwise
+        // emit the standard square checkbox row. Both wrap a real
+        // <input type="checkbox"> so intake-v2-core's save/load
+        // (`if (el.type === 'checkbox')`) keeps working unchanged.
+        const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
+        return `<div class="iv2-field${fullClass}"${spanAttr} data-field-wrap="${escAttr(f.path)}"><label class="${rowClass}" for="${escAttr(f.id)}"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> <span>${esc(f.label)}</span></label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}" rows="3"></textarea>`;
     } else {
-        control = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">`;
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">`;
+        control = f.speller
+            ? `<div class="iv2-input-wrap">${input}${spellerInsetButton(f.speller)}</div>`
+            : input;
     }
-    return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}">
+    return `<div class="iv2-field${fullClass}"${spanAttr} data-field-wrap="${escAttr(f.path)}">
         <label for="${escAttr(f.id)}">${esc(f.label)}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;
 }
 
+// Three-state readiness model: green when nothing's missing, amber when
+// only one or two fields stand between the agent and a bind (close — the
+// agent can grab them on the same call), red otherwise. The 1-2 threshold
+// is the audit recommendation and matches how desk-leads triage in-flight
+// quotes. Tooltip lists up to 6 specific missing fields so the agent can
+// jump straight to them without re-scanning the form.
+const BINDABILITY_NEAR_THRESHOLD = 2;
 function renderTopbarStatus() {
     const bind = window.IntakeV2.bindability;
     const root = document.getElementById('iv2BindabilityIndicator');
@@ -76,15 +143,28 @@ function renderTopbarStatus() {
         const carrier = carrierEl.getAttribute('data-carrier');
         const info = bind[carrier];
         if (!info) continue;
-        carrierEl.classList.toggle('is-ok', !!info.ok);
-        carrierEl.classList.toggle('is-miss', !info.ok);
-        carrierEl.title = info.ok
+        const missingCount = info.missing ? info.missing.length : 0;
+        const isOk   = !!info.ok;
+        const isNear = !isOk && missingCount > 0 && missingCount <= BINDABILITY_NEAR_THRESHOLD;
+        const isMiss = !isOk && !isNear;
+        carrierEl.classList.toggle('is-ok',   isOk);
+        carrierEl.classList.toggle('is-near', isNear);
+        carrierEl.classList.toggle('is-miss', isMiss);
+        carrierEl.setAttribute('aria-label',
+            isOk   ? `${info.label}: ready to quote`
+          : isNear ? `${info.label}: ${missingCount} field${missingCount===1?'':'s'} left`
+          :          `${info.label}: ${missingCount} fields missing`);
+        carrierEl.title = isOk
             ? `${info.label}: ready to quote`
-            : `${info.label}: missing ${info.missing.length} field(s)\n` + info.missing.slice(0, 6).map(m => '• ' + m.label + (m.itemLabel ? ` — ${m.itemLabel}` : '')).join('\n') + (info.missing.length > 6 ? `\n…and ${info.missing.length - 6} more` : '');
+            : `${info.label}: ${missingCount} field${missingCount===1?'':'s'} ${isNear ? 'left to bind' : 'missing'}\n` + info.missing.slice(0, 6).map(m => '• ' + m.label + (m.itemLabel ? ` — ${m.itemLabel}` : '')).join('\n') + (missingCount > 6 ? `\n…and ${missingCount - 6} more` : '');
     }
 
     // Save status pill — accurate message per failure mode. The old text
     // claimed "Save failed — retrying" but no retry mechanism existed.
+    // The success state is split in two: an "is-flash" highlighted "✓
+    // Saved" that lives for SAVED_FLASH_MS right after a real save, then
+    // a muted "All changes saved" idle state. Without the split the pill
+    // read "Saved" all the time, which trained agents to ignore it.
     const status = document.getElementById('iv2SaveStatus');
     if (status) {
         if (window.IntakeV2._lastSaveLocked) {
@@ -96,12 +176,22 @@ function renderTopbarStatus() {
             status.className = 'iv2-save-status is-error';
             status.title = 'Most recent save failed — the next keystroke will retry. Check console for details.';
         } else {
-            status.textContent = 'Saved';
-            status.className   = 'iv2-save-status';
+            const sinceSave = Date.now() - (window.IntakeV2._lastSaveAt || 0);
+            const fresh = window.IntakeV2._lastSaveAt && sinceSave < SAVED_FLASH_MS;
+            status.textContent = fresh ? '✓ Saved' : 'All changes saved';
+            status.className   = fresh ? 'iv2-save-status is-flash' : 'iv2-save-status';
             status.title = '';
+            // Re-paint the pill once the flash window expires so it
+            // transitions to the idle copy without needing another
+            // save event to retrigger the renderer.
+            if (fresh) {
+                clearTimeout(renderTopbarStatus._flashTimer);
+                renderTopbarStatus._flashTimer = setTimeout(renderTopbarStatus, SAVED_FLASH_MS - sinceSave + 50);
+            }
         }
     }
 }
+const SAVED_FLASH_MS = 1400;
 
 function renderJumpBadges() {
     const ops    = (window.IntakeV2.data.operators || []).length;
@@ -127,6 +217,112 @@ function renderJumpBadges() {
     if (fc) fc.textContent = String(followups);
     const fc2 = document.getElementById('iv2FollowupCount2');
     if (fc2) fc2.textContent = String(followups);
+
+    renderJumpProgress();
+}
+
+// Per-section completion % rendered into the left-rail jump list.
+// Counts bindable-flagged fields (the ✦ marks) for each section: how
+// many the agent has captured vs how many exist. Sections without any
+// bindable fields show no progress chip — there's nothing to track.
+//
+// Implementation reads directly from IntakeV2Bindability's missing
+// list (already keyed by section via the field's path → schema lookup)
+// rather than recomputing — keeps the two surfaces in lock-step with
+// each other.
+function renderJumpProgress() {
+    const fields = window.IntakeV2Fields && window.IntakeV2Fields.scalar;
+    const bind   = window.IntakeV2.bindability;
+    if (!fields || !bind) return;
+
+    // Section → list of bindable-field paths (scalar + collection-derived).
+    // Quick section gets the applicant + co-applicant + address + household
+    // fields; Household gets the operator collection; Properties covers all
+    // four product collections; Coverage gets prior-insurance + discounts.
+    const SECTION_BUCKETS = {
+        'iv2-quick':       new Set(),
+        'iv2-household':   new Set(),
+        'iv2-properties':  new Set(),
+        'iv2-coverage':    new Set(),
+    };
+    for (const f of fields) {
+        if (!f.bindable) continue;
+        const sec = f.section === 'history' ? null
+                  : f.section === 'coverage' ? 'iv2-coverage'
+                  : f.section === 'review' ? null
+                  : 'iv2-quick';
+        if (sec && SECTION_BUCKETS[sec]) SECTION_BUCKETS[sec].add(f.path);
+    }
+
+    // Per-carrier bucketing — union across all carriers so the progress
+    // ring reflects "fields any carrier needs", not just one carrier's.
+    const missingPaths = new Set();
+    for (const c of Object.keys(bind)) {
+        const arr = bind[c] && bind[c].missing;
+        if (!Array.isArray(arr)) continue;
+        for (const m of arr) {
+            if (!m || !m.path) continue;
+            // Collection paths look like "autos#auto-1.year" — collapse to
+            // the section bucket via the prefix. Scalar paths land directly
+            // in their schema-defined section.
+            if (m.path.startsWith('operators#'))      missingPaths.add(`__op:${m.path}`);
+            else if (m.path.startsWith('homes#'))     missingPaths.add(`__prop:${m.path}`);
+            else if (m.path.startsWith('autos#'))     missingPaths.add(`__prop:${m.path}`);
+            else if (m.path.startsWith('boats#'))     missingPaths.add(`__prop:${m.path}`);
+            else if (m.path.startsWith('rvs#'))       missingPaths.add(`__prop:${m.path}`);
+            else                                      missingPaths.add(m.path);
+        }
+    }
+
+    // Total scalar bindables per section
+    const totals = {
+        'iv2-quick':      SECTION_BUCKETS['iv2-quick'].size,
+        'iv2-household':  0,
+        'iv2-properties': 0,
+        'iv2-coverage':   SECTION_BUCKETS['iv2-coverage'].size,
+    };
+    // Add per-item totals for collections — each instance of a bindable
+    // collection field contributes to its section's denominator. Reuses
+    // the field schemas so we don't double-maintain the list.
+    const cFields = window.IntakeV2Fields.collections || {};
+    function colTotal(collKey) {
+        const items = (window.IntakeV2.data[collKey] || []);
+        const bind  = (cFields[collKey]?.fields || []).filter(f => f.bindable).length;
+        return items.length * bind;
+    }
+    totals['iv2-household']  = colTotal('operators');
+    totals['iv2-properties'] = colTotal('homes') + colTotal('autos') + colTotal('boats') + colTotal('rvs');
+
+    // Missing per section
+    function missingFor(prefix) {
+        let n = 0;
+        for (const p of missingPaths) {
+            if (p.startsWith(prefix)) n++;
+        }
+        return n;
+    }
+    const missing = {
+        'iv2-quick':      Array.from(missingPaths).filter(p => SECTION_BUCKETS['iv2-quick'].has(p)).length,
+        'iv2-coverage':   Array.from(missingPaths).filter(p => SECTION_BUCKETS['iv2-coverage'].has(p)).length,
+        'iv2-household':  missingFor('__op:'),
+        'iv2-properties': missingFor('__prop:'),
+    };
+
+    document.querySelectorAll('[data-progress]').forEach(el => {
+        const sec = el.getAttribute('data-progress');
+        const total = totals[sec] || 0;
+        const miss  = missing[sec] || 0;
+        if (total === 0) {
+            el.textContent = '—';
+            el.removeAttribute('data-state');
+            return;
+        }
+        const filled = Math.max(0, total - miss);
+        const pct = Math.round((filled / total) * 100);
+        el.textContent = pct === 100 ? '✓' : `${pct}%`;
+        el.setAttribute('data-state',
+            pct === 100 ? 'done' : pct >= 60 ? 'near' : 'early');
+    });
 }
 
 function renderTalkTrack() {
@@ -154,6 +350,104 @@ function renderLastEntries() {
         const val = e.value === '' ? '(cleared)' : (typeof e.value === 'boolean' ? (e.value ? '✓' : '☐') : String(e.value));
         return `<div class="iv2-le"><span class="iv2-le-time">${esc(ts)}</span><span class="iv2-le-path">${esc(e.path)}</span><span>= ${esc(val)}</span></div>`;
     }).join('');
+}
+
+// Delegated click + keyboard handlers for every inset speller button
+// stamped by `spellerInsetButton()`. Wires once at boot. The button has
+// `data-speller-mode` (general | vin | dl | plate | email); the sibling
+// `<input>` is the field we read from + write back to. PhoneticSpeller's
+// `onCommit` callback fires when the user clicks "Apply" in the modal.
+function wireSpellerDelegation() {
+    if (wireSpellerDelegation._wired) return;
+    wireSpellerDelegation._wired = true;
+
+    const MODE_HINTS = Object.freeze({
+        vin:    '17 alphanumeric characters. VINs never use I, O, or Q — those are 1, 0, and 0.',
+        dl:     'DL formats vary by state. Read each character with its APCO word for confirmation.',
+        plate:  'Letters and digits, uppercase only. Spaces and dashes are dropped.',
+        email:  'Reads "@" as "at" and "." as "dot" so the client doesn\'t miss them on a call.',
+        general:'',
+    });
+
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest && e.target.closest('.iv2-speller-btn');
+        if (!btn) return;
+        if (!btn.closest('#intakeV2Tool')) return;
+        const wrap = btn.closest('.iv2-input-wrap');
+        const input = wrap && wrap.querySelector('input');
+        if (!input) return;
+        if (typeof window.PhoneticSpeller === 'undefined') return;
+        const mode = btn.getAttribute('data-speller-mode') || 'general';
+        const hint = MODE_HINTS[mode] || '';
+        window.PhoneticSpeller.open({
+            seed: input.value,
+            mode,
+            hint,
+            onCommit: (val) => {
+                if (input.value === val) return;
+                input.value = val;
+                // Re-fire `input` so IntakeV2.core's save handler picks
+                // the change up — without this the sanitized VIN /
+                // plate would only land on disk after another keystroke.
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+            },
+        });
+    });
+
+    // Alt+P shortcut — opens the speller for whichever input the agent
+    // is focused on, as long as that input is inside an .iv2-input-wrap
+    // (i.e. the field already opted into spelling via `speller: '…'`).
+    // Plain Alt+P on a non-speller field is a no-op so the keystroke
+    // stays consistent across the form.
+    document.addEventListener('keydown', (e) => {
+        if (!e.altKey || e.key.toLowerCase() !== 'p') return;
+        const el = document.activeElement;
+        if (!el || el.tagName !== 'INPUT') return;
+        if (!el.closest('#intakeV2Tool')) return;
+        const wrap = el.closest('.iv2-input-wrap');
+        if (!wrap) return;
+        const btn = wrap.querySelector('.iv2-speller-btn');
+        if (btn) {
+            e.preventDefault();
+            btn.click();
+        }
+    });
+}
+
+// Amber-underline a required-to-bind field once the agent tabs away
+// while it's still empty. Detection key is `.iv2-bindable-mark` in the
+// label (the ✦ icon the renderers stamp when `f.bindable` is set) —
+// avoids needing every renderer to emit a parallel data-bindable
+// attribute. Cleared the moment the agent types anything into the
+// field so a real value drops the warning without waiting for blur.
+function wireBindableUnderlines() {
+    if (wireBindableUnderlines._wired) return;
+    wireBindableUnderlines._wired = true;
+
+    function isEmptyValue(el) {
+        if (el.type === 'checkbox') return !el.checked;
+        const v = el.value;
+        return v === '' || v == null;
+    }
+
+    document.addEventListener('focusout', (e) => {
+        const el = e.target;
+        if (!el || typeof el.matches !== 'function') return;
+        if (!el.matches('input, select, textarea')) return;
+        if (!el.closest('#intakeV2Tool')) return;
+        const wrap = el.closest('.iv2-field');
+        if (!wrap || !wrap.querySelector('.iv2-bindable-mark')) return;
+        wrap.toggleAttribute('data-bindable-empty', isEmptyValue(el));
+    });
+
+    document.addEventListener('input', (e) => {
+        const el = e.target;
+        if (!el || typeof el.matches !== 'function') return;
+        if (!el.matches('input, select, textarea')) return;
+        const wrap = el.closest && el.closest('.iv2-field');
+        if (!wrap || !wrap.hasAttribute('data-bindable-empty')) return;
+        if (!isEmptyValue(el)) wrap.removeAttribute('data-bindable-empty');
+    });
 }
 
 function wireTopbarHandlers() {
@@ -268,6 +562,8 @@ window.IntakeV2.onBoot(function () {
 
     renderQuickSection();
     wireTopbarHandlers();
+    wireSpellerDelegation();
+    wireBindableUnderlines();
     renderJumpBadges();
     renderTopbarStatus();
     renderTalkTrack();

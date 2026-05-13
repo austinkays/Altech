@@ -64,7 +64,10 @@ const ComplianceDashboard = {
         if (this._kvAvailable !== null) return this._kvAvailable;
         try {
             const res = await Auth.apiFetch('/api/kv-store?key=cgl_state', { signal: AbortSignal.timeout(3000) });
-            // 404 = KV works but no data yet, 501 = KV not configured, 401 = not authenticated
+            // 200 (with value OR with null body) = KV works, 501 = KV not
+            // configured, 401 = not authenticated. The endpoint previously
+            // returned 404 on cache miss; we still tolerate that for
+            // browser tabs still running the older client between deploys.
             this._kvAvailable = res.status !== 501 && res.status !== 401;
         } catch (e) {
             this._kvAvailable = false;
@@ -97,16 +100,23 @@ const ComplianceDashboard = {
         }, 2000);
     },
 
-    /** Load from KV (returns null if unavailable) */
+    /** Load from KV (returns null if unavailable OR on cache miss) */
     async _loadFromKV(key) {
         try {
             const ok = await this._checkKV();
             if (!ok) return null;
             const res = await Auth.apiFetch(`/api/kv-store?key=${key}`, { signal: AbortSignal.timeout(5000) });
+            // The endpoint signals cache miss with a 200-body of `null`
+            // (older deploys returned 404 — `res.ok` was false then; we
+            // fall through to `return null` either way). Only log a hit
+            // when there's actually data, so an empty cache doesn't
+            // produce noisy "KV loaded" lines.
             if (res.ok) {
                 const data = await res.json();
-                console.log('[CGL] ☁️ KV loaded:', key);
-                return data;
+                if (data !== null && data !== undefined) {
+                    console.log('[CGL] ☁️ KV loaded:', key);
+                    return data;
+                }
             }
         } catch (e) { /* silent */ }
         return null;

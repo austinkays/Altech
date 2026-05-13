@@ -112,12 +112,14 @@
     cursor: help;
     font-weight: 600;
 }
-.iv2-bindability .iv2-carrier.is-ok    { color: #1B873F; border-color: rgba(27,135,63,0.4); }
-.iv2-bindability .iv2-carrier.is-miss  { color: #B33A3A; border-color: rgba(179,58,58,0.4); }
+.iv2-bindability .iv2-carrier.is-ok    { color: #1B873F; border-color: rgba(27,135,63,0.45); background: rgba(27,135,63,0.08); }
+.iv2-bindability .iv2-carrier.is-near  { color: #C58800; border-color: rgba(197,136,0,0.45); background: rgba(197,136,0,0.08); }
+.iv2-bindability .iv2-carrier.is-miss  { color: #B33A3A; border-color: rgba(179,58,58,0.45); background: rgba(179,58,58,0.08); }
 .iv2-bindability .iv2-carrier-mark {
     width: 8px; height: 8px;
     border-radius: 50%;
     background: currentColor;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 
 .iv2-save-status {
@@ -129,6 +131,14 @@
 }
 .iv2-save-status.is-saving { color: var(--apple-blue); }
 .iv2-save-status.is-error  { color: #B33A3A; }
+/* Briefly highlights "✓ Saved" right after a real save (driven by
+ * SAVED_FLASH_MS in intake-v2-layout.js). After the flash window
+ * expires renderTopbarStatus repaints and the pill returns to the
+ * muted "All changes saved" idle state. */
+.iv2-save-status.is-flash {
+    color: #1B873F;
+    font-weight: 600;
+}
 
 /* ─── Left rail jump list ─────────────────────────────────────────────────── */
 .iv2-jump-list { list-style: none; margin: 0; padding: 0; }
@@ -165,6 +175,23 @@
 }
 .iv2-jump-list .iv2-jump-badge.is-warn { background: #B33A3A; }
 
+/* Per-section completion chip — minimal, right-edge of each jump
+ * button. Color reflects depth: gray "—" when no bindables exist
+ * for the section, amber when started, blue when ≥60% captured,
+ * green ✓ when complete. Updated on every save by
+ * renderJumpProgress() in intake-v2-layout.js. */
+.iv2-jump-list .iv2-jump-progress {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    min-width: 28px;
+    text-align: right;
+}
+.iv2-jump-list .iv2-jump-progress[data-state="early"] { color: #C58800; }
+.iv2-jump-list .iv2-jump-progress[data-state="near"]  { color: var(--apple-blue); }
+.iv2-jump-list .iv2-jump-progress[data-state="done"]  { color: #1B873F; }
+
 .iv2-shortcut-hint {
     margin-top: 12px;
     padding-top: 8px;
@@ -186,7 +213,9 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 16px;
+    /* 24px padding matches the audit recommendation — gives each card
+     * the same visual weight regardless of how dense its grid is. */
+    padding: 24px;
     scroll-margin-top: 72px;
 }
 .iv2-section > summary,
@@ -221,10 +250,45 @@
 }
 
 /* ─── Field grid ─────────────────────────────────────────────────────────── */
+/*
+ * Default grid stays auto-fit so cards without explicit spans still
+ * pack themselves into available width. The new 12-column grid kicks
+ * in when a cluster (or a section body) opts in via `iv2-field-grid-12`
+ * — that's how the Quick Start "About the Applicant" row gets the
+ * Prefix(1) / First(3) / Middle(2) / Last(3) / Suffix(1) / DOB(2)
+ * layout. Fields inside a 12-col grid read their `data-span="N"`
+ * attribute and map it to `grid-column: span N`.
+ *
+ * Gutters: 16px horizontal, 20px row — matches the audit recommendation.
+ */
 .iv2-field-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px;
+    gap: 20px 16px;
+}
+.iv2-field-grid-12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 20px 16px;
+}
+.iv2-field-grid-12 > .iv2-field[data-span="1"]  { grid-column: span 12; }
+.iv2-field-grid-12 > .iv2-field[data-span="2"]  { grid-column: span 12; }
+.iv2-field-grid-12 > .iv2-field[data-span="3"]  { grid-column: span 12; }
+.iv2-field-grid-12 > .iv2-field[data-span="4"]  { grid-column: span 12; }
+@media (min-width: 720px) {
+    .iv2-field-grid-12 > .iv2-field[data-span="1"]  { grid-column: span 2; }
+    .iv2-field-grid-12 > .iv2-field[data-span="2"]  { grid-column: span 4; }
+    .iv2-field-grid-12 > .iv2-field[data-span="3"]  { grid-column: span 6; }
+    .iv2-field-grid-12 > .iv2-field[data-span="4"]  { grid-column: span 8; }
+    .iv2-field-grid-12 > .iv2-field[data-span="6"]  { grid-column: span 12; }
+}
+@media (min-width: 1024px) {
+    .iv2-field-grid-12 > .iv2-field[data-span="1"]  { grid-column: span 1; }
+    .iv2-field-grid-12 > .iv2-field[data-span="2"]  { grid-column: span 2; }
+    .iv2-field-grid-12 > .iv2-field[data-span="3"]  { grid-column: span 3; }
+    .iv2-field-grid-12 > .iv2-field[data-span="4"]  { grid-column: span 4; }
+    .iv2-field-grid-12 > .iv2-field[data-span="6"]  { grid-column: span 6; }
+    .iv2-field-grid-12 > .iv2-field[data-span="12"] { grid-column: span 12; }
 }
 .iv2-field {
     display: flex;
@@ -264,12 +328,199 @@
     border-color: #C58800;
     background: rgba(197,136,0,0.04);
 }
+
+/* Bindable star (✦) + sync lock (🔒) — kept inline in the <label>
+ * markup. Both get tabindex=0 so the tooltip is also reachable by
+ * keyboard via focus-visible (not just hover). The amber underline
+ * variant fires when a bindable field is empty AFTER the agent has
+ * already tabbed off it — it's an "info" cue, not an error, since
+ * empty-on-load is normal. */
+.iv2-bindable-mark {
+    color: var(--apple-blue);
+    cursor: help;
+}
+.iv2-lock-mark {
+    font-size: 10px;
+    color: var(--text-secondary);
+    cursor: help;
+}
+/* role="img" + aria-label exposes the meaning to assistive tech without
+ * adding a tab stop the agent would have to skip past every field. */
+.iv2-field[data-bindable-empty="true"] input,
+.iv2-field[data-bindable-empty="true"] select,
+.iv2-field[data-bindable-empty="true"] textarea {
+    /* Amber underline, NOT a full red error border — the field is
+     * not yet invalid, just outstanding for at least one carrier. */
+    border-bottom: 2px solid #C58800;
+}
+
+/* "Decode VIN" pill — renders below the VIN input on auto cards when
+ * `field.decode === 'vin'`. Click fires VinDecoder.decodeForIntake
+ * (delegated handler in intake-v2-autos.js's onBoot) which writes
+ * year/make/model back into the same auto item. */
+.iv2-decode-btn {
+    display: inline-block;
+    margin-top: 6px;
+    padding: 4px 10px;
+    background: var(--bg-input);
+    color: var(--apple-blue);
+    border: 1px solid var(--apple-blue);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.iv2-decode-btn:hover { background: rgba(10, 132, 255, 0.12); }
+.iv2-decode-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+.iv2-decode-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
 .iv2-field-defer-badge {
     font-size: 10px;
     color: #C58800;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.04em;
+}
+
+/* ─── Checkbox + Switch rows ───────────────────────────────────────────
+ *
+ * Previously every checkbox in v2 was hand-rolled with inline
+ * flex-direction:row on the <label> — the little square floated above
+ * the label text whenever the inline style failed (e.g. when a parent
+ * grid forced `align-items: stretch` on the wrapper) and the result
+ * was a forest of disconnected toggles. The new shared classes pull
+ * those three properties — checkbox kind, label position, gap — into
+ * CSS so every yes/no field looks the same.
+ *
+ *   .iv2-checkbox-row → square checkbox with label to the right
+ *   .iv2-switch-row   → larger toggle pill, used for "is X enabled?"
+ *                       headlines like the Co-Applicant gate
+ *
+ * Both wrap a real <input type="checkbox"> so the existing core
+ * save/load handlers (intake-v2-core.js — `if (el.type==='checkbox')`
+ * branches) keep working unchanged. The visual swap is pure CSS.
+ */
+.iv2-checkbox-row,
+.iv2-switch-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    /* The grid containing these rows applies `align-items: stretch`
+     * to each .iv2-field — without `align-self` the row stretches and
+     * the checkbox drifts upward. */
+    align-self: start;
+}
+.iv2-checkbox-row > input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border: 1.5px solid var(--border);
+    background: var(--bg-input);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+    transition: border-color 0.15s, background 0.15s;
+}
+.iv2-checkbox-row > input[type="checkbox"]:hover {
+    border-color: var(--apple-blue);
+}
+.iv2-checkbox-row > input[type="checkbox"]:checked {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+}
+.iv2-checkbox-row > input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.iv2-checkbox-row > input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+/* Switch — a 34×20 pill that pairs with a slightly larger label for
+ * yes/no fields the agent looks at on the very first pass (Co-Applicant
+ * present, "no vehicles on policy", etc). */
+.iv2-switch-row > input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 34px;
+    height: 20px;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: var(--bg-input);
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+    transition: background 0.15s, border-color 0.15s;
+}
+.iv2-switch-row > input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.15s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+.iv2-switch-row > input[type="checkbox"]:checked {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+}
+.iv2-switch-row > input[type="checkbox"]:checked::after {
+    transform: translateX(14px);
+}
+.iv2-switch-row > input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+
+/* Grouped checkbox fieldset — wraps a set of related toggles under a
+ * shared header (e.g. Underwriting flags, Home endorsements). Use via
+ * data-field-group="<title>" on the parent .iv2-field wrap, OR by
+ * letting consecutive .iv2-checkbox-row rows after a type='header' field
+ * collapse into a `.iv2-checkbox-group`. */
+.iv2-checkbox-group {
+    grid-column: 1 / -1;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.015);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+}
+.iv2-checkbox-group-header {
+    width: 100%;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
 }
 
 /* Quick mode hides .iv2-full-only fields */

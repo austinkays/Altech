@@ -20,7 +20,10 @@ function addressHeader(home) {
         <div class="iv2-field-grid" style="margin-bottom:8px">
             <div class="iv2-field" data-field-wrap="homes#${escAttr(home.id)}.address" style="grid-column: span 2;">
                 <label for="iv2-home-address-${escAttr(home.id)}">Property Address</label>
-                <input type="text" id="iv2-home-address-${escAttr(home.id)}" data-collection="homes" data-item-id="${escAttr(home.id)}" data-field-path="address" value="${escAttr(home.address || '')}" placeholder="123 Main St, Anytown, WA 98101">
+                <div class="iv2-input-wrap">
+                    <input type="text" id="iv2-home-address-${escAttr(home.id)}" data-collection="homes" data-item-id="${escAttr(home.id)}" data-field-path="address" value="${escAttr(home.address || '')}" placeholder="123 Main St, Anytown, WA 98101">
+                    <button type="button" class="iv2-speller-btn" data-speller-mode="general" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button>
+                </div>
                 <span class="iv2-field-defer-badge" style="display:none">deferred</span>
             </div>
             <div class="iv2-field" style="align-self:end">

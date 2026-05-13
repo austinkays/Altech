@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # node server.js — port 8000 (override with PORT env)
-npm test                  # ~56 suites, ~2280 tests (Jest + JSDOM)
+npm test                  # ~62 suites, ~2354 tests (Jest + JSDOM)
 npx jest --no-coverage    # faster
 ```
 
@@ -314,7 +314,7 @@ Test all three workflows when changing step logic or conditions.
 ## Testing
 
 ```bash
-npm test                          # ~56 suites, ~2280 tests under tests/ (Jest + JSDOM)
+npm test                          # ~62 suites, ~2354 tests under tests/ (Jest + JSDOM)
 npx jest --no-coverage            # faster
 npx jest tests/app.test.js        # single suite
 npm run test:ext                  # chrome-extension-v2 suite (separate jest config)
@@ -381,7 +381,7 @@ Project is on **Vercel Pro** (as of April 2026). Practical limits:
 - **`maxDuration`**: 300s default, configurable up to 800s with Fluid Compute.
 - **Crons**: unlimited daily invocations (was 2/day on Hobby).
 
-Current count: **14 routable functions + ~21 `_` helpers** in `api/`. Routable endpoints: `admin`, `admin-supabase`, `anthropic-proxy`, `compliance`, `config`, `hawksoft-logger`, `historical-analyzer`, `kv-store`, `policy-scan`, `property-intelligence`, `prospect-lookup`, `reminders-sweep` (cron), `stripe`, `vision-processor`.
+Current count: **13 routable functions + ~22 `_` helpers** in `api/`. Routable endpoints: `admin-supabase`, `anthropic-proxy`, `compliance`, `config`, `hawksoft-logger`, `historical-analyzer`, `kv-store`, `policy-scan`, `property-intelligence`, `prospect-lookup`, `reminders-sweep` (cron), `stripe`, `vision-processor`. (Legacy `admin.js` was deleted in Phase D — Firebase removal — and never replaced.)
 
 When adding new `api/` behavior:
 - Prefer a new file for new logical endpoints — clearer logs, per-endpoint `maxDuration`, independent error budgets.
@@ -441,17 +441,19 @@ The analysis uses the existing `property-intelligence.js` endpoint with `?mode=c
 
 ---
 
-## Reliability features (May 2026 — PRs #69, #72, #74, #76, #77)
+## Reliability features (May 2026)
 
 | Feature | Where | What it does |
 |---|---|---|
 | **Toast queue** | `js/app-ui-utils.js` `App.toast()` | Toasts queue + dedupe (collapses identical consecutive messages) instead of clobbering each other. Errors default to 3500 ms (vs 2500 ms). `App.toast(msg, { type, duration, dedupe }, useHtml)` signature; legacy `toast(msg, duration, useHtml)` still works. |
 | **AI error decoder** | `js/ai-provider.js` `_decodeApiError()` | Every AI HTTP error (Gemini/Anthropic/OpenAI/OpenRouter, ask + chat paths) maps `401/403/404/408/413/429/500/502/503/504` to a fix-pointing message. Unknown statuses fall back to upstream message. |
-| **ActivityLog** | `js/activity-log.js` | See Global Singletons. Hooked into `App.save`, `App.logExport`, `CloudSync.pushToCloud`, `SupabaseSync._pushAll`, `Reminders._save`, `ComplianceDashboard.saveState`, `App._parkCiphertextForRecovery`, and sync-conflict detection. |
+| **ActivityLog** | `js/activity-log.js` | See Global Singletons. Hooked into `App.save`, `App.logExport`, `SupabaseSync._pushAllBlobs`, `Reminders._save`, `ComplianceDashboard.saveState`, `App._parkCiphertextForRecovery`. |
 | **Header status pill** | `js/dashboard-widgets.js` `_renderSyncStatusButton()` | "Activity ●" pill in the header. Green = last event ok, red = last error, gray = no activity. Click opens `ActivityLog.openPanel()`. |
 | **Today widget** | `js/dashboard-widgets.js` `renderTodayWidget()` | Bento-grid card at the top with three sections: overdue/due-today reminders, policies expiring in the next 14 days, last 5 ActivityLog events. Each section "View all →" links to the source plugin. Live-updates on `ActivityLog.subscribe`. |
-| **Push-side sync conflict UI** | `js/cloud-sync.js` `_pushDoc` + `_buildConflictDiffHTML` | Before writing, fetches remote `updatedAt`; if newer than `lastSync_<docType>` AND payloads differ, returns a conflict descriptor instead of overwriting. `pushToCloud` collects all conflicts and routes them to a single `_showConflictDialog` with an expandable per-field diff. Generic resolution via `DOC_LOCAL_KEYS` map covers every doc with a localStorage slot. |
-| **MigrationBackup** | `js/migration-backup.js` | Wired in `runMigration()` — snapshots before Session 2, restores on hard failure, honors `MIGRATION_DRY_RUN`. Resume-on-crash via `open()`. |
+| **Page reload on auth change** | `js/auth.js` `_scheduleAuthReload(reason)` | After a real sign-in / sign-out (`.login`, `.logout`, `.signup` if a session was created, or ambient SDK events like multi-tab sign-out and session expiry), the page reloads after a 600 ms delay so locked-vault data disappears and freshly restored cloud blobs appear without a manual F5. Three guards: `_authReloadScheduled` (idempotent), `_suppressAuthReload` (one-shot for MFA enrollment), `_hadSignedInUser` (gates ambient sign-out detection so cold-load-no-session can't self-reload). |
+| **Forced sign-in gate** | `js/app-boot.js` `_authGate` block + [Auth gate section below](#auth-gate--reload-flow) | Cold-load races `Auth.whenSignedIn(2000)` against a 2 s budget. If no user resolves, `body.auth-gated` pins the existing `#authModal` as a forced sign-in screen and boot early-returns — `renderLandingTools`, `Onboarding.init`, `VaultUI.maybePromptUnlockOnLoad`, `Reminders.init`, `DashboardWidgets.init`, the hash router are all skipped. |
+
+(Push-side sync conflict UI + MigrationBackup were Phase-D-era Firebase artifacts; both were removed when `js/cloud-sync.js` and `js/migration-backup.js` were deleted.)
 
 **Add a new ActivityLog hook in 3 lines:**
 
@@ -465,6 +467,53 @@ if (window.ActivityLog) {
 ```
 
 Types: `save | sync | export | import | ai | error`. Always feature-detect — ActivityLog isn't loaded in some test paths.
+
+---
+
+## Auth gate + reload flow
+
+When the page loads with no signed-in user, [js/app-boot.js](js/app-boot.js) shows ONLY the sign-in modal — no dashboard chrome leaks through. When the user signs in or out, the page reloads so the UI rebuilds cleanly with the new auth state. The full flow:
+
+```
+window.onload
+ └─ body.auth-resolving          (CSS hides everything but #toast, shows centered spinner)
+ └─ Auth.whenSignedIn(2000)      (2 s race vs Auth.ready()'s 15 s safety timeout — too long for a gate)
+    │
+    ├─ user resolved             → remove auth-resolving, continue boot:
+    │                              renderLandingTools, Onboarding.init, VaultUI.maybePromptUnlockOnLoad,
+    │                              Reminders, DashboardWidgets.init, hash router, safety net
+    │
+    └─ null after 2 s            → body.auth-gated; Auth.showModal({forced:true, view:'login'|'reset'})
+                                   then `return` — every downstream init is skipped
+```
+
+| Body class | When | What it hides |
+|---|---|---|
+| `auth-resolving` | between page load and the `whenSignedIn(2000)` settle | Everything via `body.auth-resolving > *:not(#toast):not(script):not(noscript)`; CSS spinner shown via `::before`/`::after` |
+| `auth-gated` | no user resolved (forced gate) OR ambient sign-out before PR #106 reload fires | Everything except `#authModal` and `#toast`; modal close button hidden via `body.auth-gated #authModal .auth-close { display: none }` |
+
+**`Auth.showModal({ forced, view })`** — extended signature. `forced: true` adds `body.auth-gated` and makes `Auth.closeModal()` a no-op until the class is cleared. `view: 'login' | 'signup' | 'reset' | 'account'` overrides the default branching (used for the `?type=recovery` deeplink so the user lands on the reset form).
+
+**`Auth.closeModal()`** — bails early when `body.auth-gated` is present. The X button is hidden by CSS but any stray call from a plugin / keyboard handler / MFA success path is also a no-op.
+
+**Hotkey opt-outs:** the Cmd+S / Esc-go-home handlers in `app-boot.js` live inside `window.onload` and never wire because of the gate's early return. Cmd+K is registered separately by [js/command-palette.js](js/command-palette.js) at DOMContentLoaded — `_onGlobalKeydown` checks `body.auth-gated` and returns early.
+
+**Onboarding wizard** runs ONLY after the gate confirms a signed-in user. Brand-new visitors hit the sign-in screen first; after a fresh signup, PR #106's reload re-enters with a session, the wizard fires once (gated by its own `STORAGE_KEY` flag), then the dashboard.
+
+**Password-reset deeplink** (Supabase email-recovery URL with `?type=recovery`): the gate stays up but the modal opens at the `reset` view directly. Same modal, different view, still locked.
+
+**Reload-on-auth-change** ([js/auth.js](js/auth.js) `_scheduleAuthReload`):
+
+```js
+function _scheduleAuthReload(reason) {
+    if (_authReloadScheduled) return;                // idempotent
+    if (_suppressAuthReload) { _suppressAuthReload = false; return; }  // MFA escape hatch
+    _authReloadScheduled = true;
+    setTimeout(() => window.location.reload(), 600); // delay so toast / modal-close paints
+}
+```
+
+Called from `.login` / `.logout` / `.signup` (only when a session was created — email-verification flow has no session, no reload), and from `_onAuthStateChanged` when transitioning user→null with `_hadSignedInUser=true` (catches multi-tab sign-out, session expiry, admin `is_blocked`). MFA enrollment sets `_suppressAuthReload = true` so the SDK's SIGNED_IN event doesn't reload through the open enrollment modal.
 
 ---
 
@@ -513,6 +562,8 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 - `escJsAttr(s)` — dual-escape (JS-string layer + HTML-attr layer) for any value interpolated into `onclick="X('${escJsAttr(v)}')"`. Don't use `Utils.escapeAttr` directly here — that only handles the HTML layer; an apostrophe in a policy number would still break out of the JS string. The `pn` binding in `renderTable` routes through this helper; use the same pattern for any new interpolation.
 - `_safeLSWrite(key, value)` — quota-tolerant `localStorage.setItem`. Surfaces a one-time toast on `QuotaExceededError` instead of silently swallowing. IndexedDB is the master source of truth for CGL state, so a quota miss just loses the fast cache. Replace every `localStorage.setItem(STORAGE_KEY, ...)` for user state with this helper; cache-only writes (`CGL_CACHE_KEY`) can stay silent.
 
+**Vercel KV cache** (`api/kv-store.js`, allowed keys `cgl_state` / `cgl_cache` / `email_drafts` / `export_history`): the compliance dashboard's `_loadFromKV(key)` calls `GET /api/kv-store?key=...`. **Cache miss now returns `200 + null` body** (not 404 — that produced unconditional DevTools red-error logs even though the JS handled it gracefully). Real errors still return 4xx/5xx: 400 = invalid key, 401 = unauthenticated, 501 = `REDIS_URL` not set, 500 = Redis error. `_checkKV` reads `res.status !== 501 && res.status !== 401`, so the `200`/`null` change doesn't affect availability detection.
+
 ---
 
 ## Key Conventions
@@ -548,3 +599,7 @@ The `phonetic-speller` is a popup helper (no plugin HTML) — invoked from heade
 | Skip an `ActivityLog.add` hook on a new save / sync / export site | The header status pill + Today widget + Recent column all depend on it. Three lines (feature-detected) is the cost of a green/red dot in the header that surfaces failures the user would otherwise miss. |
 | Call `Auth.ready()` and assume a non-null user on slow networks | `ready()` can resolve with `null` via the 15s safety timeout. Use `await Auth.whenSignedIn(timeoutMs)` for code that needs an actual signed-in user (e.g. cloud-pull bootstrap). |
 | Use `localStorage.setItem(STORAGE_KEY, ...)` for CGL state | Use `this._safeLSWrite(STORAGE_KEY, ...)` (defined in `js/compliance-dashboard.js`) — surfaces a one-time toast on `QuotaExceededError` instead of silently swallowing. |
+| Call `window.location.reload()` directly after sign-in / sign-out | Use `_scheduleAuthReload(reason)` (defined at the top of `js/auth.js`). It's idempotent (`_authReloadScheduled`), MFA-safe (`_suppressAuthReload`), and delays 600 ms so the toast + modal-close paint first. |
+| Call `Auth.showModal()` with no args from boot intending a forced gate | Use `Auth.showModal({ forced: true })`. Plain `showModal()` lets the user dismiss the modal (X button visible, `closeModal()` runs), defeating the gate. `forced: true` adds `body.auth-gated` which CSS-hides the X and makes `closeModal()` a no-op. |
+| Return `404 { error: 'Key not found' }` from a Redis cache miss in `api/kv-store.js` | Return `200 + null` body. The 404 was semantically correct but unconditionally logged as a red error in Chrome DevTools' console — confused users who thought the app was broken. Real failures (invalid key, unauthenticated, Redis not configured, Redis error) still return 4xx/5xx. |
+| Run `Onboarding.init()` outside the post-gate signed-in branch in `app-boot.js` | The wizard captures name/agency — meaningless without a session. It must live AFTER `_authGate`'s early return so it only fires when a real user is signed in. Brand-new visitors see the sign-in screen first; after a fresh signup the reload from PR #106 puts them in the signed-in branch and the wizard runs once. |
