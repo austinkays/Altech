@@ -245,6 +245,11 @@ body.dark-mode .dark-mode-toggle {
     to { transform: rotate(360deg); }
 }
 
+/* === INTAKE V2 SMART SCAN SPINNER === */
+@keyframes iv2-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* === REDUCED MOTION === */
 @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
