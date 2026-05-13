@@ -381,6 +381,66 @@
     cursor: help;
 }
 
+/* Home-card year-built advisories — surfaced at the top of each home
+ * card by intake-v2-property.js when a year/roof/electrical/plumbing
+ * threshold trips. The colored left border makes severity scannable
+ * from across the page. */
+.iv2-advisory-list {
+    list-style: none;
+    margin: 0 0 12px 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.iv2-advisory {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    border-left: 3px solid var(--border);
+}
+.iv2-advisory-info {
+    background: rgba(10, 132, 255, 0.06);
+    color: var(--text-secondary);
+    border-left-color: var(--apple-blue);
+}
+.iv2-advisory-warn {
+    background: rgba(197, 136, 0, 0.08);
+    color: #C58800;
+    border-left-color: #C58800;
+}
+.iv2-advisory-risk {
+    background: rgba(179, 58, 58, 0.08);
+    color: #B33A3A;
+    border-left-color: #B33A3A;
+}
+.iv2-advisory-icon {
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.iv2-advisory-jump {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid currentColor;
+    color: inherit;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.85;
+}
+.iv2-advisory-jump:hover { opacity: 1; }
+.iv2-advisory-jump:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
 /* Inline keyboard-shortcut hint — used in places like "Add operator [N]"
  * where a hotkey duplicates a button. Bare "(N)" reads like placeholder
  * text; the boxed letter makes it obvious it's a hotkey. */

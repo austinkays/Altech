@@ -15,6 +15,86 @@
 const esc     = (s) => (window.Utils && window.Utils.escapeHTML) ? window.Utils.escapeHTML(String(s ?? '')) : String(s ?? '');
 const escAttr = (s) => (window.Utils && window.Utils.escapeAttr) ? window.Utils.escapeAttr(String(s ?? '')) : String(s ?? '').replace(/"/g, '&quot;');
 
+// Year-built advisories. Surface inline cues an underwriter would
+// otherwise have to compute mentally — "1952 home with no electrical
+// year? Probably knob-and-tube. Flag it before the carrier asks."
+//
+// Each rule returns either null (rule doesn't apply) or
+// { id, severity, message, fieldId? } where fieldId is the DOM id
+// the agent should jump to. Severity classes:
+//   'info'  — neutral fact (e.g. "Home age: 74 yrs")
+//   'warn'  — likely-needs-attention (amber underline tone)
+//   'risk'  — carrier will probably push back (red tone)
+function _homeAdvisories(home) {
+    const now = new Date().getFullYear();
+    const yr  = parseInt(home.yrBuilt, 10);
+    const out = [];
+    if (Number.isFinite(yr) && yr > 1700 && yr <= now) {
+        const age = now - yr;
+        // Plain context chip — no severity, just the math the
+        // underwriter would do anyway.
+        out.push({ id: 'age', severity: 'info', message: `Home age: ${age} year${age === 1 ? '' : 's'}.` });
+
+        if (age >= 45 && !home.systems?.electricalYr) {
+            out.push({
+                id: 'electrical',
+                severity: 'warn',
+                message: 'Knob-and-tube risk — built before 1980 with no electrical-update year captured. Most carriers want a documented update.',
+                fieldId: `iv2-home-electricalYr-${home.id}`,
+            });
+        }
+        if (age >= 45 && !home.systems?.plumbingYr) {
+            out.push({
+                id: 'plumbing',
+                severity: 'warn',
+                message: 'Galvanized / polybutylene era — built before 1980 with no plumbing-update year. Confirm with the insured before binding.',
+                fieldId: `iv2-home-plumbingYr-${home.id}`,
+            });
+        }
+    }
+    const roofYr = parseInt(home.roof?.yr, 10);
+    if (Number.isFinite(roofYr) && roofYr > 1700 && roofYr <= now) {
+        const roofAge = now - roofYr;
+        if (roofAge >= 20) {
+            out.push({
+                id: 'roof-age',
+                severity: 'risk',
+                message: `Roof is ${roofAge} years old — Travelers / Safeco require < 20 years; expect mandatory replacement quote.`,
+                fieldId: `iv2-home-roofYr-${home.id}`,
+            });
+        } else if (roofAge >= 15) {
+            out.push({
+                id: 'roof-age',
+                severity: 'warn',
+                message: `Roof is ${roofAge} years old — most carriers will inspect or surcharge once past 15 years.`,
+                fieldId: `iv2-home-roofYr-${home.id}`,
+            });
+        }
+    } else if (Number.isFinite(yr) && (now - yr) >= 20) {
+        // Year built ≥20yrs ago + no roof year captured at all.
+        out.push({
+            id: 'roof-missing',
+            severity: 'warn',
+            message: 'Roof year empty on a 20+ year old home. Capture before binding — carriers default to year-built and may surcharge.',
+            fieldId: `iv2-home-roofYr-${home.id}`,
+        });
+    }
+    return out;
+}
+
+function advisoriesHeader(home) {
+    const advisories = _homeAdvisories(home);
+    if (!advisories.length) return '';
+    const items = advisories.map(a => {
+        const cls = `iv2-advisory iv2-advisory-${a.severity}`;
+        const jump = a.fieldId
+            ? ` <button type="button" class="iv2-advisory-jump" data-jump-to-field="${escAttr(a.fieldId)}">Go to field →</button>`
+            : '';
+        return `<li class="${cls}"><span class="iv2-advisory-icon" aria-hidden="true">${a.severity === 'info' ? 'ℹ' : a.severity === 'risk' ? '⛔' : '⚠'}</span><span>${esc(a.message)}</span>${jump}</li>`;
+    }).join('');
+    return `<ul class="iv2-advisory-list" role="status" aria-live="polite">${items}</ul>`;
+}
+
 function addressHeader(home) {
     return `
         <div class="iv2-field-grid" style="margin-bottom:8px">
@@ -45,7 +125,7 @@ function renderHomes() {
             title: h.address || 'New Home',
             hideOperatorPicker: true,
             extraBodyHTML: '', // address rendered as header instead
-        }).replace('<div class="iv2-field-grid">', addressHeader(h) + '<div class="iv2-field-grid">');
+        }).replace('<div class="iv2-field-grid">', addressHeader(h) + advisoriesHeader(h) + '<div class="iv2-field-grid">');
     }).join('');
     root.innerHTML = `<h4 style="margin:6px 0; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Homes (${homes.length})</h4>${cards}`;
     window.IntakeV2EntityCard.wireCardActions(root, 'homes');
@@ -55,6 +135,19 @@ function renderHomes() {
         btn.addEventListener('click', () => {
             const id = btn.getAttribute('data-rentcast-prefill');
             tryPrefill(id);
+        });
+    });
+
+    // Wire advisory "Go to field →" jump buttons. Scrolls to the
+    // flagged field and focuses it so the agent can type the missing
+    // value without scrolling-hunting through the card.
+    root.querySelectorAll('[data-jump-to-field]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-jump-to-field');
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            try { el.focus({ preventScroll: true }); } catch (_) { el.focus(); }
         });
     });
 }
