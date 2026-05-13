@@ -1212,3 +1212,115 @@
     border-radius: 50%;
     animation: iv2-spin 0.8s linear infinite;
 }
+
+/* Smart Scan cell stacks the button + budget pill vertically. */
+.iv2-smart-scan-cell {
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+/* Rentcast budget pill — always-visible chip under the Smart Scan
+ * button. Colors flip via [data-tone]: ok (green), low (amber),
+ * over (red). Empty content state stays display:none. */
+.iv2-rentcast-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.iv2-rentcast-pill:empty { display: none; }
+.iv2-rentcast-pill[data-tone="ok"]   { color: #1B873F; border-color: rgba(27,135,63,0.4);  background: rgba(27,135,63,0.08); }
+.iv2-rentcast-pill[data-tone="low"]  { color: #C58800; border-color: rgba(197,136,0,0.4);  background: rgba(197,136,0,0.08); }
+.iv2-rentcast-pill[data-tone="over"] { color: #B33A3A; border-color: rgba(179,58,58,0.45); background: rgba(179,58,58,0.10); }
+
+/* Rentcast overage confirmation modal — opens when an agent is at /
+ * over their free-tier limit and tries to Smart Scan. */
+.iv2-rentcast-overage-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.iv2-rentcast-overage-overlay[hidden] { display: none; }
+.iv2-rentcast-overage-modal {
+    width: min(480px, 100%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    color: var(--text);
+    overflow: hidden;
+}
+.iv2-rentcast-overage-head {
+    padding: 18px 20px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.iv2-rentcast-overage-head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+.iv2-rentcast-overage-sub {
+    margin: 6px 0 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+.iv2-rentcast-overage-body {
+    padding: 14px 20px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+}
+.iv2-rentcast-overage-address {
+    margin: 0 0 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--bg-input);
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.iv2-rentcast-overage-explain {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.iv2-rentcast-overage-foot {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.iv2-rentcast-cancel,
+.iv2-rentcast-approve {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.iv2-rentcast-cancel {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.iv2-rentcast-approve {
+    background: var(--apple-blue);
+    color: white;
+    border: 1px solid var(--apple-blue);
+}
+.iv2-rentcast-approve:hover { background: var(--apple-blue-hover); }
+.iv2-rentcast-cancel:hover  { background: var(--bg-card); }

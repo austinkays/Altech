@@ -106,8 +106,9 @@ function addressHeader(home) {
                 </div>
                 <span class="iv2-field-defer-badge" style="display:none">deferred</span>
             </div>
-            <div class="iv2-field" style="align-self:end">
+            <div class="iv2-field iv2-smart-scan-cell" style="align-self:end">
                 <button type="button" class="iv2-smart-scan-btn" data-rentcast-prefill="${escAttr(home.id)}" title="Smart Scan — pull from county records, Rentcast, fire-station data, and AI vision in parallel"><span class="iv2-smart-scan-icon" aria-hidden="true">✨</span> Smart Scan</button>
+                <span class="iv2-rentcast-pill" data-rentcast-pill aria-live="polite"></span>
             </div>
         </div>`;
 }
@@ -139,6 +140,10 @@ function renderHomes() {
             if (cardEl) window.IntakeV2PropertyMaps.attach(cardEl, h);
         });
     }
+
+    // Paint the Rentcast budget pill under every Smart Scan button.
+    // Subscribed once at boot — re-renders just re-fetch the snapshot.
+    _paintRentcastPills(root);
 
     // Wire Smart Scan buttons. Each click toggles a loading state on
     // the button itself so the agent can see it's in flight (orchestra
@@ -191,6 +196,43 @@ async function tryPrefill(homeId) {
     if (window.App && window.App.toast) {
         window.App.toast('Smart fill module not loaded — refresh the page', { type: 'error', duration: 3500 });
     }
+}
+
+// Paint the "42 of 50 Rentcast lookups · resets Jun 1" pill under each
+// Smart Scan button. Colors flip:
+//   green  — > 10 remaining
+//   amber  — 1..10 remaining
+//   red    — 0 remaining (overage territory)
+// Subscribes to counter changes so a fresh Smart Scan that drops
+// the budget instantly recolors the pill across every home card.
+async function _paintRentcastPills(root) {
+    if (!window.IntakeV2Rentcast || typeof window.IntakeV2Rentcast.getSnapshot !== 'function') return;
+    const pills = root.querySelectorAll('[data-rentcast-pill]');
+    if (!pills.length) return;
+    let snap;
+    try { snap = await window.IntakeV2Rentcast.getSnapshot(); } catch (_) { return; }
+    const remaining = snap.remaining;
+    const tone = snap.isOver ? 'over' : (remaining <= 10 ? 'low' : 'ok');
+    const reset = snap.nextReset instanceof Date
+        ? snap.nextReset.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        : '';
+    const label = snap.isOver
+        ? `Rentcast: 0 of ${snap.limit} left · over by ${snap.count - snap.limit}`
+        : `Rentcast: ${remaining} of ${snap.limit} left${reset ? ` · resets ${reset}` : ''}`;
+    pills.forEach(p => {
+        p.textContent = label;
+        p.setAttribute('data-tone', tone);
+        p.title = `${snap.count} lookups used this billing cycle.`
+            + (reset ? ` Free tier resets ${reset}.` : '');
+    });
+}
+// Re-paint pills whenever recordCall fires anywhere on the page — keeps
+// the badge live without waiting for the next home-card repaint.
+if (window.IntakeV2Rentcast && typeof window.IntakeV2Rentcast.subscribe === 'function') {
+    window.IntakeV2Rentcast.subscribe(() => {
+        const root = document.querySelector('[data-render="homes"]');
+        if (root) _paintRentcastPills(root);
+    });
 }
 
 // Legacy `pickField` / `DWELLING_NORMALIZE` / `applyPrefill` were removed

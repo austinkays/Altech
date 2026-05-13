@@ -83,12 +83,47 @@ async function _fetchMode(mode, body, signal) {
     }
 }
 
-async function fetchZillow(parts, signal) {
+async function fetchZillow(parts, signal, opts) {
+    // Rentcast soft-cap gate. Snapshot the counter; if the agent is at
+    // or over their free tier, surface the overage modal before the
+    // call goes out. Agent picks "Skip Rentcast" → we still attempt
+    // the call but skip the Rentcast tier in the request body (server
+    // falls back to AI search only, which is free). Agent picks "Run
+    // anyway" → the call proceeds as normal and the audit log entry
+    // is already written by the modal.
+    let skipRentcastTier = false;
+    if (!opts || opts.checkBudget !== false) {
+        if (window.IntakeV2Rentcast && typeof window.IntakeV2Rentcast.getSnapshot === 'function') {
+            try {
+                const snap = await window.IntakeV2Rentcast.getSnapshot();
+                if (snap.isOver) {
+                    const approved = await window.IntakeV2Rentcast.confirmOverage(
+                        [parts.street, parts.city, parts.state, parts.zip].filter(Boolean).join(', ')
+                    );
+                    if (!approved) skipRentcastTier = true;
+                }
+            } catch (_) { /* counter unavailable — proceed without budget guard */ }
+        }
+    }
     const out = await _fetchMode('zillow', {
         address: parts.street, city: parts.city, state: parts.state, zip: parts.zip,
+        skipRentcastTier,
         aiSettings: window.AIProvider && window.AIProvider.getSettings ? window.AIProvider.getSettings() : null,
     }, signal);
-    return out ? { data: out.data || out, sources: out.sources || null, source: out.source || 'Rentcast/AI' } : null;
+    if (!out) return null;
+    const result = { data: out.data || out, sources: out.sources || null, source: out.source || 'Rentcast/AI' };
+    // Increment the counter ONLY when the response was actually served
+    // by Rentcast (source attribution includes the string). A 500, an
+    // AI-only fallback, or a "no data found" miss never burns a credit.
+    if (!skipRentcastTier && window.IntakeV2Rentcast && typeof window.IntakeV2Rentcast.recordCall === 'function') {
+        const src = String(result.source || '').toLowerCase();
+        if (src.includes('rentcast')) {
+            window.IntakeV2Rentcast.recordCall(
+                [parts.street, parts.city, parts.state, parts.zip].filter(Boolean).join(', ')
+            );
+        }
+    }
+    return result;
 }
 
 async function fetchArcgis(parts, signal) {
