@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **feat(auth): refresh the page after sign-in / sign-out** (May 13, 2026):
+  - On sign-out the SPA now reloads so locally-cached UI state (current quote, draft data already rendered into the form, plugin in-memory caches) disappears with the session, matching the user's mental model that "signed out = data gone." On sign-in it reloads so freshly-restored cloud blobs (reminders, CGL state, quotes) and signed-in-only chrome (avatar, admin links, vault unlock prompt) appear without a manual F5.
+  - Implementation in [js/auth.js](js/auth.js): single `_scheduleAuthReload(reason)` helper with three guards — `_authReloadScheduled` (idempotent across multiple call sites racing the same transition), `_suppressAuthReload` (one-shot escape hatch for MFA enrollment so the overlay survives the SDK's SIGNED_IN event), and `_hadSignedInUser` (gates ambient sign-out detection in `_onAuthStateChanged` so a cold-load with no session doesn't reload itself).
+  - `.login()`, `.logout()`, `.signup()` (only when a session was actually created — email-verification flows skip), and `_onAuthStateChanged` (for multi-tab sign-out, session expiry, admin-forced block) all route through the helper. 600 ms delay so the success toast + modal-close finish painting before the navigation.
+  - Tests: new `tests/auth-reload-on-change.test.js` (7 static source pattern checks pinning each guard + call site).
+
 ### Removed
 - **feat(supabase-only): Firebase removed entirely — Supabase is the sole auth + sync backend** (May 13, 2026):
   - **Deleted files**: `js/firebase-config.js`, `js/cloud-sync.js`, `js/admin-panel.js`, `js/migration-ui.js`, `js/migration-backup.js`, `api/admin.js`, `firebase.json`, `firestore.rules`. Firebase CDN scripts were already absent from `index.html`; this PR rips out the JS modules that depended on them.
