@@ -321,6 +321,34 @@
     box-shadow: 0 0 0 2px rgba(0,122,255,0.18);
 }
 
+/* Kill the number-input spinner. A spinner is useful for tiny
+ * ranges (1-12 months, 0-9 stories) but it's noise on 4-5 digit
+ * values like Square Footage / Year Built / Coverage A. Mobile
+ * keyboards still show the numeric pad because inputmode=numeric is
+ * driven by the field's type=number. */
+.iv2-field input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.iv2-field input[type="number"]::-webkit-inner-spin-button,
+.iv2-field input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Date inputs render the placeholder ("mm/dd/yyyy") with the same
+ * --text color in dark mode, which makes the agent doubt whether
+ * they've actually typed a value. Re-tone the placeholder
+ * specifically; entered values stay full --text contrast. */
+.iv2-field input[type="date"]:not(:focus):invalid,
+.iv2-field input[type="date"]:placeholder-shown {
+    color: var(--text-tertiary);
+}
+.iv2-field input[type="date"]:focus,
+.iv2-field input[type="date"]:valid {
+    color: var(--text);
+}
+
 /* deferred = "Ask Later" — yellow border, dimmed value */
 .iv2-field[data-deferred="true"] input,
 .iv2-field[data-deferred="true"] select,
