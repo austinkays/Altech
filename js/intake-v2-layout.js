@@ -29,9 +29,37 @@ function renderQuickSection() {
     // Group "quick" section fields by their natural cluster. The Co-Applicant
     // cluster always renders its toggle; the rest of its fields only render
     // when the toggle is on so the form doesn't show empty co-app inputs.
+    //
+    // `spans` maps each path to a 12-column span on desktop — the
+    // "About the Applicant" name row gets the audited Prefix(1) /
+    // First(3) / Middle(2) / Last(3) / Suffix(1) / DOB(2) shape, and
+    // each address field claims a sensible chunk. Fields outside the
+    // span map fall back to the default 12-col-wide row.
     const coFullPaths = ['coApplicant.relationship','coApplicant.firstName','coApplicant.lastName','coApplicant.dob','coApplicant.gender','coApplicant.maritalStatus','coApplicant.phone','coApplicant.email','coApplicant.occupation','coApplicant.industry','coApplicant.education'];
+    const SPANS = {
+        // Name row
+        'applicant.prefix': 1, 'applicant.firstName': 3, 'applicant.middleName': 2,
+        'applicant.lastName': 3, 'applicant.suffix': 1, 'applicant.dob': 2,
+        // SSN + ID block (full mode)
+        'applicant.ssn': 3, 'applicant.gender': 3, 'applicant.maritalStatus': 3,
+        // Contact
+        'applicant.phone': 4, 'applicant.email': 4,
+        // Occupation / Industry / Education + the new employer fields fill
+        // the row instead of leaving 4 empty cols.
+        'applicant.occupation': 4, 'applicant.industry': 4, 'applicant.education': 4,
+        'applicant.employerName': 6, 'applicant.yearsEmployed': 2,
+        // Co-applicant block
+        'coApplicant.present': 12,
+        'coApplicant.relationship': 3, 'coApplicant.firstName': 3,
+        'coApplicant.lastName': 3, 'coApplicant.dob': 3,
+        // Address
+        'address.street': 6, 'address.city': 3, 'address.state': 2, 'address.zip': 1,
+        'address.county': 3, 'address.yearsAt': 2,
+        'address.previous.street': 6, 'address.previous.city': 3,
+        'address.previous.state': 2, 'address.previous.zip': 1,
+    };
     const clusters = [
-        { title: 'About the Applicant',    paths: ['applicant.prefix','applicant.firstName','applicant.middleName','applicant.lastName','applicant.suffix','applicant.dob','applicant.ssn','applicant.gender','applicant.maritalStatus','applicant.phone','applicant.email','applicant.occupation','applicant.industry','applicant.education'] },
+        { title: 'About the Applicant',    paths: ['applicant.prefix','applicant.firstName','applicant.middleName','applicant.lastName','applicant.suffix','applicant.dob','applicant.ssn','applicant.gender','applicant.maritalStatus','applicant.phone','applicant.email','applicant.occupation','applicant.industry','applicant.education','applicant.employerName','applicant.yearsEmployed'] },
         { title: 'Co-Applicant',           paths: ['coApplicant.present', ...(coPresent ? coFullPaths : [])] },
         { title: 'Mailing Address',        paths: ['address.street','address.city','address.state','address.zip','address.county','address.yearsAt','address.previous.street','address.previous.city','address.previous.state','address.previous.zip'] },
         { title: 'Household Preferences',  paths: ['household.homeownership','household.contactMethod','household.contactTime','household.referralSource','household.tcpaConsent','household.creditCheckAuth'] },
@@ -39,11 +67,11 @@ function renderQuickSection() {
 
     root.innerHTML = clusters.map(cluster => {
         const items = cluster.paths.map(p => fields.find(f => f.path === p)).filter(Boolean);
-        const grid  = items.map(renderScalarField).join('');
+        const grid  = items.map(f => renderScalarField(f, SPANS[f.path])).join('');
         return `
             <div class="iv2-field-cluster">
                 <h4 style="margin:8px 0 6px; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">${esc(cluster.title)}</h4>
-                <div class="iv2-field-grid">${grid}</div>
+                <div class="iv2-field-grid-12">${grid}</div>
             </div>`;
     }).join('');
 }
@@ -60,8 +88,12 @@ function spellerInsetButton(mode) {
     return `<button type="button" class="iv2-speller-btn" data-speller-mode="${escAttr(m)}" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button>`;
 }
 
-function renderScalarField(f) {
+function renderScalarField(f, span) {
     const fullClass = f.mode === 'full' ? ' iv2-full-only' : '';
+    // Span is the 12-column width on desktop. Default to 12 (full row)
+    // when the caller didn't specify — keeps fields visible even if a
+    // future cluster forgets to provide a SPANS entry.
+    const spanAttr = ` data-span="${escAttr(String(span || 12))}"`;
     let control;
     if (f.type === 'select') {
         // Options come in two shapes:
@@ -80,7 +112,7 @@ function renderScalarField(f) {
         // <input type="checkbox"> so intake-v2-core's save/load
         // (`if (el.type === 'checkbox')`) keeps working unchanged.
         const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
-        return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label class="${rowClass}" for="${escAttr(f.id)}"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> <span>${esc(f.label)}</span></label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
+        return `<div class="iv2-field${fullClass}"${spanAttr} data-field-wrap="${escAttr(f.path)}"><label class="${rowClass}" for="${escAttr(f.id)}"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> <span>${esc(f.label)}</span></label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}" rows="3"></textarea>`;
     } else {
@@ -89,7 +121,7 @@ function renderScalarField(f) {
             ? `<div class="iv2-input-wrap">${input}${spellerInsetButton(f.speller)}</div>`
             : input;
     }
-    return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}">
+    return `<div class="iv2-field${fullClass}"${spanAttr} data-field-wrap="${escAttr(f.path)}">
         <label for="${escAttr(f.id)}">${esc(f.label)}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>

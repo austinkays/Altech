@@ -186,7 +186,9 @@
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 16px;
+    /* 24px padding matches the audit recommendation — gives each card
+     * the same visual weight regardless of how dense its grid is. */
+    padding: 24px;
     scroll-margin-top: 72px;
 }
 .iv2-section > summary,
@@ -221,10 +223,45 @@
 }
 
 /* ─── Field grid ─────────────────────────────────────────────────────────── */
+/*
+ * Default grid stays auto-fit so cards without explicit spans still
+ * pack themselves into available width. The new 12-column grid kicks
+ * in when a cluster (or a section body) opts in via `iv2-field-grid-12`
+ * — that's how the Quick Start "About the Applicant" row gets the
+ * Prefix(1) / First(3) / Middle(2) / Last(3) / Suffix(1) / DOB(2)
+ * layout. Fields inside a 12-col grid read their `data-span="N"`
+ * attribute and map it to `grid-column: span N`.
+ *
+ * Gutters: 16px horizontal, 20px row — matches the audit recommendation.
+ */
 .iv2-field-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px;
+    gap: 20px 16px;
+}
+.iv2-field-grid-12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 20px 16px;
+}
+.iv2-field-grid-12 > .iv2-field[data-span="1"]  { grid-column: span 12; }
+.iv2-field-grid-12 > .iv2-field[data-span="2"]  { grid-column: span 12; }
+.iv2-field-grid-12 > .iv2-field[data-span="3"]  { grid-column: span 12; }
+.iv2-field-grid-12 > .iv2-field[data-span="4"]  { grid-column: span 12; }
+@media (min-width: 720px) {
+    .iv2-field-grid-12 > .iv2-field[data-span="1"]  { grid-column: span 2; }
+    .iv2-field-grid-12 > .iv2-field[data-span="2"]  { grid-column: span 4; }
+    .iv2-field-grid-12 > .iv2-field[data-span="3"]  { grid-column: span 6; }
+    .iv2-field-grid-12 > .iv2-field[data-span="4"]  { grid-column: span 8; }
+    .iv2-field-grid-12 > .iv2-field[data-span="6"]  { grid-column: span 12; }
+}
+@media (min-width: 1024px) {
+    .iv2-field-grid-12 > .iv2-field[data-span="1"]  { grid-column: span 1; }
+    .iv2-field-grid-12 > .iv2-field[data-span="2"]  { grid-column: span 2; }
+    .iv2-field-grid-12 > .iv2-field[data-span="3"]  { grid-column: span 3; }
+    .iv2-field-grid-12 > .iv2-field[data-span="4"]  { grid-column: span 4; }
+    .iv2-field-grid-12 > .iv2-field[data-span="6"]  { grid-column: span 6; }
+    .iv2-field-grid-12 > .iv2-field[data-span="12"] { grid-column: span 12; }
 }
 .iv2-field {
     display: flex;

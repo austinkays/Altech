@@ -51,6 +51,13 @@ const SCALAR = [
     { id: 'iv2-occupation',     path: 'applicant.occupation',     label: 'Occupation',       type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-industry',       path: 'applicant.industry',       label: 'Industry',         type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-education',      path: 'applicant.education',      label: 'Education',        type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], section: 'quick', mode: 'full' },
+    // Employer name + years employed fill the row that used to leave
+    // four empty grid columns next to Industry/Education. Both fields
+    // are first-class on the EZLynx Personal Lines application — the
+    // exporter pipes them through `Employer` / `YearsAtEmployer` tags
+    // when the carrier asks for occupation specifics.
+    { id: 'iv2-employerName',   path: 'applicant.employerName',   label: 'Employer Name',     type: 'text',   section: 'quick', mode: 'full', speller: 'general' },
+    { id: 'iv2-yearsEmployed',  path: 'applicant.yearsEmployed',  label: 'Years Employed',    type: 'number', section: 'quick', mode: 'full' },
 
     // ── Co-Applicant (visible when coApplicant.present === true) ──────────
     // Headline gate — rendered as a switch (toggle pill) instead of a
