@@ -130,6 +130,16 @@ function renderHomes() {
     root.innerHTML = `<h4 style="margin:6px 0; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Homes (${homes.length})</h4>${cards}`;
     window.IntakeV2EntityCard.wireCardActions(root, 'homes');
 
+    // Attach satellite + Street View thumbnails per home card. Module
+    // is debounced 450ms internally and skips no-op refreshes (same
+    // address → no re-fetch) so re-renders are cheap.
+    if (window.IntakeV2PropertyMaps && typeof window.IntakeV2PropertyMaps.attach === 'function') {
+        homes.forEach(h => {
+            const cardEl = root.querySelector(`[data-card-of="homes"][data-item-id="${h.id}"]`);
+            if (cardEl) window.IntakeV2PropertyMaps.attach(cardEl, h);
+        });
+    }
+
     // Wire Smart Scan buttons. Each click toggles a loading state on
     // the button itself so the agent can see it's in flight (orchestra
     // can take 8-12s for ArcGIS+Vision+Fire+Zillow). Re-entrancy is

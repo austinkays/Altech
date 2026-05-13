@@ -530,6 +530,78 @@
     outline-offset: 1px;
 }
 
+/* Home-card map thumbnails — satellite + Street View previews shown
+ * above the field grid as soon as the agent enters an address.
+ * Module: js/intake-v2-property-maps.js. Module re-runs on address
+ * change but is debounced + cache-keyed by address. */
+.iv2-thumbs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 4px 0 16px;
+}
+.iv2-thumb {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg-input);
+    aspect-ratio: 16 / 10;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.iv2-thumb:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.iv2-thumb:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+.iv2-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+.iv2-thumb-caption {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+/* Skeleton placeholder shimmer while the image loads. */
+.iv2-thumb-skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.02) 0%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0.02) 100%);
+    background-size: 200% 100%;
+    animation: progressShimmer 1.4s linear infinite;
+}
+/* Empty state — no coverage / no key / load failure. */
+.iv2-thumb-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-align: center;
+    padding: 12px;
+    line-height: 1.4;
+}
+
 /* Inline keyboard-shortcut hint — used in places like "Add operator [N]"
  * where a hotkey duplicates a button. Bare "(N)" reads like placeholder
  * text; the boxed letter makes it obvious it's a hotkey. */
