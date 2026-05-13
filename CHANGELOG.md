@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **fix(kv-store): cache miss returns 200 + null, not 404** (May 13, 2026):
+  - `api/kv-store.js` previously returned `404 { error: 'Key not found' }` when a requested Redis key was empty. The CGL dashboard already handled it gracefully (falls through to `return null`, then localStorage/IDB/disk), but Chrome DevTools auto-logged the 404 as a red error in the Console panel — confusing users who saw "GET /api/kv-store?key=cgl_cache 404" and assumed the app was broken when it was just a normal empty cache.
+  - Cache miss now returns `200 + null body`. The 400 (invalid key), 401 (unauthenticated), 501 (Redis not configured), and 500 (Redis error) paths are unchanged — those are real failures and should stay 4xx/5xx.
+  - `js/compliance-dashboard.js` `_loadFromKV` only logs the "KV loaded" line when the body is non-null, so empty caches no longer fire a spurious log. The `_checkKV` status-code comment is updated to reflect the new semantics.
+  - Backward-compatible: old browser tabs still running the previous client will get `200 + null`, treat it as a cache hit with empty data (`if (data?.cachedAt)` fails → returns null), and fall through to next cache source — same end behavior, no console noise.
+  - Tests: 5 new source-pattern tests in `tests/kv-store-cache-miss.test.js`. **62 suites, 2354 tests pass.**
+
 ### Added
 - **feat(auth): forced sign-in gate for un-signed-in users** (May 13, 2026):
   - **Problem:** an un-signed-in user could navigate to `/` and see the full dashboard (greeting + bento widgets + tool tiles), but most of it was broken — cloud sync silently 401'd, AI features failed, paywall-gated tools locked, vault unlock could fire over the dashboard. The only existing gate was in `App.navigateTo` and only fired *after* the user clicked a tool tile.

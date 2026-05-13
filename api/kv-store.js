@@ -85,7 +85,14 @@ async function handler(req, res) {
             }
             const result = await redis.get(keyPrefix + key);
             if (result === null || result === undefined) {
-                return res.status(404).json({ error: 'Key not found', key });
+                // Cache miss is a normal, expected state — return 200 with a
+                // null body instead of 404. The previous 404 response was
+                // semantically correct but produced unconditional console
+                // noise in DevTools (browsers auto-log every 4xx/5xx
+                // response, even when the JS code handles them gracefully).
+                // The CGL dashboard treats null as "no cached value, fall
+                // back to localStorage/IDB/disk" exactly as before.
+                return res.status(200).json(null);
             }
             // Parse JSON if stored as JSON
             let value = result;
