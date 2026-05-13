@@ -2,24 +2,29 @@
  * api/reminders-sweep.js — Daily reminder sweep (Vercel Cron)
  *
  * Runs at 13:00 UTC (06:00 PT) every day via vercel.json "crons" entry.
- * For each user, reads `users/{uid}/sync/reminders`, filters tasks due
- * today (dueDate <= today and not completed today), writes a digest to
- * `users/{uid}/sync/dailyDigest`. The client reads the digest on next
- * open and surfaces a toast / sidebar badge.
+ * For each user with a `reminders` blob, filters tasks due today (dueDate
+ * <= today and not completed today), writes a digest to the `dailyDigest`
+ * blob. The client reads the digest on next open and surfaces a toast /
+ * sidebar badge.
  *
  * Auth: Vercel sets `Authorization: Bearer ${CRON_SECRET}` on cron
  * invocations. Set CRON_SECRET in the Vercel project env.
  *
- * Pro tier unlocks unlimited daily crons; this endpoint is purely
- * additive — existing client-side reminder logic is unchanged.
+ * Phase D note: previously read/wrote Firestore docs at
+ * `users/{uid}/sync/reminders` and `users/{uid}/sync/dailyDigest`. Now
+ * reads/writes Supabase `user_blobs` with doc_key `'reminders'` and
+ * `'dailyDigest'`. The reminders blob is encrypted client-side (v=2 AAD
+ * envelope) — the server CAN'T decrypt it, so the cron skips encrypted
+ * payloads and only processes plaintext ones (legacy users who haven't
+ * enrolled E2E yet). Once every user is on E2E, this cron will become
+ * a no-op; the digest will need to be generated client-side instead.
  */
 
 import {
-    firestoreListAsAdmin,
-    firestoreGetAsAdmin,
-    firestoreSetAsAdmin,
-    parseFirestoreDoc,
-} from '../lib/firestore.js';
+    getServiceRoleClient,
+    listUserBlobsByDocKey,
+    upsertUserBlob,
+} from './_supabase-admin.js';
 
 // Pacific-time YYYY-MM-DD string (matches client's _todayDate()).
 function pacificTodayStr() {
@@ -61,12 +66,23 @@ function _isDueOrOverdue(task, today, todayStr) {
     return true;
 }
 
+// Detect v=2 AAD envelope. These ciphertexts cannot be decrypted server-side
+// (the user's vault key never leaves their device).
+function _isV2Envelope(value) {
+    if (!value || typeof value !== 'object') return false;
+    return value.v != null && value.iv != null && value.ct != null;
+}
+
 export default async function handler(req, res) {
     // Vercel adds `Authorization: Bearer ${CRON_SECRET}` for scheduled invocations.
     const auth = req.headers.authorization || '';
     const secret = process.env.CRON_SECRET;
     if (!secret || auth !== `Bearer ${secret}`) {
         return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    if (!getServiceRoleClient()) {
+        return res.status(503).json({ error: 'Supabase service role not configured' });
     }
 
     const today = new Date();
@@ -77,27 +93,35 @@ export default async function handler(req, res) {
         usersScanned: 0,
         usersWithReminders: 0,
         usersWithDueItems: 0,
+        usersEncrypted: 0,
         totalDueItems: 0,
         errors: [],
     };
 
-    let users;
+    let rows;
     try {
-        users = await firestoreListAsAdmin('users');
+        rows = await listUserBlobsByDocKey('reminders');
     } catch (err) {
-        return res.status(500).json({ error: 'Failed to list users', details: err.message });
+        return res.status(500).json({ error: 'Failed to list reminders blobs', details: err.message });
     }
 
-    for (const userDoc of users) {
+    for (const row of rows) {
         summary.usersScanned++;
-        const uid = (userDoc.name || '').split('/').pop();
+        const uid = row.user_id;
         if (!uid) continue;
 
         try {
-            const raw = await firestoreGetAsAdmin(`users/${uid}/sync/reminders`);
-            if (!raw) continue;
-            const parsed = parseFirestoreDoc(raw);
-            const tasks = parsed && parsed.data && parsed.data.tasks;
+            let parsed = null;
+            try { parsed = JSON.parse(row.ciphertext); } catch { parsed = null; }
+
+            // E2E-encrypted blobs can't be processed server-side. Track them
+            // so we know the cron's reach is shrinking as users migrate.
+            if (_isV2Envelope(parsed)) {
+                summary.usersEncrypted++;
+                continue;
+            }
+
+            const tasks = parsed && parsed.tasks;
             if (!Array.isArray(tasks) || tasks.length === 0) continue;
 
             summary.usersWithReminders++;
@@ -118,12 +142,15 @@ export default async function handler(req, res) {
             summary.usersWithDueItems++;
             summary.totalDueItems += due.length;
 
-            await firestoreSetAsAdmin(`users/${uid}/sync/dailyDigest`, {
+            const result = await upsertUserBlob(uid, 'dailyDigest', {
                 date: todayStr,
                 generatedAt: new Date().toISOString(),
                 dueCount: due.length,
                 tasks: due,
             });
+            if (!result.ok) {
+                summary.errors.push({ uid, error: result.error });
+            }
         } catch (err) {
             summary.errors.push({ uid, error: err.message });
         }
