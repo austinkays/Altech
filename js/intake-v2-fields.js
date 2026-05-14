@@ -252,8 +252,14 @@ const COLLECTIONS = {
             { idStem: 'op-relationship',   path: 'relationship',    label: 'Relationship', type: 'select', options: ['', 'Self', 'Spouse', 'Domestic Partner', 'Child', 'Parent', 'Sibling', 'Other'], mode: 'quick' },
             { idStem: 'op-gender',         path: 'gender',          label: 'Gender',     type: 'select', options: ['', 'Male', 'Female', 'Nonbinary'], mode: 'full' },
             { idStem: 'op-maritalStatus',  path: 'maritalStatus',   label: 'Marital',    type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], mode: 'full' },
-            { idStem: 'op-dl-num',         path: 'dl.num',          label: 'DL Number',  type: 'text',   mode: 'full',  speller: 'dl' },
-            { idStem: 'op-dl-state',       path: 'dl.state',        label: 'DL State',   type: 'select', options: usStateOptions(), mode: 'quick' },
+            // DL Number + State are required to bind any auto policy across
+            // all four carriers — promoted to Quick mode + flagged bindable
+            // so they show up in Quick by default AND surface in the missing-
+            // required list. Pre-fix, DL State was Quick but DL Number was
+            // Full-only (despite sitting visually next to State), so an agent
+            // working in Quick captured the state but lost the actual number.
+            { idStem: 'op-dl-num',         path: 'dl.num',          label: 'DL Number',  type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'dl' },
+            { idStem: 'op-dl-state',       path: 'dl.state',        label: 'DL State',   type: 'select', options: usStateOptions(), mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'op-dl-status',      path: 'dl.status',       label: 'License Status', type: 'select', options: ['', 'Valid', 'Permit', 'Suspended', 'Revoked', 'None'], mode: 'full' },
             // `computed: true` marks a field as derived from other inputs
             // (here: licensing age = current year - DOB year - yrsDriving).
