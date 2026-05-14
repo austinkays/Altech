@@ -49,11 +49,20 @@
 }
 .iv2-topbar-spacer { flex: 1; }
 
+/* Sticky rails — pin the left jump nav (Quick Start at top) and the right
+ * conversation rail (Talk Track at top) while the agent scrolls the main
+ * column. They share `top: 72px` so they line up just below the iv2-topbar
+ * (which has `top: 0`). The rails carry their own z-index + solid background
+ * + backdrop-filter so the underlying section cards can't bleed through them
+ * during scroll. */
 .iv2-left-rail, .iv2-right-rail {
     align-self: start;
     position: sticky;
     top: 72px;
+    z-index: 10;
     background: var(--bg-card);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 10px;
