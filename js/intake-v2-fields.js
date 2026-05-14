@@ -474,7 +474,21 @@ const COLLECTIONS = {
     rvs: {
         itemPath: 'rvs',
         fields: [
-            { idStem: 'rv-class',          path: 'class',          label: 'Class / Type', type: 'select', options: ['', 'A', 'B', 'C', 'travelTrailer', 'fifthWheel', 'toyHauler', 'popUp', 'busConversion'], mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+            // Stored values stay camelCase (data shape used by exports + the
+            // chip selector in intake-v2-rvs.js); the select renderer in
+            // intake-v2-layout.js shows the human label via `[value, label]`
+            // tuples. Pre-fix, the dropdown literally said "busConversion".
+            { idStem: 'rv-class',          path: 'class',          label: 'Class / Type', type: 'select', options: [
+                '',
+                ['A',              'Class A'],
+                ['B',              'Class B'],
+                ['C',              'Class C'],
+                ['travelTrailer',  'Travel Trailer'],
+                ['fifthWheel',     '5th Wheel'],
+                ['toyHauler',      'Toy Hauler'],
+                ['popUp',          'Pop-Up'],
+                ['busConversion',  'Bus Conversion'],
+            ], mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'rv-year',           path: 'year',           label: 'Year',          type: 'number', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'rv-make',           path: 'make',           label: 'Make',          type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'rv-model',          path: 'model',          label: 'Model',         type: 'text',   mode: 'quick' },

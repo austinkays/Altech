@@ -46,6 +46,26 @@ function renderViolRow(v, idx) {
     </tr>`;
 }
 
+function _wireCleanToggle(root, h) {
+    // Wire BOTH render paths (clean-collapsed AND incident-list) so that
+    // untoggling the checkbox actually re-renders the section. Pre-fix the
+    // listener attachment lived after the clean-state early-return, so once
+    // the user toggled ON, the checkbox in the rendered "clean" state had
+    // no handler — untoggling did nothing.
+    const cleanCb = root.querySelector('#iv2-hasCleanHistory');
+    if (!cleanCb) return;
+    cleanCb.addEventListener('change', () => {
+        h.hasCleanHistory = cleanCb.checked;
+        if (cleanCb.checked) {
+            // Clear lists when toggling on so PDF doesn't carry stale rows
+            h.losses = [];
+            h.violations = [];
+        }
+        window.IntakeV2.save();
+        window.IntakeV2.requestRerender('history');
+    });
+}
+
 function render() {
     const root = document.querySelector('[data-render="history"]');
     if (!root) return;
@@ -68,6 +88,7 @@ function render() {
             <div style="margin-top:8px; padding:10px 12px; border-radius:8px; background:rgba(27,135,63,0.06); border-left:3px solid #1B873F; font-size:13px;">
                 Clean record recorded for all operators. Untoggle above to enter specific incidents.
             </div>`;
+        _wireCleanToggle(root, h);
         // Re-apply deferred-field styling after innerHTML replacement
         if (window.IntakeV2._defer) window.IntakeV2._defer.render();
         return;
@@ -95,18 +116,7 @@ function render() {
         </div>
     `;
 
-    // Toggle handler
-    const cleanCb = root.querySelector('#iv2-hasCleanHistory');
-    if (cleanCb) cleanCb.addEventListener('change', () => {
-        h.hasCleanHistory = cleanCb.checked;
-        if (cleanCb.checked) {
-            // Optional: clear lists when toggling on so PDF doesn't carry stale rows
-            h.losses = [];
-            h.violations = [];
-        }
-        window.IntakeV2.save();
-        window.IntakeV2.requestRerender('history');
-    });
+    _wireCleanToggle(root, h);
 
     // Add buttons
     root.querySelectorAll('[data-history-add]').forEach(btn => {
