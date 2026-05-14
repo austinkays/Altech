@@ -367,17 +367,55 @@ describe('IntakeV2 — CMSMTF & EZLynx XML wrappers', () => {
     });
 
     test('EZLynx XML wrapper builds a string with sentinels', () => {
-        let captured;
+        const captured = [];
         const origDownload = w.App.downloadFile;
-        w.App.downloadFile = (content, name, mime) => { captured = { content, name, mime }; };
+        w.App.downloadFile = (content, name, mime) => { captured.push({ content, name, mime }); };
         try {
             w.IntakeV2.exportEZLynxXML();
         } finally { w.App.downloadFile = origDownload; }
-        expect(captured).toBeTruthy();
-        expect(typeof captured.content === 'string').toBe(true);
-        // ACORD XML emits the applicant inside <Person> / <SpecificApplicantInfo> or
-        // similar. We just check the sentinel appears somewhere.
-        expect(captured.content).toMatch(/SENTINEL_FIRST/);
+
+        // Both Home + Auto files are generated when the form has both.
+        expect(captured.length).toBe(2);
+        const auto = captured.find(c => /^EZLynx_Import_/.test(c.name));
+        const home = captured.find(c => /^EZLynx_Home_Import_/.test(c.name));
+        expect(auto).toBeTruthy();
+        expect(home).toBeTruthy();
+        expect(auto.content).toMatch(/SENTINEL_FIRST/);
+        expect(home.content).toMatch(/SENTINEL_FIRST/);
+
+        // V200 EZAUTO schema audit — these elements break the server-side
+        // deserializer ("Error in deserializing to V200 Ezauto"). The
+        // exporter-contract test documents them as "Not in V200 EZAUTO
+        // schema — flows via filler JSON". Never let them back into EZAUTO.
+        // (EZHOME has its own schema that accepts CreditCheckAuth and LossInfo,
+        //  so those checks are EZAUTO-only.)
+        const ezautoForbidden = [
+            '<CreditCheckAuth>',
+            '<MultiPolicy>',
+            '<YearsWithContinuousCoverage>',
+            '<PriorLiabilityLimits>',
+            '<Industry>',
+            '<Occupation>',
+            '<Education>',
+            '<MedPay>',
+            '<SR22>',
+            '<FR44>',
+            '<LicenseSuspendedRevoked>',
+            '<DriverTraining>',
+            '<DistantStudent>',
+            '<LicensePlate>',
+            '<PlateState>',
+            '<Ownership>',
+            '<PurchaseDate>',
+            '<OriginalOwner>',
+            '<ExistingDamage>',
+            '<DaysPerWeek>',
+            '<YearsAtAddress>',
+            '<LossInfo>',
+        ];
+        for (const tag of ezautoForbidden) {
+            expect(auto.content).not.toContain(tag);
+        }
     });
 });
 
