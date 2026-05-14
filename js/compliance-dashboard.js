@@ -1115,7 +1115,15 @@ const ComplianceDashboard = {
 
             if (data.metadata && data.metadata.fetchedAt) {
                 const fetchTime = new Date(data.metadata.fetchedAt).toLocaleString();
-                document.getElementById('cglLastFetch').textContent = `Last updated: ${fetchTime}`;
+                // Null-guard — when fetchPoliciesFromAPI fires from a
+                // background timer (line 1032) the CGL plugin HTML may not
+                // be mounted yet, so #cglLastFetch is absent. Pre-fix this
+                // threw "Cannot set properties of null (setting
+                // 'textContent')" and aborted the whole try block — which
+                // dropped the response on the floor and skipped the cache
+                // write below.
+                const lastFetchEl = document.getElementById('cglLastFetch');
+                if (lastFetchEl) lastFetchEl.textContent = `Last updated: ${fetchTime}`;
             }
 
             // Cache the response to disk + localStorage
