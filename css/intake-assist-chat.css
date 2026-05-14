@@ -46,7 +46,14 @@
     min-height: 0;
     background: var(--bg);
 }
-#pluginViewport.plugin-viewport.active {
+/* SCOPED to intake-assist only. Pre-fix this rule had no `:has(#intakeTool.active)`
+ * scope, so `overflow: hidden` was applied to #pluginViewport for EVERY plugin —
+ * which is the nearest scrolling ancestor for position:sticky elements in
+ * intake-v2 (the rails). Sticky breaks when ANY ancestor between the sticky
+ * element and the actual scroll container has overflow != visible, so the v2
+ * left/right rails silently stopped sticking. (PR #115 fixed a different
+ * transform-related cause; this was a second one hiding behind it.) */
+.app-shell:has(#intakeTool.active) #pluginViewport.plugin-viewport.active {
     display: flex !important; /* sidebar.css loads after us and keeps winning */
     flex-direction: column;
     flex: 1 1 0%;

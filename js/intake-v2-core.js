@@ -370,6 +370,20 @@
             // Repeating collections are owned by their own renderer (operators,
             // homes, autos, boats, rvs). They listen for requestRerender().
             this.requestRerender();
+            // Repaint the right-rail talk track + bindability strip on load
+            // too — pre-fix, loading a saved draft showed stale (or empty)
+            // prompts until the agent typed something to trigger a save.
+            try {
+                if (window.IntakeV2Bindability) {
+                    this.bindability = window.IntakeV2Bindability.computeBindability({ data: this.data });
+                }
+                if (this._layout) {
+                    if (typeof this._layout.renderTopbarStatus === 'function') this._layout.renderTopbarStatus();
+                    if (typeof this._layout.renderJumpBadges === 'function') this._layout.renderJumpBadges();
+                    if (typeof this._layout.renderTalkTrack === 'function') this._layout.renderTalkTrack();
+                    if (typeof this._layout.renderLastEntries === 'function') this._layout.renderLastEntries();
+                }
+            } catch (_) { /* don't break apply on a transient render error */ }
         },
 
         // After save: re-run bindability, talk track, defer/follow-up render,

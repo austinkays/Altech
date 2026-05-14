@@ -79,15 +79,35 @@ function contextAdd() {
 
 function deferFocused() {
     const el = document.activeElement;
-    if (!el) return;
+    if (!el || el === document.body) {
+        if (window.App && App.toast) App.toast('Click a field first, then press Alt+L to defer it.', { type: 'info', duration: 2500 });
+        return;
+    }
     if (!window.IntakeV2._defer) return;
     let path = null;
     if (el.id && window.FieldMapV2) path = window.FieldMapV2.pathForElement(el);
+    // Direct attribute the field renderer stamps on every input.
+    if (!path) path = el.getAttribute && el.getAttribute('data-iv2-path');
     if (!path) {
         const wrap = el.closest('[data-field-wrap]');
         if (wrap) path = wrap.getAttribute('data-field-wrap');
     }
-    if (path) window.IntakeV2._defer.toggle(path);
+    // Walk up looking for any element carrying a path — covers wrapper divs
+    // that fields render into (e.g., iv2-input-wrap > input).
+    if (!path) {
+        const inner = el.closest('[data-iv2-path]');
+        if (inner) path = inner.getAttribute('data-iv2-path');
+    }
+    if (path) {
+        window.IntakeV2._defer.toggle(path);
+        return;
+    }
+    // Pre-fix, an Alt+L on a field that didn't resolve a path was a totally
+    // silent no-op — agents had no way to tell why "the shortcut isn't
+    // working". Make it visible.
+    if (window.App && App.toast) {
+        App.toast('Alt+L: focus a specific field first — that field can\'t be deferred from here.', { type: 'info', duration: 3000 });
+    }
 }
 
 function showHelp() {
@@ -157,9 +177,29 @@ function onKey(e) {
     if (e.key === 'k' || e.key === 'K') { e.preventDefault(); relJump(-1); return; }
 }
 
+// Auto-show the shortcut help the first time a user opens the v2 workspace.
+// The shortcut surface (N add, J/K nav, Alt+L defer, Alt+1..6 jump) was
+// designed for speed but is hidden behind a small "?" icon in the topbar —
+// new agents kept asking "what are those `?` and `N` hints for?". The flag
+// is keyed in localStorage so we only nag once per device.
+const HELP_SHOWN_KEY = 'altech_iv2_help_shown_v1';
+function _maybeAutoShowHelp() {
+    try {
+        if (localStorage.getItem(HELP_SHOWN_KEY) === '1') return;
+        // Delay one tick so the v2 DOM has settled (the help overlay attaches
+        // to <body>, so it doesn't strictly need iv2 to be rendered, but
+        // showing it before the chrome paints feels jarring).
+        setTimeout(() => {
+            showHelp();
+            localStorage.setItem(HELP_SHOWN_KEY, '1');
+        }, 600);
+    } catch (_) { /* localStorage blocked — accept the help-every-load fallback */ }
+}
+
 window.IntakeV2.onBoot(function () {
     document.addEventListener('keydown', onKey);
     this._keyboard = { jumpSection, contextAdd, deferFocused, showHelp };
+    _maybeAutoShowHelp();
 });
 
 })();

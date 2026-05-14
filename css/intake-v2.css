@@ -915,6 +915,30 @@
     border-top: 1px solid var(--border);
 }
 .iv2-right-rail h4:first-child { padding-top: 0; border-top: none; }
+.iv2-live-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    font-size: 9px;
+    text-transform: uppercase;
+    color: #1B873F;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+}
+.iv2-live-dot::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #1B873F;
+    animation: iv2LivePulse 2s infinite ease-in-out;
+}
+@keyframes iv2LivePulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
 .iv2-talk-track {
     font-size: 13px;
     line-height: 1.5;
