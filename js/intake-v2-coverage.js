@@ -103,10 +103,15 @@ function renderCoverage() {
     // an agent in Quick mode sees Continuous Coverage + Discounts only,
     // and has no obvious way to discover that Prior Home / Prior Auto /
     // Prior Boat / Prior RV exist behind the topbar Quick/Full pill.
+    // Pre-fix the icon was `›` and the copy "More fields in Full mode",
+    // which the user read as inline-expand. `⇆` mirrors the topbar's
+    // rails-toggle glyph and the explicit "Switch to Full mode" phrasing
+    // names the action — the existing title= tooltip still lists the
+    // four field groups behind the toggle.
     const _hint = `
         <button type="button" class="iv2-full-mode-hint" data-mode-set="full" title="Switch to Full mode to enter Prior Insurance carriers, mortgage info, endorsements, and notes.">
-            <span aria-hidden="true">›</span>
-            <span>More fields in Full mode</span>
+            <span aria-hidden="true">⇆</span>
+            <span>Switch to Full mode for more fields</span>
         </button>`;
     root.innerHTML = html + _hint;
 

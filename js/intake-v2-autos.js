@@ -21,6 +21,10 @@ const esc     = (s) => (window.Utils && window.Utils.escapeHTML) ? window.Utils.
 const escAttr = (s) => (window.Utils && window.Utils.escapeAttr) ? window.Utils.escapeAttr(String(s ?? '')) : String(s ?? '').replace(/"/g, '&quot;');
 
 function renderField(item, collKey, f) {
+    // Hidden fields stay in the schema for exports + bindability checks but
+    // never render. Currently used by the RV `class` select (the chip row
+    // in intake-v2-rvs.js is the visible control bound to the same path).
+    if (f.hidden === true) return '';
     // Subsection heading: spans the full grid, gives the agent a visual
     // anchor between groups of fields (e.g. "Coverage Selections" /
     // "Lien Holder" inside an auto card). Pre-fix the header was rendered
@@ -110,7 +114,13 @@ function defaultTitle(collKey, item) {
             toyHauler: 'Toy Hauler', popUp: 'Pop-Up', busConversion: 'Bus Conversion',
         };
         const classLabel = item.class ? (RV_CLASS_LABELS[item.class] || item.class) : '';
-        return `${item.year || ''} ${item.make || ''} ${item.model || ''} ${classLabel ? '· ' + classLabel : ''}`.trim() || 'New RV';
+        // Pre-fix the template literal collapsed to "· Class A" when
+        // year/make/model were all empty — the trim() removed the
+        // leading space but not the orphan separator. Build the parts
+        // explicitly and only insert " · " when there's content on both
+        // sides.
+        const vehicleParts = [item.year, item.make, item.model].filter(Boolean).join(' ');
+        return [vehicleParts, classLabel].filter(Boolean).join(' · ') || 'New RV';
     }
     if (collKey === 'homes') return item.address || 'New Home';
     return 'New';
@@ -189,17 +199,53 @@ function renderAutos() {
 }
 
 const _vinCache = new Map();
+// Helpers: mark the VIN field wrapper while a decode is in flight so the
+// CSS can paint a spinner; surface a one-line hint inline when the decode
+// can't fill year/make/model so the agent knows it's their turn to type.
+function _vinSetDecoding(input, on) {
+    const wrap = input.closest('[data-field-wrap]');
+    if (!wrap) return;
+    if (on) wrap.setAttribute('data-iv2-decoding', 'true');
+    else    wrap.removeAttribute('data-iv2-decoding');
+}
+function _vinSetDecodeError(input, message) {
+    const wrap = input.closest('[data-field-wrap]');
+    if (!wrap) return;
+    // Reuse the existing field-defer-badge slot — it already has CSS for
+    // a one-line hint pinned below the input, and the [data-iv2-decode-error]
+    // attribute styles it red instead of yellow.
+    const badge = wrap.querySelector('.iv2-field-defer-badge');
+    if (!badge) return;
+    if (message) {
+        badge.textContent = message;
+        badge.style.display = '';
+        wrap.setAttribute('data-iv2-decode-error', 'true');
+    } else {
+        wrap.removeAttribute('data-iv2-decode-error');
+        // Only hide if the badge isn't being used for an actual defer state.
+        if (!wrap.hasAttribute('data-deferred')) {
+            badge.textContent = 'deferred';
+            badge.style.display = 'none';
+        }
+    }
+}
+
 async function decodeVinIntoCard(input) {
     const vin = (input.value || '').trim().toUpperCase().replace(/[^A-HJ-NPR-Z0-9]/g, '');
+    // VIN below 17 chars — leave any prior error visible (the agent is still
+    // typing) but don't fire a request. Clear when they backspace to empty.
+    if (vin.length === 0) { _vinSetDecodeError(input, ''); return; }
     if (vin.length !== 17) return;
     const itemId = input.getAttribute('data-item-id');
     const item = window.IntakeV2.getItem('autos', itemId);
     if (!item) return;
     // Only auto-fill empty fields so we don't overwrite agent edits.
-    if (item.year && item.make && item.model) return;
+    if (item.year && item.make && item.model) { _vinSetDecodeError(input, ''); return; }
 
     let parsed = _vinCache.get(vin);
     if (!parsed) {
+        _vinSetDecoding(input, true);
+        _vinSetDecodeError(input, '');
         // 8s timeout matches the legacy VinDecoder's NHTSA fetch budget.
         // Without it the request can hang indefinitely on a flaky network
         // and the auto-fill never resolves.
@@ -210,7 +256,10 @@ async function decodeVinIntoCard(input) {
                 `https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${encodeURIComponent(vin)}?format=json`,
                 { signal: ctrl.signal }
             );
-            if (!resp.ok) return;
+            if (!resp.ok) {
+                _vinSetDecodeError(input, "Couldn't decode that VIN — enter Year/Make/Model manually.");
+                return;
+            }
             const json = await resp.json();
             const map = {};
             (json.Results || []).forEach(r => { if (r.Variable && r.Value && r.Value !== 'Not Applicable') map[r.Variable] = r.Value; });
@@ -221,14 +270,25 @@ async function decodeVinIntoCard(input) {
                 body:  map['Body Class']      || '',
             };
             _vinCache.set(vin, parsed);
-        } catch (_) { return; }
-        finally { clearTimeout(tid); }
+        } catch (_) {
+            _vinSetDecodeError(input, "Couldn't decode that VIN — enter Year/Make/Model manually.");
+            return;
+        } finally {
+            clearTimeout(tid);
+            _vinSetDecoding(input, false);
+        }
     }
     let changed = false;
     if (parsed.year  && !item.year)  { item.year  = parsed.year;  changed = true; }
     if (parsed.make  && !item.make)  { item.make  = parsed.make;  changed = true; }
     if (parsed.model && !item.model) { item.model = parsed.model; changed = true; }
-    if (!changed) return;
+    if (!changed) {
+        // NHTSA returned a 200 but no usable Year/Make/Model — surface the
+        // same hint as a network failure so the agent isn't left waiting.
+        _vinSetDecodeError(input, "Couldn't decode that VIN — enter Year/Make/Model manually.");
+        return;
+    }
+    _vinSetDecodeError(input, '');
     window.IntakeV2.save();
     window.IntakeV2.requestRerender('autos');
 }

@@ -486,7 +486,12 @@ const COLLECTIONS = {
             // chip selector in intake-v2-rvs.js); the select renderer in
             // intake-v2-layout.js shows the human label via `[value, label]`
             // tuples. Pre-fix, the dropdown literally said "busConversion".
-            { idStem: 'rv-class',          path: 'class',          label: 'Class / Type', type: 'select', options: [
+            // `hidden: true` keeps the field in the schema for exports and
+            // bindability checks but the renderer skips emitting it into the
+            // grid. The chip row in intake-v2-rvs.js (Class A / Class B / …)
+            // is the visible, agent-facing control for the same path. Pre-fix
+            // the dropdown duplicated the chips.
+            { idStem: 'rv-class',          path: 'class',          label: 'Class / Type', type: 'select', hidden: true, options: [
                 '',
                 ['A',              'Class A'],
                 ['B',              'Class B'],

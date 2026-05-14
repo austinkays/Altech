@@ -102,7 +102,7 @@ function render() {
             <h4 style="margin:8px 0; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Losses / Claims (last 35 months)</h4>
             <table style="width:100%; font-size:13px; border-collapse:collapse;" id="iv2-loss-table">
                 <thead><tr style="text-align:left; color:var(--text-secondary)"><th>Date</th><th>Type</th><th>Amount</th><th>Operator</th><th>Asset</th><th></th></tr></thead>
-                <tbody>${losses.map(renderLossRow).join('') || `<tr><td colspan="6" style="color:var(--text-secondary); padding:8px;">None recorded.</td></tr>`}</tbody>
+                <tbody>${losses.map(renderLossRow).join('') || `<tr><td colspan="6" style="color:var(--text-secondary); padding:8px; font-style:italic;">Nothing here yet. Check the box above if the client truly has a clean record, or use <strong>+ Add loss</strong> to log specific incidents.</td></tr>`}</tbody>
             </table>
             <button type="button" class="iv2-add-btn is-ghost" data-history-add="loss" style="margin-top:6px">+ Add loss</button>
         </div>
@@ -110,7 +110,7 @@ function render() {
             <h4 style="margin:8px 0; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">Violations (last 35 months)</h4>
             <table style="width:100%; font-size:13px; border-collapse:collapse;" id="iv2-viol-table">
                 <thead><tr style="text-align:left; color:var(--text-secondary)"><th>Date</th><th>Type</th><th>Operator</th><th></th></tr></thead>
-                <tbody>${viols.map(renderViolRow).join('') || `<tr><td colspan="4" style="color:var(--text-secondary); padding:8px;">None recorded.</td></tr>`}</tbody>
+                <tbody>${viols.map(renderViolRow).join('') || `<tr><td colspan="4" style="color:var(--text-secondary); padding:8px; font-style:italic;">Nothing here yet. Check the box above if the client truly has a clean record, or use <strong>+ Add violation</strong> to log specific incidents.</td></tr>`}</tbody>
             </table>
             <button type="button" class="iv2-add-btn is-ghost" data-history-add="violation" style="margin-top:6px">+ Add violation</button>
         </div>
