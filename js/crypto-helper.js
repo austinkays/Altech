@@ -71,6 +71,13 @@ const CryptoHelper = (() => {
         _v2MKBytes = new Uint8Array(mkBytes); // copy — caller may zero theirs
         _v2KdfTree = kdfTree || null;
         _v2Key = await _dataKeyForVault(_v2MKBytes, _v2KdfTree);
+        // Mirror to sessionStorage so an F5 (page reload) doesn't re-prompt
+        // the user. sessionStorage clears on tab close → preserves the
+        // "device at rest" threat model (laptop stolen, browser closed →
+        // attacker still can't decrypt). Tagged with the current Auth uid
+        // so signing out + signing in as a different user discards the
+        // stale MK instead of using it on the new user's data.
+        _saveSessionMK();
     }
 
     function _clearV2MK() {
@@ -78,6 +85,79 @@ const CryptoHelper = (() => {
         _v2MKBytes = null;
         _v2KdfTree = null;
         _v2Key = null;
+        _clearSessionMK();
+    }
+
+    // ─── Session persistence (survives F5) ───────────────────────────────────
+    // The unwrapped MK only lives in JS module memory, so any page reload
+    // (F5, hash navigation that triggers a refresh, browser back/forward
+    // that re-evaluates the bundle) wipes it and re-prompts the user for
+    // a passphrase. sessionStorage gives us "per-tab persistence" without
+    // touching localStorage (which would survive across tabs and sessions,
+    // breaking the lock-on-browser-close invariant).
+    const _SESSION_MK_KEY   = 'altech_v2_session_mk';
+    const _SESSION_TREE_KEY = 'altech_v2_session_tree';
+    const _SESSION_UID_KEY  = 'altech_v2_session_uid';
+
+    function _currentAuthUid() {
+        try {
+            if (typeof window !== 'undefined' && window.Auth && window.Auth.uid) return String(window.Auth.uid);
+        } catch (_) {}
+        return '';
+    }
+    function _ss() {
+        try {
+            if (typeof sessionStorage !== 'undefined') return sessionStorage;
+        } catch (_) {}
+        return null;
+    }
+    function _saveSessionMK() {
+        const ss = _ss();
+        if (!ss || !_v2MKBytes) return;
+        try {
+            ss.setItem(_SESSION_MK_KEY, _bytesToBase64(_v2MKBytes));
+            ss.setItem(_SESSION_TREE_KEY, _v2KdfTree || '');
+            ss.setItem(_SESSION_UID_KEY, _currentAuthUid());
+        } catch (_) { /* sessionStorage may be disabled in private mode */ }
+    }
+    function _clearSessionMK() {
+        const ss = _ss();
+        if (!ss) return;
+        try {
+            ss.removeItem(_SESSION_MK_KEY);
+            ss.removeItem(_SESSION_TREE_KEY);
+            ss.removeItem(_SESSION_UID_KEY);
+        } catch (_) {}
+    }
+    async function _restoreSessionMK() {
+        if (_v2Key) return true; // already unlocked
+        const ss = _ss();
+        if (!ss) return false;
+        let b64, tree, storedUid;
+        try {
+            b64 = ss.getItem(_SESSION_MK_KEY);
+            tree = ss.getItem(_SESSION_TREE_KEY);
+            storedUid = ss.getItem(_SESSION_UID_KEY) || '';
+        } catch (_) { return false; }
+        if (!b64) return false;
+        const currentUid = _currentAuthUid();
+        // If the session MK was saved under a different user, discard it.
+        // (Sign-out then sign-in as a different account.) An empty storedUid
+        // is treated as "unknown" and allowed through — there's no other
+        // user to bind it to in test / pre-auth environments.
+        if (storedUid && currentUid && storedUid !== currentUid) {
+            _clearSessionMK();
+            return false;
+        }
+        try {
+            const bytes = _base64ToBytes(b64);
+            if (bytes.length !== 32) { _clearSessionMK(); return false; }
+            await _setV2MK(bytes, tree || null);
+            return true;
+        } catch (_) {
+            _clearSessionMK();
+            return false;
+        }
     }
 
     function _key(name) {
@@ -521,6 +601,14 @@ const CryptoHelper = (() => {
             _clearV2MK();
         },
         lock() { _clearV2MK(); },
+        // Best-effort restore of the unwrapped MK from sessionStorage. Called
+        // by vault-ui's `maybePromptUnlockOnLoad` BEFORE prompting — if a
+        // previous tab in this same browser session already unlocked, this
+        // resolves true and the prompt is skipped.
+        async restoreSession() {
+            try { return await _restoreSessionMK(); }
+            catch (_) { return false; }
+        },
 
         // Install an already-unwrapped master key — used by alternate unlock
         // paths (biometric / passkey) that derive their own KEK from a
