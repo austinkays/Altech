@@ -12,7 +12,13 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#007AFF">
     <meta name="description" content="Insurance intake wizard for independent agents — scan, extract, export.">
+    <!-- Favicons — give Chrome's PWA install the full pyramid so the desktop
+         shortcut bakes the 192/512 mountain logo instead of upscaling the
+         32x32 favicon. (Pre-fix, only the 32x32 was declared, so installed
+         shortcuts on Windows looked like a blurry generic placeholder.) -->
     <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
     <title>Altech Toolkit</title>
     <link rel="stylesheet" href="css/variables.css">
     <link rel="stylesheet" href="css/base.css">
