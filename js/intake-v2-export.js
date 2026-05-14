@@ -228,6 +228,7 @@ window.IntakeV2.onBoot(function () {
     window.CommandPalette.register({ id: 'intakev2.export.cmsmtf',  label: 'Intake v2 — Export HawkSoft (home/auto)', icon: '📤', run: () => window.IntakeV2.exportCMSMTF() });
     window.CommandPalette.register({ id: 'intakev2.export.ezlynx',  label: 'Intake v2 — Export EZLynx XML (home/auto)', icon: '⚡', run: () => window.IntakeV2.exportEZLynxXML() });
     window.CommandPalette.register({ id: 'intakev2.save-as-quote',  label: 'Intake v2 — Save as quote', icon: '💾', run: () => window.IntakeV2.saveAsQuote() });
+    window.CommandPalette.register({ id: 'intakev2.new-draft',      label: 'Intake v2 — Start a new draft', icon: '🆕', run: () => window.IntakeV2.confirmNewDraft && window.IntakeV2.confirmNewDraft() });
     window.CommandPalette.register({ id: 'intakev2.add.operator',   label: 'Intake v2 — Add operator',  icon: '👤', run: () => window.IntakeV2.addItem('operators', {}) });
     window.CommandPalette.register({ id: 'intakev2.add.home',       label: 'Intake v2 — Add home',      icon: '🏠', run: () => window.IntakeV2.addItem('homes', {}) });
     window.CommandPalette.register({ id: 'intakev2.add.auto',       label: 'Intake v2 — Add auto',      icon: '🚗', run: () => window.IntakeV2.addItem('autos', {}) });

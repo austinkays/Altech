@@ -1276,10 +1276,26 @@ body.iv2-modal-open {
 .iv2-smartfill-foot {
     /* Mirrors .iv2-smartfill-head — pinned to the bottom of the
      * panel so the Apply/Skip buttons never scroll off when the
-     * body fills with rows. */
+     * body fills with rows.
+     *
+     * The position/inset/background/border resets defend against the
+     * global `footer { position: fixed; bottom: 12px; ... }` rule in
+     * css/layout.css that styles the wizard's app-shell footer. If
+     * this element ever ends up as a <footer> tag again (it used to
+     * be), those styles would yank it out of the modal panel and pin
+     * it to the viewport bottom. The explicit resets here keep the
+     * class doing the right thing regardless of tag name. */
+    position: static;
+    inset: auto;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    border-radius: 0;
     flex-shrink: 0;
     padding: 12px 20px;
-    border-top: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -1466,3 +1482,102 @@ body.iv2-modal-open {
 }
 .iv2-rentcast-approve:hover { background: var(--apple-blue-hover); }
 .iv2-rentcast-cancel:hover  { background: var(--bg-card); }
+
+/* New-draft confirmation modal — opens from the 🆕 button in the topbar
+ * or the "Intake v2 — Start a new draft" command palette entry. Same
+ * shell as the rentcast overage modal so the visual language matches. */
+.iv2-newdraft-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.iv2-newdraft-overlay[hidden] { display: none; }
+.iv2-newdraft-modal {
+    width: min(480px, 100%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    color: var(--text);
+    overflow: hidden;
+}
+.iv2-newdraft-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.iv2-newdraft-head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+.iv2-newdraft-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+.iv2-newdraft-close:hover { background: var(--bg-input); color: var(--text); }
+.iv2-newdraft-body {
+    padding: 16px 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+.iv2-newdraft-body p { margin: 0 0 8px; }
+.iv2-newdraft-body p:last-child { margin: 0; }
+/* Defensive resets vs. the global `footer { position: fixed; ... }` rule
+ * in css/layout.css — same pattern documented on .iv2-smartfill-foot. The
+ * action row here is a <div>, but if it's ever changed to a <footer> the
+ * resets keep it inside the modal panel. */
+.iv2-newdraft-foot {
+    position: static;
+    inset: auto;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    border-radius: 0;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.iv2-newdraft-cancel,
+.iv2-newdraft-discard,
+.iv2-newdraft-save {
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+}
+.iv2-newdraft-cancel:hover  { background: var(--bg-card); }
+.iv2-newdraft-discard       {
+    /* Destructive — render with a warning tint so an agent can't confuse
+     * it with the safer "save & start new" button. */
+    color: #B33A3A;
+    border-color: rgba(179, 58, 58, 0.4);
+}
+.iv2-newdraft-discard:hover { background: rgba(179, 58, 58, 0.08); }
+.iv2-newdraft-save {
+    background: var(--apple-blue);
+    color: #fff;
+    border-color: var(--apple-blue);
+}
+.iv2-newdraft-save:hover { background: var(--apple-blue-hover); }

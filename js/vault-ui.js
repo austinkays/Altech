@@ -71,6 +71,14 @@
         if (typeof App !== 'undefined' && App.toast) App.toast(msg, 2500);
     }
 
+    // Broadcasts `vault:unlocked` so consumers (e.g. the v2 intake's save-status
+    // pill) can refresh their cached lock state without polling. Fires after a
+    // successful passphrase / biometric / recovery unlock. Listeners receive a
+    // bubbling CustomEvent on window — `window.addEventListener('vault:unlocked', fn)`.
+    function _emitUnlock(reason) {
+        try { window.dispatchEvent(new CustomEvent('vault:unlocked', { detail: { reason } })); } catch (_) {}
+    }
+
     // ─── Shared helpers ───────────────────────────────────────────────────────
     function _downloadTextFile(filename, contents) {
         const blob = new Blob([contents], { type: 'text/plain' });
@@ -270,6 +278,7 @@
             _q('#vaultUnlockPass').value = '';
             _hideModal('#vaultUnlockModal');
             _toast('🔓 Vault unlocked', 'success');
+            _emitUnlock('biometric');
             if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
             // Mirror the passphrase-unlock path: re-pull encrypted docs from
             // the cloud so reminders / CGL / etc. that couldn't decrypt
@@ -323,6 +332,7 @@
             _q('#vaultUnlockPass').value = '';
             _hideModal('#vaultUnlockModal');
             _toast('🔓 Vault unlocked', 'success');
+            _emitUnlock('passphrase');
             if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
             // Re-pull encrypted docs from the cloud now that we have a key.
             // Earlier in the boot, SupabaseSync may have tried to hydrate
@@ -540,6 +550,7 @@
             await VaultMeta.save(newMeta);
             _hideModal('#vaultRecoverModal');
             _toast('🔒 Passphrase reset. Vault unlocked.', 'success');
+            _emitUnlock('recovery');
             if (window.Sync && window.Sync.refreshUI) window.Sync.refreshUI();
         } catch (err) {
             console.error('[Vault] Recovery step 2 failed:', err);

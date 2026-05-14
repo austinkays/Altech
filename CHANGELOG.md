@@ -78,7 +78,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Test surface: 225/225 across intake-v2 + every exporter (contract, EZLynx XML, EZLynx import, EZLynx roundtrip, dec-import). Full project suite: 62/62 suites, 2354+ tests pass.
 
+### Added
+- **feat(intakev2): 🆕 New-draft button + Cmd+K palette entry** (May 14, 2026):
+  Topbar now has a 🆕 button between the bindability indicator and the rails toggle. Click → confirm modal with three exits:
+  - **Save as quote & start new** — runs `IntakeV2.saveAsQuote()` (current draft lands in the Intake v2 quote library, encrypted, cloud-synced), then resets the draft to the empty `defaultData()` shape.
+  - **Discard & start new** — destructive button styled with a warning tint so it can't be confused with the safer Save action. Resets without persisting.
+  - **Cancel** — closes the modal, no-op. This button gets initial focus so an accidental Enter doesn't blow away the draft.
+  Also reachable via Cmd+K → "Intake v2 — Start a new draft". The modal reuses the rentcast-overage modal shell + carries the same defensive `position: static; inset: auto; backdrop-filter: none; border-radius: 0;` resets on `.iv2-newdraft-foot` documented on `.iv2-smartfill-foot`.
+
 ### Changed
+- **fix(intakev2): stale "Vault locked — unlock to save" pill clears on unlock** (May 14, 2026):
+  - **Problem:** the topbar save-status pill latched onto "Vault locked — unlock to save" the first time a save was refused with `CRYPTO_LOCKED`, and only cleared on the next *successful* save. If the agent unlocked the vault via the modal but then sat without typing, the pill kept showing the lock warning even though saves would now go through.
+  - **Fix:** `renderTopbarStatus` now checks `CryptoHelper.isV2Unlocked()` at render time. If the stale `_lastSaveLocked` flag is set but the vault is unlocked, the flag is cleared, `_unlockPromptedThisSession` is reset, and a debounced save is rescheduled so the next paint flips the pill to "✓ Saved". `VaultUI` dispatches a new `vault:unlocked` CustomEvent on `window` after biometric / passphrase / recovery-key unlock; `intake-v2-layout.js` listens and triggers the renderTopbarStatus refresh so the pill updates even when the agent doesn't otherwise interact with the page after unlocking. Listener registration is idempotent across re-mounts.
+
+- **fix(intakev2): smart-fill applies dropdown values + Rentcast counter decrements** (May 14, 2026):
+  Two pre-existing Smart Scan bugs surfaced while QA'ing the modal-layout fix above. Both fixed in this PR.
+
+  - **Bug 1: Dropdown fields never filled in spite of Rentcast/Gemini suggesting values.**
+    - `_applyToHome` in [js/intake-v2-smart-fill.js](js/intake-v2-smart-fill.js) was writing upstream values blindly to `home.exterior` / `home.roof.type` / `home.systems.heatingType` / etc. Rentcast's vocabulary doesn't match the form's dropdown options ("Aluminum / Vinyl Siding" vs `['Wood Siding','Vinyl Siding','Aluminum','Stucco','Brick','Stone']`; "Composition Shingle" vs `['Asphalt Shingle',...]`; "Forced Air" vs `['Gas','Electric','Oil',...]`; "Built-in" garage type vs `['Attached','Detached','Carport','None']`). The dropdown couldn't display the unknown value AND gap-fill blocked the field on every re-run because `current` was non-empty. Result: dropdowns stayed permanently blank, toast read "Applied nothing".
+    - v1's `applyZillowSelects` ([js/app-property.js:381](js/app-property.js)) does an `opts.includes(value)` check before writing — v2 missed this guard.
+    - Fix: added `_normalizeSelectValue(path, value, options)` + a `NORMALIZE` lookup table covering the common Rentcast/Gemini vocabulary mismatches (composition→Asphalt, built-in→Attached, single family→One Family, forced air→Gas (best-guess), crawl space→Crawl, etc.). Tries (1) exact match, (2) case-insensitive, (3) NORMALIZE table, (4) split on " / " and recurse on each token (Rentcast loves combined values). Returns null → skip write, dropdown stays empty for the agent to fill manually instead of silently corrupting the data model.
+    - Also fixed the **legacy-bad-data** path: for select fields, if `current` doesn't match any option, treat it as empty so a previous run's bad write (now invisible in the dropdown) doesn't permanently block gap-fill.
+
+  - **Bug 2: "Rentcast: 50 of 50 left" counter never decrements after Smart Scan runs.**
+    - Symptom: pill stuck at the initial value across multiple Smart Scan calls.
+    - Root cause: Phase B AAD wrapping (May 2026) made `pushBlob` opportunistically re-encrypt plaintext docs into `{v:2, iv, ct}` envelopes whenever the v2 vault is unlocked. This is intentional for `reminders` / `cglState` — both reads route through `decryptForRow` and tolerate either shape. The `rentcastUsage` blob reads, however, did a naive `JSON.parse(blob.ciphertext)` and treated anything that looked like an AAD envelope as missing data (intake-v2-rentcast.js explicitly returned null on `_looksLikeAADEnvelope`; app-property-rentcast.js just got a non-counter-shaped object back from JSON.parse). So every read returned the default `{count:0}` and every push wrote a fresh `count:1` envelope — the counter never accumulated. Same bug in `_appendOverageLog` made the audit log silently restart from a single entry on every overage approval.
+    - Fix: both rentcast read paths now recognize v=2 envelopes and decrypt via `CryptoHelper.decryptForRow` with the rentcastUsage / rentcast_overage_log identity. Direct-JSON parsing remains the fast path for legacy plaintext rows.
+
+  - **Tests:** 63/63 suites pass (2356 tests). New behavior verified manually via the existing AAD test fixtures.
+
+- **fix(intakev2): smart-fill modal — keep Skip/Apply buttons inside the modal panel** (May 14, 2026):
+  - **Problem:** the Smart Scan results modal's footer (hint text + Skip + Apply N selected buttons) was rendering as a full-width strip pinned to the bottom of the viewport instead of inside the 720px modal panel — visually disconnected from the field-review rows above it. Agents had to track their eyes from the modal in the middle of the screen all the way down to the page bottom to find the Apply button.
+  - **Root cause:** the modal panel used a `<footer class="iv2-smartfill-foot">` element. The app-shell wizard footer rule in [css/layout.css](css/layout.css) (`footer { position: fixed; bottom: 12px; left: 16px; right: 16px; border-radius: 16px; backdrop-filter: blur(24px); ... }`) — meant to style the Previous/Next bar under `plugins/quoting.html` — leaked onto every `<footer>` tag on the page, including ones inside modals. The smart-fill footer got yanked out of the flex column and pinned to the viewport bottom with the wizard's pill styling.
+  - **Fix:** swap `<footer>` for `<div>` in [js/intake-v2-smart-fill.js](js/intake-v2-smart-fill.js) — sidesteps the tag-selector rule entirely. The `.iv2-smartfill-foot` class styles already pin it as the third row of the modal's flex column. Also hardened the class in [css/intake-v2.css](css/intake-v2.css) with explicit `position: static; inset: auto; background: transparent; backdrop-filter: none; box-shadow: none; border: none; border-radius: 0;` resets so the bug can't reappear if the element is ever changed back to a `<footer>` tag.
+  - **Note:** the same global `footer` rule still leaks onto `js/intake-v2-rentcast.js` (overage-confirm modal) and `js/ezlynx-desktop.js` (EZLynx desktop modal). Those modals weren't part of this fix's scope but carry the same latent risk — if either ever becomes visibly broken, the same swap-to-`<div>` resolves it.
+  - **Tests:** 23/23 intake-v2-smart-fill + 5/5 intake-v2-rentcast still pass; no test asserts footer DOM placement so no test updates needed.
+
 - **fix(kv-store): cache miss returns 200 + null, not 404** (May 13, 2026):
   - `api/kv-store.js` previously returned `404 { error: 'Key not found' }` when a requested Redis key was empty. The CGL dashboard already handled it gracefully (falls through to `return null`, then localStorage/IDB/disk), but Chrome DevTools auto-logged the 404 as a red error in the Console panel — confusing users who saw "GET /api/kv-store?key=cgl_cache 404" and assumed the app was broken when it was just a normal empty cache.
   - Cache miss now returns `200 + null body`. The 400 (invalid key), 401 (unauthenticated), 501 (Redis not configured), and 500 (Redis error) paths are unchanged — those are real failures and should stay 4xx/5xx.
