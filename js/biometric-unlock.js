@@ -359,6 +359,12 @@
         if (!err) return 'Unknown error.';
         const name = err.name || '';
         const msg  = err.message || String(err);
+        // Re-entrant `navigator.credentials.get()` (page reloaded mid-prompt,
+        // or two unlock paths fired in parallel) — give a friendlier hint
+        // instead of leaking the raw "A request is already pending" string.
+        if (/already pending|already in progress/i.test(msg)) {
+            return 'A biometric prompt is already running — finish it or press Cancel and try again.';
+        }
         if (name === 'NotAllowedError') return 'Cancelled or timed out.';
         if (name === 'InvalidStateError') return 'This authenticator is already registered.';
         if (name === 'NotSupportedError') return 'This authenticator type is not supported.';

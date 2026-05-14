@@ -227,9 +227,30 @@
     // ─── 2. Unlock ────────────────────────────────────────────────────────────
     // Track when the user just cancelled a biometric prompt so we don't
     // immediately re-trigger it on subsequent modal opens (which would be
-    // an annoying loop if the OS prompt was dismissed).
-    let _lastBiometricCancelAt = 0;
+    // an annoying loop if the OS prompt was dismissed). Persisted in
+    // sessionStorage so an F5 doesn't reset the cooldown — pre-fix, the
+    // module-scope timestamp died on every reload and the OS prompt fired
+    // again immediately, even when the user just dismissed it.
     const BIOMETRIC_REPROMPT_COOLDOWN_MS = 30000;
+    const _SESSION_BIO_CANCEL_KEY = 'altech_v2_session_bio_cancel_at';
+    function _getLastBiometricCancelAt() {
+        try {
+            const raw = sessionStorage.getItem(_SESSION_BIO_CANCEL_KEY);
+            const n = raw ? Number(raw) : 0;
+            return Number.isFinite(n) ? n : 0;
+        } catch (_) { return 0; }
+    }
+    function _setLastBiometricCancelAt(ts) {
+        try { sessionStorage.setItem(_SESSION_BIO_CANCEL_KEY, String(ts)); } catch (_) {}
+    }
+
+    // Guard against re-entrant biometric attempts. WebAuthn rejects a second
+    // `navigator.credentials.get()` while the first is still pending with a
+    // "request is already pending" NotAllowedError — which the user saw as
+    // a confusing error banner the moment the Windows Hello sheet popped up.
+    // Any second call (programmatic or button-click race) is now a no-op
+    // while the first promise is still in flight.
+    let _biometricInFlight = false;
 
     async function openUnlock() {
         _showModal('#vaultUnlockModal');
@@ -256,7 +277,7 @@
             // shows the OS-native UI (Touch ID prompt etc) without requiring
             // an extra click, which is the whole point of "easier login".
             const now = Date.now();
-            if (now - _lastBiometricCancelAt > BIOMETRIC_REPROMPT_COOLDOWN_MS) {
+            if (now - _getLastBiometricCancelAt() > BIOMETRIC_REPROMPT_COOLDOWN_MS) {
                 // Defer one tick so the modal is actually visible before the
                 // OS prompt appears on top of it.
                 setTimeout(() => { handleBiometricUnlock(); }, 50);
@@ -265,13 +286,16 @@
     }
 
     async function handleBiometricUnlock() {
+        // Re-entrancy guard — see `_biometricInFlight` comment above.
+        if (_biometricInFlight) return;
+        _biometricInFlight = true;
         _setError('#vaultUnlockModal', '');
         const btn = _q('#vaultUnlockBiometricBtn');
         if (btn) btn.disabled = true;
         try {
             const res = await window.BiometricUnlock.unlock();
             if (!res.ok) {
-                _lastBiometricCancelAt = Date.now();
+                _setLastBiometricCancelAt(Date.now());
                 _setError('#vaultUnlockModal', res.reason || 'Biometric unlock failed.');
                 return;
             }
@@ -302,10 +326,11 @@
                 }
             } catch { /* ignore */ }
         } catch (err) {
-            _lastBiometricCancelAt = Date.now();
+            _setLastBiometricCancelAt(Date.now());
             console.error('[Vault] Biometric unlock failed:', err);
             _setError('#vaultUnlockModal', err.message || 'Biometric unlock failed.');
         } finally {
+            _biometricInFlight = false;
             if (btn) btn.disabled = false;
         }
     }
@@ -676,6 +701,24 @@
         if (typeof Auth !== 'undefined' && typeof Auth.whenSignedIn === 'function') {
             const user = await Auth.whenSignedIn(30000);
             if (!user) return;
+        }
+
+        // Try the sessionStorage restore BEFORE prompting. If the user
+        // unlocked earlier in this browser tab session, the MK is still
+        // sitting in sessionStorage and F5 shouldn't bother them again.
+        if (typeof CryptoHelper.restoreSession === 'function') {
+            try {
+                const restored = await CryptoHelper.restoreSession();
+                if (restored) {
+                    // Same downstream restore as the passphrase / biometric
+                    // unlock paths — re-pull encrypted docs so consumers
+                    // pick them up.
+                    if (window.Sync && window.Sync.refreshUI) {
+                        try { window.Sync.refreshUI(); } catch (_) {}
+                    }
+                    return;
+                }
+            } catch (_) { /* fall through to prompt */ }
         }
 
         const exists = await VaultMeta.exists();

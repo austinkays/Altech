@@ -19,6 +19,16 @@ globalThis.localStorage = {
     removeItem: (k) => _store.delete(k),
     clear: () => _store.clear(),
 };
+// sessionStorage mock — separate Map from localStorage so the F5-survival
+// tests can assert independence (clearing localStorage shouldn't touch the
+// session MK and vice versa).
+const _session = new Map();
+globalThis.sessionStorage = {
+    getItem: (k) => _session.has(k) ? _session.get(k) : null,
+    setItem: (k, v) => _session.set(k, String(v)),
+    removeItem: (k) => _session.delete(k),
+    clear: () => _session.clear(),
+};
 globalThis.window = globalThis;
 globalThis.STORAGE_KEYS = Object.freeze({
     E2E_CRYPTO_V2:   'altech_e2e_crypto_v2',
@@ -42,6 +52,9 @@ const { CryptoHelper } = require('../js/crypto-helper.js');
 
 beforeEach(() => {
     _store.clear();
+    _session.clear();
+    // Reset the Auth uid hook so per-test sign-in/out scenarios stay isolated.
+    delete globalThis.Auth;
     CryptoHelper._internals.reset();
 });
 
@@ -199,5 +212,80 @@ describe('CryptoHelper Phase A — KDF + HKDF', () => {
             mkBytes, CryptoHelper._internals.HKDF_INFO.BLIND, 32
         );
         expect(Buffer.from(dataKeyBytes).equals(Buffer.from(blindKeyBytes))).toBe(false);
+    });
+});
+
+describe("CryptoHelper — session-survives-F5 (sessionStorage MK persistence)", () => {
+    test('createVault mirrors MK into sessionStorage', async () => {
+        await CryptoHelper.createVault('survives-reload-pass');
+        expect(_session.get('altech_v2_session_mk')).toBeTruthy();
+        // tree key may be empty string for legacy mode, but for new vaults
+        // (HKDF default) it's stamped as 'hkdf-v1'.
+        expect(_session.get('altech_v2_session_tree')).toBe('hkdf-v1');
+    });
+
+    test('restoreSession after a simulated F5 unlocks without prompting', async () => {
+        // Phase 1: real session — create vault, enable v2, vault is unlocked.
+        await CryptoHelper.createVault('reload-test-pass');
+        CryptoHelper.enableV2();
+        expect(CryptoHelper.isV2Unlocked()).toBe(true);
+        // Snapshot what sessionStorage has — this is what would survive F5.
+        const snap = {
+            mk:   _session.get('altech_v2_session_mk'),
+            tree: _session.get('altech_v2_session_tree'),
+            uid:  _session.get('altech_v2_session_uid'),
+        };
+
+        // Phase 2: simulate page reload — wipe in-memory state, re-seed
+        // sessionStorage from the snapshot, then call restoreSession.
+        CryptoHelper._internals.reset();
+        expect(CryptoHelper.isV2Unlocked()).toBe(false);
+        if (snap.mk)   _session.set('altech_v2_session_mk',   snap.mk);
+        if (snap.tree) _session.set('altech_v2_session_tree', snap.tree);
+        if (snap.uid)  _session.set('altech_v2_session_uid',  snap.uid);
+
+        const restored = await CryptoHelper.restoreSession();
+        expect(restored).toBe(true);
+        expect(CryptoHelper.isV2Unlocked()).toBe(true);
+        // Round-trip a piece of data with the restored key to prove it's
+        // the SAME key, not just any key.
+        const ct = await CryptoHelper.encrypt({ secret: 'after-reload' });
+        const pt = await CryptoHelper.decrypt(ct);
+        expect(pt).toEqual({ secret: 'after-reload' });
+    });
+
+    test('lock() clears sessionStorage MK so a later restore prompts again', async () => {
+        await CryptoHelper.createVault('lock-clears-session');
+        expect(_session.get('altech_v2_session_mk')).toBeTruthy();
+        CryptoHelper.lock();
+        expect(_session.get('altech_v2_session_mk')).toBeFalsy();
+        const restored = await CryptoHelper.restoreSession();
+        expect(restored).toBe(false);
+        expect(CryptoHelper.isV2Unlocked()).toBe(false);
+    });
+
+    test('restoreSession refuses a session MK saved under a different user', async () => {
+        // User A unlocks.
+        globalThis.Auth = { uid: 'user-A' };
+        await CryptoHelper.createVault('shared-device-pass');
+        expect(_session.get('altech_v2_session_uid')).toBe('user-A');
+
+        // Simulate F5 + sign-in as User B (sessionStorage survives because
+        // the tab stayed open through the auth switch).
+        CryptoHelper._internals.reset();
+        globalThis.Auth = { uid: 'user-B' };
+
+        const restored = await CryptoHelper.restoreSession();
+        expect(restored).toBe(false);
+        expect(CryptoHelper.isV2Unlocked()).toBe(false);
+        // Stale MK was scrubbed so it can't be picked up later.
+        expect(_session.get('altech_v2_session_mk')).toBeFalsy();
+    });
+
+    test('restoreSession is a no-op when sessionStorage is empty', async () => {
+        // Cold load with nothing cached → returns false, doesn't throw.
+        const restored = await CryptoHelper.restoreSession();
+        expect(restored).toBe(false);
+        expect(CryptoHelper.isV2Unlocked()).toBe(false);
     });
 });
