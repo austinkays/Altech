@@ -306,6 +306,14 @@ async function confirmOverage(address) {
     return new Promise(resolve => { _pendingResolve = resolve; });
 }
 
-window.IntakeV2Rentcast = { getSnapshot, confirmOverage, recordCall, subscribe };
+// Public hook for code paths that mutate the shared counter from OUTSIDE
+// this module (e.g. v1's `App._setRentcastCounter` from the settings
+// modal). Fires the same subscriber list as recordCall so every pill on
+// the page repaints with the new count/period — pre-fix, saving the v1
+// modal updated `rentcastUsageDisplay` but the v2 pill stayed stale
+// until the user navigated away and back.
+function notifyExternalChange() { _emit(); }
+
+window.IntakeV2Rentcast = { getSnapshot, confirmOverage, recordCall, subscribe, notifyExternalChange };
 
 })();

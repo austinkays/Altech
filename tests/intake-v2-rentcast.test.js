@@ -108,3 +108,28 @@ describe('IntakeV2Rentcast — AAD envelope defense (bug-hunt #2)', () => {
         expect(snap.count).toBe(0);  // old period — auto-reset
     });
 });
+
+describe('IntakeV2Rentcast — notifyExternalChange (v1 ↔ v2 bridge)', () => {
+    test('exports notifyExternalChange on the public API', () => {
+        const { mod } = loadRentcast();
+        expect(typeof mod.notifyExternalChange).toBe('function');
+    });
+
+    test('fires every subscriber synchronously when called externally', () => {
+        // The v1 settings modal saves via App._setRentcastCounter which
+        // doesn't go through recordCall — without this bridge the v2
+        // pill would keep painting the pre-save count until the next
+        // navigation.
+        const { mod } = loadRentcast();
+        const calls = [];
+        const unsubA = mod.subscribe(() => calls.push('A'));
+        const unsubB = mod.subscribe(() => calls.push('B'));
+        mod.notifyExternalChange();
+        expect(calls).toEqual(['A', 'B']);
+        unsubA();
+        unsubB();
+        mod.notifyExternalChange();
+        // After both unsubscribed, no further calls.
+        expect(calls).toEqual(['A', 'B']);
+    });
+});

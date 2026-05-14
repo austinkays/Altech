@@ -205,6 +205,12 @@ async function tryPrefill(homeId) {
 //   red    — 0 remaining (overage territory)
 // Subscribes to counter changes so a fresh Smart Scan that drops
 // the budget instantly recolors the pill across every home card.
+// The pill is click-to-edit: pre-fix, an agent on v2 had no way to
+// reconcile the local counter with the real Rentcast dashboard
+// (12 used vs. 0 used here, etc.) — only v1's property step had the
+// gear button. Clicking the pill now opens v1's `_openRentcastSettings`
+// modal directly (where the agent enters the real count + their
+// billing reset day).
 async function _paintRentcastPills(root) {
     if (!window.IntakeV2Rentcast || typeof window.IntakeV2Rentcast.getSnapshot !== 'function') return;
     const pills = root.querySelectorAll('[data-rentcast-pill]');
@@ -217,13 +223,39 @@ async function _paintRentcastPills(root) {
         ? snap.nextReset.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
         : '';
     const label = snap.isOver
-        ? `Rentcast: 0 of ${snap.limit} left · over by ${snap.count - snap.limit}`
-        : `Rentcast: ${remaining} of ${snap.limit} left${reset ? ` · resets ${reset}` : ''}`;
+        ? `Rentcast: ${snap.count}/${snap.limit} · over by ${snap.count - snap.limit}`
+        : `Rentcast: ${snap.count}/${snap.limit}${reset ? ` · resets ${reset}` : ''}`;
+    const canEdit = !!(window.App && typeof window.App._openRentcastSettings === 'function');
     pills.forEach(p => {
-        p.textContent = label;
+        // textContent = label + a subtle gear glyph so the user knows
+        // it's editable. Pure CSS would do this too but it's one char
+        // and keeps the pill empty-state collapse (`:empty { display: none }`)
+        // working unchanged.
+        p.textContent = canEdit ? `${label}  ⚙` : label;
         p.setAttribute('data-tone', tone);
+        const editHint = canEdit ? '\nClick to adjust the count or billing reset day.' : '';
         p.title = `${snap.count} lookups used this billing cycle.`
-            + (reset ? ` Free tier resets ${reset}.` : '');
+            + (reset ? ` Free tier resets ${reset}.` : '')
+            + editHint;
+        if (canEdit) {
+            p.setAttribute('role', 'button');
+            p.setAttribute('tabindex', '0');
+            // Single delegated handler — replace the old listener (if any)
+            // by cloning the listener wrapper. We avoid a global Map of
+            // handlers by tagging the element with a flag.
+            if (!p.dataset.rentcastEditWired) {
+                p.dataset.rentcastEditWired = '1';
+                const openSettings = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.App._openRentcastSettings();
+                };
+                p.addEventListener('click', openSettings);
+                p.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') openSettings(e);
+                });
+            }
+        }
     });
 }
 // Legacy `pickField` / `DWELLING_NORMALIZE` / `applyPrefill` were removed
