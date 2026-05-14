@@ -210,6 +210,11 @@ let _pendingResolve = null;
 function _closeModal(answer) {
     if (!_modalEl) return;
     _modalEl.hidden = true;
+    // Release the body scroll-lock added by `confirmOverage`. Other
+    // modals (smart-fill review) use the same `iv2-modal-open` class
+    // and add/remove independently; the page only re-scrolls once
+    // the LAST modal that added the class removes it.
+    document.body.classList.remove('iv2-modal-open');
     if (_pendingResolve) { _pendingResolve(answer); _pendingResolve = null; }
 }
 
@@ -260,6 +265,11 @@ async function confirmOverage(address) {
     newCancel.addEventListener('click', () => _closeModal(false));
 
     el.hidden = false;
+    // Lock body scroll so wheel events behind the overlay don't
+    // move the underlying form. Released in _closeModal. The class
+    // is shared with the smart-fill review modal so opening one
+    // while the other is up still keeps the body locked.
+    document.body.classList.add('iv2-modal-open');
     return new Promise(resolve => { _pendingResolve = resolve; });
 }
 

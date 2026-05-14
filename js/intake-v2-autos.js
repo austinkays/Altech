@@ -58,7 +58,13 @@ function renderField(item, collKey, f) {
     } else if (f.type === 'textarea') {
         control = `<textarea id="${escAttr(elId)}"${dataAttrs} rows="2">${esc(v ?? '')}</textarea>`;
     } else {
-        const input = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs} value="${escAttr(v ?? '')}">`;
+        // `f.placeholder` is optional — set on the schema entry for
+        // fields where a real example (e.g. a VIN) reads better than
+        // an empty input. The renderer omits the attribute entirely
+        // when it's not set so undefined values don't end up as the
+        // literal string "undefined".
+        const phAttr = f.placeholder ? ` placeholder="${escAttr(f.placeholder)}"` : '';
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs}${phAttr} value="${escAttr(v ?? '')}">`;
         // Inset phonetic-speller button — VIN gets mode='vin' (warns on
         // I/O/Q), license plate gets mode='plate' (uppercase + strip
         // whitespace). Click delegation + Alt+P shortcut live in

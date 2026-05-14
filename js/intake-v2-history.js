@@ -51,10 +51,14 @@ function render() {
     if (!root) return;
     const h = window.IntakeV2.data.history;
 
+    // Use the unified .iv2-checkbox-row markup so the box sits
+    // immediately next to its label. The legacy inline-style version
+    // also abused `transform: scale(1.4)` which knocked the checkbox
+    // out of its normal flow and pushed it far from the label text.
     const cleanToggle = `
         <div class="iv2-field" data-field-wrap="history.hasCleanHistory">
-            <label style="flex-direction:row; align-items:center; gap:8px; font-size:14px;">
-                <input type="checkbox" id="iv2-hasCleanHistory" data-iv2-path="history.hasCleanHistory" ${h.hasCleanHistory ? 'checked' : ''} style="transform: scale(1.4)">
+            <label class="iv2-checkbox-row" for="iv2-hasCleanHistory" style="font-size:14px;">
+                <input type="checkbox" id="iv2-hasCleanHistory" data-iv2-path="history.hasCleanHistory" ${h.hasCleanHistory ? 'checked' : ''}>
                 <span><strong>No incidents in the last 35 months</strong> — applies to every operator above</span>
             </label>
         </div>`;

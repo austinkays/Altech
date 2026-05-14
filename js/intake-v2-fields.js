@@ -379,7 +379,7 @@ const COLLECTIONS = {
             // speller — clicking validates + sanitizes + fetches NHTSA and
             // auto-fills the year/make/model fields of this same auto card.
             // See VinDecoder.decodeForIntake in js/vin-decoder.js.
-            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', bindable: requiredBy('progressive'), speller: 'vin', decode: 'vin' },
+            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', bindable: requiredBy('progressive'), speller: 'vin', decode: 'vin', placeholder: '1HGBH41JXMN109186' },
             // License plate + plate state are HawkSoft-required and used by
             // EZLynx for ID-card generation. Added May 2026 — historically
             // intake v2 leaned on VIN alone, which left agents copy/pasting

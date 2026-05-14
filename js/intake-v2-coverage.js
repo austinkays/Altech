@@ -34,7 +34,13 @@ function renderScalarField(f) {
         }).join('');
         control = `<select id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">${opts}</select>`;
     } else if (f.type === 'checkbox') {
-        return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label style="flex-direction:row; align-items:center; gap:6px;"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> ${esc(f.label)}</label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
+        // Unified .iv2-checkbox-row / .iv2-switch-row markup from
+        // Phase 3. Coverage was missed by that pass — Discounts +
+        // Affinity Memberships kept the legacy inline-styled <label>
+        // which floated the checkbox above the label text whenever
+        // the parent grid stretched.
+        const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
+        return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(f.path)}"><label class="${rowClass}" for="${escAttr(f.id)}"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> <span>${esc(f.label)}</span></label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else {
         control = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">`;
     }
