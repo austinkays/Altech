@@ -246,6 +246,15 @@ Object.assign(App, {
             if (ok) {
                 overlay.remove();
                 this._updateRentcastDisplay(rawCount, rawDay);
+                // Repaint the v2 quoter's pill(s) too — the v2 module
+                // subscribes via _emit, and saving from v1 doesn't go
+                // through recordCall so without this nudge the pill
+                // would keep showing the stale "50/50 · resets Jun 1"
+                // label until the user navigated away and back.
+                if (window.IntakeV2Rentcast
+                    && typeof window.IntakeV2Rentcast.notifyExternalChange === 'function') {
+                    try { window.IntakeV2Rentcast.notifyExternalChange(); } catch (_) {}
+                }
                 this.toast('Rentcast settings saved', 'success');
             }
         };

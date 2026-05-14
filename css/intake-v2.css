@@ -1393,6 +1393,13 @@ body.iv2-modal-open {
     letter-spacing: 0.02em;
     line-height: 1.5;
     white-space: nowrap;
+    transition: filter 0.12s ease, transform 0.12s ease;
+}
+.iv2-rentcast-pill[role="button"] { cursor: pointer; }
+.iv2-rentcast-pill[role="button"]:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.iv2-rentcast-pill[role="button"]:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
 }
 .iv2-rentcast-pill:empty { display: none; }
 .iv2-rentcast-pill[data-tone="ok"]   { color: #1B873F; border-color: rgba(27,135,63,0.4);  background: rgba(27,135,63,0.08); }
