@@ -28,7 +28,27 @@ Object.assign(App, {
         try {
             const blob = await window.Sync.pullBlob('rentcastUsage');
             if (!blob || !blob.ciphertext) return null;
-            try { return JSON.parse(blob.ciphertext); } catch { return null; }
+            // Phase B: plaintext-stored docs (rentcastUsage included) are
+            // transparently AAD-wrapped on push by _maybeWrapForRow when the
+            // v2 vault is unlocked. The raw ciphertext column is then a
+            // `{v:2, iv, ct}` envelope, not the original plain JSON. Try a
+            // direct JSON.parse first (fast path for plaintext rows from
+            // before Phase B); fall back to decryptForRow if it looks like
+            // a v=2 envelope.
+            const raw = blob.ciphertext;
+            try {
+                const parsed = JSON.parse(raw);
+                if (parsed && parsed.v === 2 && typeof parsed.iv === 'string' && typeof parsed.ct === 'string') {
+                    // AAD envelope — decrypt with rentcastUsage identity.
+                    if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decryptForRow) return null;
+                    const uid = typeof Auth !== 'undefined' ? Auth.uid : null;
+                    if (!uid) return null;
+                    return await CryptoHelper.decryptForRow(raw, {
+                        table: 'user_blobs', rowId: 'rentcastUsage', userId: uid,
+                    });
+                }
+                return parsed;
+            } catch { return null; }
         } catch (e) {
             console.warn('[RentcastCounter] pullBlob failed:', e && e.message);
             return null;

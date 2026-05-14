@@ -407,10 +407,126 @@ function mergeResults({ arcgis, zillow, fire, vision }) {
 
 // ── Apply ──────────────────────────────────────────────────────────────────
 
+// Lookup table for upstream → dropdown-option normalization. Rentcast +
+// Gemini speak a slightly different vocabulary than the form (e.g. it
+// returns "Composition Shingle" / "Forced Air" / "Built-in" — none of
+// which match our dropdown options literally). For each path we try:
+//   1. exact match against the dropdown's options
+//   2. lowercase match
+//   3. an entry in NORMALIZE[path] (case-insensitive)
+//   4. split on " / " and recurse on each token (Rentcast loves to
+//      combine values: "Aluminum / Vinyl Siding")
+// Returns the canonical option string, or null if nothing maps.
+const NORMALIZE = Object.freeze({
+    'dwellingType': {
+        'single family': 'One Family', 'single-family': 'One Family', 'sfr': 'One Family',
+        'single family residential': 'One Family', 'detached': 'One Family',
+        'duplex': 'Two Family', 'triplex': 'Three Family', 'fourplex': 'Four Family', 'quadplex': 'Four Family',
+        'condominium': 'Condo',
+        'mobile home': 'Manufactured', 'manufactured home': 'Manufactured',
+    },
+    'construction': {
+        'wood frame': 'Frame', 'wood': 'Frame', 'frame wood': 'Frame',
+        'masonry': 'Brick', 'masonry veneer': 'Brick Veneer',
+        'concrete': 'Concrete Block', 'block': 'Concrete Block', 'cmu': 'Concrete Block',
+    },
+    'exterior': {
+        'vinyl': 'Vinyl Siding', 'wood': 'Wood Siding',
+        'fiber cement': 'Wood Siding', 'hardie': 'Wood Siding', 'hardiplank': 'Wood Siding',
+        'aluminum siding': 'Aluminum',
+    },
+    'foundation': {
+        'crawl space': 'Crawl', 'crawlspace': 'Crawl',
+        'daylight basement': 'Basement', 'full basement': 'Basement', 'finished basement': 'Basement',
+        'concrete slab': 'Slab',
+        'piers': 'Pier', 'post and pier': 'Pier',
+    },
+    'garage.type': {
+        'built-in': 'Attached', 'built in': 'Attached', 'integral': 'Attached',
+        'garage': 'Attached',
+    },
+    'roof.type': {
+        'composition shingle': 'Asphalt Shingle', 'composition': 'Asphalt Shingle',
+        'comp shingle': 'Asphalt Shingle', 'shingle': 'Asphalt Shingle',
+        'asphalt': 'Asphalt Shingle', 'asphalt shingles': 'Asphalt Shingle',
+        'shake': 'Wood Shake', 'wood shingle': 'Wood Shake',
+        'metal roof': 'Metal',
+        'flat': 'Membrane', 'rubber': 'Membrane', 'tpo': 'Membrane', 'epdm': 'Membrane',
+    },
+    'systems.heatingType': {
+        'forced air': 'Gas', // most common — agent can correct
+        'baseboard': 'Electric', 'radiant': 'Gas', 'boiler': 'Gas',
+        'natural gas': 'Gas', 'lp': 'Propane', 'lpg': 'Propane',
+    },
+    'systems.coolingType': {
+        'central air': 'Central', 'central ac': 'Central', 'a/c': 'Central',
+        'window units': 'Window', 'window unit': 'Window',
+        'commercial': '', // Rentcast quirk — bogus value, leave blank for agent
+    },
+    'numStories': {
+        '1.0': '1', '2.0': '2', '3.0': '3',
+    },
+});
+
+// Find a matching dropdown option for an incoming value, applying the
+// normalization rules above. Returns the canonical option or null.
+function _normalizeSelectValue(path, value, options) {
+    if (value == null) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    const optSet = new Set(options.filter(Boolean));
+    // 1. exact
+    if (optSet.has(raw)) return raw;
+    // 2. case-insensitive exact
+    const ciHit = options.find(o => o && o.toLowerCase() === raw.toLowerCase());
+    if (ciHit) return ciHit;
+    // 3. NORMALIZE table
+    const map = NORMALIZE[path];
+    if (map) {
+        const key = raw.toLowerCase();
+        if (key in map) {
+            const mapped = map[key];
+            // Empty-string mapping = explicitly drop the value (e.g. Rentcast's
+            // bogus "Commercial" cooling). Skip the write rather than block
+            // gap-fill with junk.
+            if (mapped === '') return null;
+            if (optSet.has(mapped)) return mapped;
+        }
+    }
+    // 4. split on " / " and try each token. Rentcast returns combined
+    // values like "Aluminum / Vinyl Siding"; if either half matches an
+    // option, use the FIRST one (preserves Rentcast's listed primary).
+    if (raw.includes(' / ')) {
+        for (const tok of raw.split(' / ').map(s => s.trim())) {
+            const hit = _normalizeSelectValue(path, tok, options);
+            if (hit) return hit;
+        }
+    }
+    return null;
+}
+
+// Lookup the field schema for a path. Returns { type, options } or null.
+function _fieldSchemaForPath(path) {
+    const fields = (window.IntakeV2Fields
+        && window.IntakeV2Fields.collections
+        && window.IntakeV2Fields.collections.homes
+        && window.IntakeV2Fields.collections.homes.fields) || [];
+    return fields.find(f => f.path === path) || null;
+}
+
 // Write each merged field into the v2 home item via setItemField. Dotted
 // paths are passed through verbatim — setItemField walks them. Existing
 // non-empty values are preserved (gap-fill only) so we never overwrite
 // the agent's typed value.
+//
+// For select-type fields, incoming values are normalized against the
+// dropdown's options BEFORE writing. v2's previous behavior wrote
+// upstream values blindly (e.g. "Aluminum / Vinyl Siding") — the
+// dropdown couldn't display them AND gap-fill blocked the field on
+// re-runs because the (invisible) value made `current` non-empty.
+// v1's applyZillowSelects (js/app-property.js:381) does the same
+// option-match check; this brings v2 to parity + adds a normalization
+// table for the common Rentcast/Gemini vocabulary mismatches.
 function _applyToHome(homeId, merged) {
     const home = window.IntakeV2.getItem('homes', homeId);
     if (!home) return 0;
@@ -421,7 +537,14 @@ function _applyToHome(homeId, merged) {
         // Resolve current value through the dotted path to check empty.
         const current = path.split('.').reduce((acc, k) => acc && acc[k], home);
         if (current != null && current !== '' && current !== false) continue;
-        const writeVal = (typeof value === 'number') ? String(value) : value;
+        // For select fields, only write if the value maps to a real option.
+        const schema = _fieldSchemaForPath(path);
+        let writeVal = (typeof value === 'number') ? String(value) : value;
+        if (schema && schema.type === 'select' && Array.isArray(schema.options)) {
+            const matched = _normalizeSelectValue(path, writeVal, schema.options);
+            if (!matched) continue; // skip — leave the dropdown empty for the agent
+            writeVal = matched;
+        }
         window.IntakeV2.setItemField('homes', homeId, path, writeVal);
         count++;
     }

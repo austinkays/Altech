@@ -86,7 +86,21 @@ async function _readBlob() {
         if (!blob || !blob.ciphertext) return null;
         let parsed = null;
         try { parsed = JSON.parse(blob.ciphertext); } catch { return null; }
-        if (_looksLikeAADEnvelope(parsed)) return null;
+        // Phase B: plaintext-stored docs get AAD-wrapped on push when the
+        // v2 vault is unlocked. If we see an envelope, decrypt it with the
+        // rentcastUsage identity. Previously this returned null, which made
+        // every read look like a missing blob and reset the counter to zero
+        // on every Smart Scan.
+        if (_looksLikeAADEnvelope(parsed)) {
+            if (typeof CryptoHelper === 'undefined' || !CryptoHelper.decryptForRow) return null;
+            const uid = (typeof window.Auth !== 'undefined' && window.Auth.uid) ? window.Auth.uid : null;
+            if (!uid) return null;
+            try {
+                return await CryptoHelper.decryptForRow(blob.ciphertext, {
+                    table: 'user_blobs', rowId: 'rentcastUsage', userId: uid,
+                });
+            } catch (_) { return null; }
+        }
         return parsed;
     } catch (_) { return null; }
 }
@@ -101,7 +115,26 @@ async function _appendOverageLog(entry) {
         const blob = await window.Sync.pullBlob('rentcast_overage_log');
         let log = [];
         if (blob && blob.ciphertext) {
-            try { const parsed = JSON.parse(blob.ciphertext); if (Array.isArray(parsed)) log = parsed; } catch (_) {}
+            try {
+                const parsed = JSON.parse(blob.ciphertext);
+                if (Array.isArray(parsed)) {
+                    log = parsed;
+                } else if (_looksLikeAADEnvelope(parsed)
+                    && typeof CryptoHelper !== 'undefined' && CryptoHelper.decryptForRow) {
+                    // Same Phase B wrap issue as rentcastUsage — decrypt the
+                    // envelope so the log keeps growing across writes rather
+                    // than being silently reset to a single entry every push.
+                    const uid = (typeof window.Auth !== 'undefined' && window.Auth.uid) ? window.Auth.uid : null;
+                    if (uid) {
+                        try {
+                            const decoded = await CryptoHelper.decryptForRow(blob.ciphertext, {
+                                table: 'user_blobs', rowId: 'rentcast_overage_log', userId: uid,
+                            });
+                            if (Array.isArray(decoded)) log = decoded;
+                        } catch (_) { /* keep log = [] */ }
+                    }
+                }
+            } catch (_) {}
         }
         log.push(entry);
         // Cap the log at the most recent 200 entries — protects against
