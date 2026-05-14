@@ -78,7 +78,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Test surface: 225/225 across intake-v2 + every exporter (contract, EZLynx XML, EZLynx import, EZLynx roundtrip, dec-import). Full project suite: 62/62 suites, 2354+ tests pass.
 
+### Added
+- **feat(intakev2): 🆕 New-draft button + Cmd+K palette entry** (May 14, 2026):
+  Topbar now has a 🆕 button between the bindability indicator and the rails toggle. Click → confirm modal with three exits:
+  - **Save as quote & start new** — runs `IntakeV2.saveAsQuote()` (current draft lands in the Intake v2 quote library, encrypted, cloud-synced), then resets the draft to the empty `defaultData()` shape.
+  - **Discard & start new** — destructive button styled with a warning tint so it can't be confused with the safer Save action. Resets without persisting.
+  - **Cancel** — closes the modal, no-op. This button gets initial focus so an accidental Enter doesn't blow away the draft.
+  Also reachable via Cmd+K → "Intake v2 — Start a new draft". The modal reuses the rentcast-overage modal shell + carries the same defensive `position: static; inset: auto; backdrop-filter: none; border-radius: 0;` resets on `.iv2-newdraft-foot` documented on `.iv2-smartfill-foot`.
+
 ### Changed
+- **fix(intakev2): stale "Vault locked — unlock to save" pill clears on unlock** (May 14, 2026):
+  - **Problem:** the topbar save-status pill latched onto "Vault locked — unlock to save" the first time a save was refused with `CRYPTO_LOCKED`, and only cleared on the next *successful* save. If the agent unlocked the vault via the modal but then sat without typing, the pill kept showing the lock warning even though saves would now go through.
+  - **Fix:** `renderTopbarStatus` now checks `CryptoHelper.isV2Unlocked()` at render time. If the stale `_lastSaveLocked` flag is set but the vault is unlocked, the flag is cleared, `_unlockPromptedThisSession` is reset, and a debounced save is rescheduled so the next paint flips the pill to "✓ Saved". `VaultUI` dispatches a new `vault:unlocked` CustomEvent on `window` after biometric / passphrase / recovery-key unlock; `intake-v2-layout.js` listens and triggers the renderTopbarStatus refresh so the pill updates even when the agent doesn't otherwise interact with the page after unlocking. Listener registration is idempotent across re-mounts.
+
 - **fix(intakev2): smart-fill applies dropdown values + Rentcast counter decrements** (May 14, 2026):
   Two pre-existing Smart Scan bugs surfaced while QA'ing the modal-layout fix above. Both fixed in this PR.
 

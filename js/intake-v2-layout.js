@@ -312,7 +312,24 @@ function renderTopbarStatus() {
     // read "Saved" all the time, which trained agents to ignore it.
     const status = document.getElementById('iv2SaveStatus');
     if (status) {
-        if (window.IntakeV2._lastSaveLocked) {
+        // Vault may have been unlocked since the last save failed — check the
+        // live state. Without this check, the pill would stay red until the
+        // next keystroke triggered a fresh save, even though the agent
+        // already entered their passphrase.
+        const vaultActuallyLocked = window.IntakeV2._lastSaveLocked
+            && !(typeof CryptoHelper !== 'undefined' && CryptoHelper.isV2Unlocked && CryptoHelper.isV2Unlocked());
+        if (window.IntakeV2._lastSaveLocked && !vaultActuallyLocked) {
+            // Stale flag — vault is unlocked now. Clear the failed-save
+            // state and retry the save so the pill flips to "✓ Saved"
+            // instead of "Save failed" on the next render.
+            window.IntakeV2._lastSaveLocked = false;
+            window.IntakeV2._lastSaveOk = true;
+            window.IntakeV2._unlockPromptedThisSession = false;
+            if (typeof window.IntakeV2.scheduleSave === 'function') {
+                try { window.IntakeV2.scheduleSave(); } catch (_) {}
+            }
+        }
+        if (vaultActuallyLocked) {
             status.textContent = 'Vault locked — unlock to save';
             status.className = 'iv2-save-status is-error';
             status.title = 'Your encrypted vault is locked. Saves are refused until you enter your passphrase. Click the vault icon in the top right to unlock.';
@@ -693,6 +710,15 @@ function wireTopbarHandlers() {
         }, 50);
     });
 
+    // New-draft button — opens a confirm modal with three exits
+    // (save as quote / discard / cancel). See IntakeV2.confirmNewDraft.
+    const newDraft = document.getElementById('iv2NewDraftBtn');
+    if (newDraft) newDraft.addEventListener('click', () => {
+        if (typeof window.IntakeV2.confirmNewDraft === 'function') {
+            window.IntakeV2.confirmNewDraft();
+        }
+    });
+
     // Help button
     const help = document.getElementById('iv2HelpBtn');
     if (help) help.addEventListener('click', () => {
@@ -774,6 +800,18 @@ window.IntakeV2.onBoot(function () {
     if (window.IntakeV2Bindability) {
         this.bindability = window.IntakeV2Bindability.computeBindability({ data: this.data });
         renderTopbarStatus();
+    }
+
+    // Refresh the save-status pill whenever the vault gets unlocked. Without
+    // this, the pill would remain stuck on "Vault locked — unlock to save"
+    // after a successful unlock until the agent's next keystroke fired a save.
+    // Guarded against duplicate registration across re-mounts of the intake-v2
+    // plugin (onBoot runs every time the user navigates into the tool).
+    if (!window.IntakeV2._vaultUnlockListenerBound) {
+        window.IntakeV2._vaultUnlockListenerBound = true;
+        window.addEventListener('vault:unlocked', () => {
+            try { renderTopbarStatus(); } catch (_) {}
+        });
     }
 });
 

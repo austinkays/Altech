@@ -196,6 +196,100 @@
             }
         },
 
+        // ─── New draft (clear) ──────────────────────────────────────────────
+        // Resets the in-memory + persisted draft to the empty defaults,
+        // then re-applies the blank shape to the DOM and lets every
+        // collection renderer redraw. Used by the topbar 🆕 button + the
+        // "Intake v2 — Start a new draft" command-palette entry. Callers
+        // SHOULD call `confirmNewDraft()` first so the agent gets a chance
+        // to save the current state as a quote — this function itself is
+        // unconditional.
+        async _resetDraft() {
+            this.data = this.defaultData();
+            this._lastSaveOk = true;
+            this._lastSaveLocked = false;
+            this._lastSaveAt = 0;
+            this._unlockPromptedThisSession = false;
+            this.lastEntries = [];
+            try { await this.save({ silent: true }); } catch (_) {}
+            // Re-apply the now-empty data to every form input + collection
+            // renderer. applyData() also fires requestRerender() so the
+            // operators/homes/autos/boats/rvs cards rebuild as empty lists.
+            this.applyData();
+            if (this._layout && typeof this._layout.renderTopbarStatus === 'function') {
+                this._layout.renderTopbarStatus();
+            }
+            if (this._layout && typeof this._layout.renderJumpBadges === 'function') {
+                this._layout.renderJumpBadges();
+            }
+            if (window.ActivityLog) {
+                window.ActivityLog.add({
+                    type: 'save', area: 'intake-v2', ok: true,
+                    message: 'Started a new intake v2 draft',
+                });
+            }
+        },
+
+        // Opens the confirm modal. Three exits:
+        //   • "Save as quote & start new" → saveAsQuote() then _resetDraft()
+        //   • "Discard & start new"       → _resetDraft() (no save)
+        //   • "Cancel"                    → close modal, no-op
+        // The modal is created on first call and reused.
+        confirmNewDraft() {
+            const self = this;
+            let overlay = document.getElementById('iv2NewDraftOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'iv2NewDraftOverlay';
+                overlay.className = 'iv2-newdraft-overlay';
+                overlay.hidden = true;
+                overlay.innerHTML = `
+                    <div class="iv2-newdraft-modal" role="dialog" aria-modal="true" aria-labelledby="iv2NewDraftTitle">
+                        <header class="iv2-newdraft-head">
+                            <h3 id="iv2NewDraftTitle">🆕 Start a new draft</h3>
+                            <button type="button" class="iv2-newdraft-close" aria-label="Close">✕</button>
+                        </header>
+                        <div class="iv2-newdraft-body">
+                            <p>This will clear every field in the current intake.</p>
+                            <p>Do you want to save what you have as a quote first?</p>
+                        </div>
+                        <div class="iv2-newdraft-foot">
+                            <button type="button" class="iv2-newdraft-cancel">Cancel</button>
+                            <button type="button" class="iv2-newdraft-discard">Discard &amp; start new</button>
+                            <button type="button" class="iv2-newdraft-save">Save as quote &amp; start new</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                const close = () => { overlay.hidden = true; document.body.classList.remove('iv2-modal-open'); };
+                overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+                overlay.querySelector('.iv2-newdraft-close').addEventListener('click', close);
+                overlay.querySelector('.iv2-newdraft-cancel').addEventListener('click', close);
+                overlay.querySelector('.iv2-newdraft-discard').addEventListener('click', async () => {
+                    close();
+                    await self._resetDraft();
+                    if (window.App && window.App.toast) window.App.toast('Started a new draft', { type: 'success' });
+                });
+                overlay.querySelector('.iv2-newdraft-save').addEventListener('click', async () => {
+                    close();
+                    if (typeof self.saveAsQuote === 'function') {
+                        try { await self.saveAsQuote(); } catch (_) {}
+                    }
+                    await self._resetDraft();
+                });
+                document.addEventListener('keydown', (e) => {
+                    if (overlay.hidden) return;
+                    if (e.key === 'Escape') { e.preventDefault(); close(); }
+                });
+            }
+            overlay.hidden = false;
+            document.body.classList.add('iv2-modal-open');
+            // Focus the safest button (Cancel) so an inadvertent Enter doesn't
+            // clear the draft.
+            const cancelBtn = overlay.querySelector('.iv2-newdraft-cancel');
+            if (cancelBtn) requestAnimationFrame(() => { try { cancelBtn.focus(); } catch (_) {} });
+        },
+
         async load() {
             try {
                 if (!this.STORAGE_KEY) return false;
