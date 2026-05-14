@@ -23,9 +23,15 @@ const escAttr = (s) => (window.Utils && window.Utils.escapeAttr) ? window.Utils.
 function renderField(item, collKey, f) {
     // Subsection heading: spans the full grid, gives the agent a visual
     // anchor between groups of fields (e.g. "Coverage Selections" /
-    // "Lien Holder" inside an auto card).
+    // "Lien Holder" inside an auto card). Pre-fix the header was rendered
+    // without the `iv2-full-only` class even when its `mode === 'full'`,
+    // so in Quick mode users saw orphan headings (ENDORSEMENTS, MORTGAGE /
+    // LIEN HOLDER, NOTES) with nothing underneath — the actual checkboxes
+    // + text inputs were hidden by the full-only mode toggle. Respect the
+    // declared mode so the header rides along with its content.
     if (f.type === 'header') {
-        return `<div class="iv2-field" style="grid-column: 1 / -1; margin-top:6px; margin-bottom:-2px;">
+        const fullClass = f.mode === 'full' ? ' iv2-full-only' : '';
+        return `<div class="iv2-field${fullClass}" style="grid-column: 1 / -1; margin-top:6px; margin-bottom:-2px;">
             <h5 style="margin:0; font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; font-weight:600; border-top:1px solid var(--border); padding-top:8px;">${esc(f.label)}</h5>
         </div>`;
     }

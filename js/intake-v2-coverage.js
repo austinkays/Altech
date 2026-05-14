@@ -86,12 +86,29 @@ function renderCoverage() {
     const html = CLUSTERS.map(c => {
         const items = c.paths.map(p => fields.find(f => f.path === p)).filter(Boolean);
         const grid  = items.map(renderScalarField).join('');
-        return `<div class="iv2-field-cluster">
+        // If EVERY field in the cluster is `mode: 'full'`, the cluster
+        // body is entirely hidden in Quick mode. Pre-fix the cluster
+        // header still rendered → user saw "PRIOR HOME" / "PRIOR AUTO" /
+        // etc. with no inputs beneath. Tag the whole cluster `iv2-full-only`
+        // so it rides with its content.
+        const allFull = items.length > 0 && items.every(f => f.mode === 'full');
+        const clusterClass = allFull ? 'iv2-field-cluster iv2-full-only' : 'iv2-field-cluster';
+        return `<div class="${clusterClass}">
             <h4 style="margin:8px 0 6px; font-size:12px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em;">${esc(c.title)}</h4>
             <div class="iv2-field-grid">${grid}</div>
         </div>`;
     }).join('');
-    root.innerHTML = html;
+    // Append a Quick-mode hint pointing to the Full toggle. Hidden in
+    // Full mode by CSS (`.iv2-full-mode-hint` rule). Without this hint,
+    // an agent in Quick mode sees Continuous Coverage + Discounts only,
+    // and has no obvious way to discover that Prior Home / Prior Auto /
+    // Prior Boat / Prior RV exist behind the topbar Quick/Full pill.
+    const _hint = `
+        <button type="button" class="iv2-full-mode-hint" data-mode-set="full" title="Switch to Full mode to enter Prior Insurance carriers, mortgage info, endorsements, and notes.">
+            <span aria-hidden="true">›</span>
+            <span>More fields in Full mode</span>
+        </button>`;
+    root.innerHTML = html + _hint;
 
     // Repaint values
     for (const p of CLUSTERS.flatMap(c => c.paths)) {

@@ -806,6 +806,31 @@
 
 /* Quick mode hides .iv2-full-only fields */
 .iv2-workspace[data-mode="quick"] .iv2-full-only { display: none !important; }
+/* "More fields in Full mode" hint — only visible in Quick mode. Click
+ * scope wired in intake-v2-layout.js to flip the mode toggle, since
+ * agents who don't notice the small Quick/Full pill in the topbar lose
+ * access to endorsements / mortgage / prior insurance / notes. */
+.iv2-full-mode-hint {
+    display: none;
+}
+.iv2-workspace[data-mode="quick"] .iv2-full-mode-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+}
+.iv2-full-mode-hint:hover {
+    background: var(--bg-input);
+    color: var(--text);
+    border-style: solid;
+}
 /* Conditional reveal — a field tagged `iv2-revealed` by the renderer
  * (e.g. "Months Continuous" once Continuous Coverage = Yes) overrides
  * the mode-based hide so the agent sees the follow-up regardless of
