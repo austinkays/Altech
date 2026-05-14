@@ -537,19 +537,29 @@ function _renderReviewRow(path, value, sourceLabel) {
 }
 
 let _modalEl = null;
+// Tracks the element that opened the modal so close can restore
+// keyboard focus back to it (the Smart Scan button). Without this,
+// closing the modal lands focus on <body> — keyboard users have to
+// hunt for where they were.
+let _modalTrigger = null;
+// Tab-trap selector — anything focusable inside the modal. Used to
+// wrap Tab/Shift+Tab from the last/first element.
+const _TAB_TRAP_SELECTOR = 'button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 function _modal() {
     if (_modalEl) return _modalEl;
     const el = document.createElement('div');
     el.className = 'iv2-smartfill-overlay';
-    el.setAttribute('role', 'dialog');
-    el.setAttribute('aria-modal', 'true');
-    el.setAttribute('aria-label', 'Property data review');
     el.hidden = true;
+    // The modal itself is the dialog — aria-modal=true on the
+    // overlay backdrop would confuse screen readers because the
+    // overlay isn't really the focusable container. Move the
+    // semantics onto the inner panel.
     el.innerHTML = `
-        <div class="iv2-smartfill-modal" role="document">
+        <div class="iv2-smartfill-modal" role="dialog" aria-modal="true" aria-labelledby="iv2-smartfill-title">
             <header class="iv2-smartfill-head">
                 <div>
-                    <h3>✨ Smart Scan results</h3>
+                    <h3 id="iv2-smartfill-title">✨ Smart Scan results</h3>
                     <p class="iv2-smartfill-sources"></p>
                 </div>
                 <button type="button" class="iv2-smartfill-close" aria-label="Close">✕</button>
@@ -564,21 +574,86 @@ function _modal() {
     `;
     document.body.appendChild(el);
     _modalEl = el;
-    // Close on overlay click (outside the modal box) + Esc.
+
+    // Backdrop click closes — only when the click lands DIRECTLY on
+    // the overlay (not bubbled up from a row checkbox or a button
+    // inside the panel).
     el.addEventListener('click', (e) => { if (e.target === el) _closeModal(); });
+
+    // Stop wheel events that hit the overlay backdrop from chaining
+    // through to the page below. `overscroll-behavior: contain` on
+    // .iv2-smartfill-body handles the inside-scroll case; this
+    // belt-and-suspenders preventDefault catches the backdrop case
+    // on browsers that don't honor passive-listener overscroll.
+    el.addEventListener('wheel', (e) => {
+        if (e.target === el) e.preventDefault();
+    }, { passive: false });
+
+    // Single global keydown handler — only acts when the modal is
+    // visible. Trap Tab inside the panel; Esc closes.
     document.addEventListener('keydown', (e) => {
         if (!_modalEl || _modalEl.hidden) return;
-        if (e.key === 'Escape') _closeModal();
+        if (e.key === 'Escape') { e.preventDefault(); _closeModal(); return; }
+        if (e.key === 'Tab') _trapTab(e);
     });
+
     el.querySelector('.iv2-smartfill-close').addEventListener('click', _closeModal);
     el.querySelector('.iv2-smartfill-cancel').addEventListener('click', _closeModal);
     return el;
+}
+
+// Tab/Shift+Tab inside the modal wraps to the opposite end instead
+// of escaping to the underlying page. Each call queries the current
+// focusable set fresh — the modal body is rebuilt on every open, so
+// caching a static list would go stale.
+function _trapTab(e) {
+    if (!_modalEl) return;
+    const panel = _modalEl.querySelector('.iv2-smartfill-modal');
+    if (!panel) return;
+    const focusable = Array.from(panel.querySelectorAll(_TAB_TRAP_SELECTOR))
+        .filter(el => !el.hidden && el.offsetParent !== null);
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && active === first) {
+        e.preventDefault();
+        last.focus();
+    } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+    }
+}
+
+function _openModalShell(triggerEl) {
+    const el = _modal();
+    _modalTrigger = (triggerEl instanceof Element) ? triggerEl : null;
+    el.hidden = false;
+    // Scroll-lock the body so wheel events behind the overlay don't
+    // move the page. Pair with the CSS rule `body.iv2-modal-open
+    // { overflow: hidden }`. Multiple modal types could open
+    // concurrently in theory (overage modal + smart-fill review),
+    // so this is a class-add rather than a direct style write —
+    // each modal adds/removes its own and the body stays locked as
+    // long as any of them has it on.
+    document.body.classList.add('iv2-modal-open');
 }
 
 function _closeModal() {
     if (!_modalEl) return;
     _modalEl.hidden = true;
     _modalEl.removeAttribute('data-home-id');
+    document.body.classList.remove('iv2-modal-open');
+    // Restore keyboard focus to the element that triggered the modal
+    // (the Smart Scan button). Guarded — if the trigger element was
+    // removed from the DOM while the modal was open, fall through
+    // without a fallback (better than focusing <body> from inside
+    // the modal's keydown handler and causing a re-trap).
+    const trigger = _modalTrigger;
+    _modalTrigger = null;
+    if (trigger && document.contains(trigger) && typeof trigger.focus === 'function') {
+        try { trigger.focus({ preventScroll: false }); } catch (_) { trigger.focus(); }
+    }
 }
 
 // Update the "Apply N selected" button's count to reflect current
@@ -732,8 +807,22 @@ function _showReviewModal(homeId, payload) {
     });
 
     el.setAttribute('data-home-id', homeId);
-    el.hidden = false;
+    // _openModalShell handles `hidden = false`, body scroll-lock,
+    // and records the trigger element so close() can restore focus.
+    // Pass the Smart Scan button that fired this open so keyboard
+    // users land back on it when they hit Esc.
+    const trigger = document.activeElement;
+    _openModalShell(trigger);
     _updateApplyCount();
+    // Initial focus — first focusable element inside the panel (the
+    // close button, since it's first in source order). Defers via
+    // requestAnimationFrame so the browser settles the freshly-shown
+    // dialog before we move focus.
+    requestAnimationFrame(() => {
+        if (!_modalEl || _modalEl.hidden) return;
+        const closeBtn = _modalEl.querySelector('.iv2-smartfill-close');
+        if (closeBtn) closeBtn.focus();
+    });
 }
 
 function _esc(s) {
