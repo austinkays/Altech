@@ -108,6 +108,20 @@ window.SecureStorage = (() => {
     // converge once v2 unlocks. P0 fix May 11 2026 — previously plaintext
     // could persist on disk forever if the user booted with a locked vault.
     const _pendingMigration = new Set();
+    // Keys whose ciphertext is too large for localStorage (fat cgl_cache is
+    // the usual culprit). The retry loop fires on every setItemSync; without
+    // a backoff, a verify-queue drain (~25 writes) spams the console with
+    // QuotaExceededError 25 times for the same key. Once blocked, the key
+    // stays in _pendingMigration (so a manual migrate() can still try) but
+    // is skipped by the automatic retry sweep until the next page load.
+    const _quotaBlocked = new Set();
+
+    function _isQuotaError(e) {
+        if (!e) return false;
+        return e.name === 'QuotaExceededError' ||
+               e.code === 22 || e.code === 1014 ||
+               /quota/i.test(String(e.message || e));
+    }
 
     // Magic prefix that marks a SecureStorage-managed ciphertext on disk.
     // Using an explicit prefix instead of a base64-shape heuristic eliminates
@@ -176,6 +190,10 @@ window.SecureStorage = (() => {
             // We call localStorage.* directly here because the proxy is not
             // installed yet (it goes in at the END of init(), once the cache
             // is populated). Using bare `localStorage.*` avoids needing _ls().
+            // Decrypt failures are collected and emitted as a single summary
+            // line — when the vault is locked, every sensitive key fails the
+            // same way and N identical warnings is noise, not information.
+            const _decryptFailed = [];
             for (const key of SENSITIVE) {
                 const raw = localStorage.getItem(key);
                 if (raw == null) { _cache.set(key, null); continue; }
@@ -189,7 +207,7 @@ window.SecureStorage = (() => {
                         // different key). Don't queue for re-encrypt — we don't
                         // have the plaintext to write back. The user must unlock
                         // and reload for the cache to populate.
-                        console.warn('[SecureStorage] decrypt failed at init for', key, '— vault locked or key mismatch');
+                        _decryptFailed.push(key);
                     }
                 } else {
                     // Either legacy ciphertext (no envelope prefix, pre-v1 format)
@@ -229,6 +247,11 @@ window.SecureStorage = (() => {
                             // shrink the payload or hit quota again — either way,
                             // the cache + proxy are alive for every other key).
                             _pendingMigration.add(key);
+                            if (_isQuotaError(e)) {
+                                // Block the auto-retry sweep — it'll just fail
+                                // again on every subsequent setItemSync.
+                                _quotaBlocked.add(key);
+                            }
                             console.warn('[SecureStorage] migration write deferred for', key, '— storage quota exceeded; runtime reads use the cache');
                         }
                     } else {
@@ -236,6 +259,11 @@ window.SecureStorage = (() => {
                         console.warn('[SecureStorage] migration encrypt deferred for', key, '— will retry on next write');
                     }
                 }
+            }
+            if (_decryptFailed.length) {
+                console.warn('[SecureStorage]', _decryptFailed.length,
+                    'key(s) could not be decrypted at init — vault locked or key mismatch:',
+                    _decryptFailed.join(', '));
             }
             // Install the transparent localStorage proxy AFTER the cache is
             // populated. Any plugin code that does `localStorage.getItem(K)` for
@@ -371,14 +399,31 @@ window.SecureStorage = (() => {
         if (_pendingMigration.size === 0) return;
         if (typeof CryptoHelper === 'undefined' || !CryptoHelper.encrypt) return;
         for (const key of Array.from(_pendingMigration)) {
+            // Quota-blocked keys won't fit on disk — retrying just spams the
+            // console with identical errors. The cache still serves runtime
+            // reads, so the practical impact is "no at-rest ciphertext for
+            // this one oversized key", which the user has already been
+            // toasted about by the original quota error.
+            if (_quotaBlocked.has(key)) continue;
             const snapshot = _cache.get(key);
             if (snapshot == null) { _pendingMigration.delete(key); continue; }
             _encryptToEnvelope(snapshot)
                 .then(env => {
                     if (!env) return; // still failing — leave queued
                     if (_cache.get(key) !== snapshot) return; // newer write — let its own flush win
-                    _ls().setItem(key, env);
-                    _pendingMigration.delete(key);
+                    try {
+                        _ls().setItem(key, env);
+                        _pendingMigration.delete(key);
+                    } catch (e) {
+                        if (_isQuotaError(e)) {
+                            _quotaBlocked.add(key);
+                            console.warn('[SecureStorage] quota exceeded for', key,
+                                '— retries disabled for this session (cache remains active)');
+                        } else {
+                            console.warn('[SecureStorage] retry write failed for', key,
+                                '—', (e && e.message) || e);
+                        }
+                    }
                 })
                 .catch(e => console.warn('[SecureStorage] retry encrypt failed for', key, '—', (e && e.message) || e));
         }

@@ -752,11 +752,16 @@ const ComplianceDashboard = {
 
         // ── Load annotations (disk → localStorage → IDB merge) ──
         try {
-            // Step 1: ALWAYS load from disk first — it's the most reliable source
+            // Step 1: ALWAYS load from disk first — it's the most reliable source.
+            // The /local/cgl-state endpoint only exists on the dev node server.
+            // On hosted Vercel the route 404s OR the SPA fallback serves index.html
+            // with status 200 — content-type is the only reliable signal that the
+            // body is actually JSON we can parse.
             try {
                 console.log('[CGL] Loading annotations from disk...');
                 const res = await fetch('/local/cgl-state');
-                if (res.ok) {
+                const ctype = res.headers.get('content-type') || '';
+                if (res.ok && ctype.includes('application/json')) {
                     const data = await res.json();
                     if (data.verifiedPolicies || data.dismissedPolicies || data.policyNotes) {
                         this.verifiedPolicies = data.verifiedPolicies || {};
@@ -772,6 +777,7 @@ const ComplianceDashboard = {
                             Object.keys(this.policyNotes).length);
                     }
                 }
+                // No-op on non-JSON / non-ok — falls through to localStorage + IDB merge.
             } catch (e) {
                 console.warn('[CGL] Disk annotation load failed:', e);
             }
