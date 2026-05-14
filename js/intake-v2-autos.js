@@ -93,7 +93,19 @@ function renderField(item, collKey, f) {
 function defaultTitle(collKey, item) {
     if (collKey === 'autos') return `${item.year || ''} ${item.make || ''} ${item.model || ''}`.trim() || 'New Auto';
     if (collKey === 'boats') return `${item.year || ''} ${item.make || ''} ${item.model || ''} ${item.length ? '(' + item.length + ' ft)' : ''}`.trim() || 'New Boat';
-    if (collKey === 'rvs')   return `${item.year || ''} ${item.make || ''} ${item.model || ''} ${item.class ? '· ' + item.class : ''}`.trim() || 'New RV';
+    if (collKey === 'rvs') {
+        // Translate the camelCase `class` field to a display label so the
+        // card title says "Bus Conversion" instead of "busConversion".
+        // Stored value stays unchanged; same map as the chip row in
+        // intake-v2-rvs.js (kept here to avoid a cross-module require).
+        const RV_CLASS_LABELS = {
+            A: 'Class A', B: 'Class B', C: 'Class C',
+            travelTrailer: 'Travel Trailer', fifthWheel: '5th Wheel',
+            toyHauler: 'Toy Hauler', popUp: 'Pop-Up', busConversion: 'Bus Conversion',
+        };
+        const classLabel = item.class ? (RV_CLASS_LABELS[item.class] || item.class) : '';
+        return `${item.year || ''} ${item.make || ''} ${item.model || ''} ${classLabel ? '· ' + classLabel : ''}`.trim() || 'New RV';
+    }
     if (collKey === 'homes') return item.address || 'New Home';
     return 'New';
 }
