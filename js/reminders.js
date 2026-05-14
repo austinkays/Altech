@@ -476,6 +476,8 @@ window.Reminders = (() => {
             if (diff <= 7) return `Due ${_dayName(task.dueDate)}`;
             return _formatDate(task.dueDate);
         case 'overdue':
+            // 'once' tasks never reset — don't promise a midnight refresh.
+            if (task.frequency === 'once') return 'Past due';
             if (task.frequency === 'weekly' || task.frequency === 'biweekly')
                 return 'Missed — resets Monday';
             return 'Missed — resets tonight at midnight';
