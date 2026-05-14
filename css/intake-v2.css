@@ -49,17 +49,28 @@
 }
 .iv2-topbar-spacer { flex: 1; }
 
-/* Sticky rails — pin the left jump nav (Quick Start at top) and the right
- * conversation rail (Talk Track at top) while the agent scrolls the main
- * column. They share `top: 72px` so they line up just below the iv2-topbar
- * (which has `top: 0`). The rails carry their own z-index + solid background
- * + backdrop-filter so the underlying section cards can't bleed through them
- * during scroll. */
+/* Rails — `position: fixed` against the viewport so they ALWAYS stay
+ * pinned, regardless of any ancestor's overflow / transform / contain
+ * shenanigans. Three prior attempts at `position: sticky` (PR #115, #122,
+ * #123) each fixed a real ancestor bug but the rails STILL didn't stick
+ * for the user — turns out the `body { overflow-x: hidden }` plus the
+ * inner `.app-content { overflow-y: auto }` interact in a way Chromium
+ * doesn't reliably honour for nested sticky. Fixed positioning sidesteps
+ * the entire dependency chain.
+ *
+ * The grid still reserves the 200px / 280px columns (`grid-area: left`
+ * and `right` are still set below), so the main column stays at the
+ * same horizontal position — the fixed rails simply OVERLAY those
+ * reserved cells. Below 1100px the rails hide via the existing media
+ * query and the form column gets the full width.
+ *
+ * Top offset is `--app-header-height + iv2-topbar-height + breathing
+ * room` so the rails clear the sticky app header (56px) plus the
+ * intake topbar (~50px including borders) plus an 8px gap. */
 .iv2-left-rail, .iv2-right-rail {
-    align-self: start;
-    position: sticky;
-    top: 72px;
-    z-index: 10;
+    position: fixed;
+    top: var(--iv2-rail-top, 120px);
+    z-index: 30;
     background: var(--bg-card);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
@@ -67,11 +78,25 @@
     border-radius: 10px;
     padding: 10px;
     font-size: 13px;
-    max-height: calc(100vh - 100px);
+    max-height: calc(100dvh - 140px);
     overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
-.iv2-left-rail  { grid-area: left;  }
-.iv2-right-rail { grid-area: right; }
+/* Left rail sits to the right of the app sidebar; right rail hugs the
+ * viewport's right edge. Both widths match the original grid columns. */
+.iv2-left-rail {
+    grid-area: left; /* keeps the grid cell reserved so .iv2-main doesn't widen */
+    left: calc(var(--sidebar-width, 256px) + 16px);
+    width: 200px;
+}
+.iv2-right-rail {
+    grid-area: right;
+    right: 16px;
+    width: 280px;
+}
+body.sidebar-collapsed .iv2-left-rail {
+    left: calc(var(--sidebar-collapsed-width, 64px) + 16px);
+}
 
 .iv2-main {
     grid-area: main;
