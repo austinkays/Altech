@@ -13,7 +13,7 @@
 // would 404 and break the atomic cache.addAll() install.
 // Bumped to v16 (2026-04-28) to invalidate cached PWA icons after the
 // mountain-logo swap — old installs were still serving the yellow Tauri icon.
-const CACHE_VERSION = 'altech-v92';
+const CACHE_VERSION = 'altech-v93';
 const APP_SHELL = [
     '/',
     '/index.html',

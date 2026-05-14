@@ -12,30 +12,36 @@
 const esc     = (s) => (window.Utils && window.Utils.escapeHTML) ? window.Utils.escapeHTML(String(s ?? '')) : String(s ?? '');
 const escAttr = (s) => (window.Utils && window.Utils.escapeAttr) ? window.Utils.escapeAttr(String(s ?? '')) : String(s ?? '').replace(/"/g, '&quot;');
 
+// Merged carrier readiness block: each pill IS the <details> summary, so
+// agents see the green/red chip + missing count at a glance AND can click
+// the pill itself to expand the missing-field list inline. Pre-fix the
+// page rendered the pill row AND a separate <details> list for each
+// non-ready carrier — duplicate UI for the same data.
 function carriersBlock(bind) {
     if (!bind) return '<em style="color:var(--text-secondary)">Carrier readiness will appear once you start filling fields.</em>';
-    return `<div class="iv2-bindability" style="display:flex; flex-wrap:wrap; gap:8px;">
-        ${Object.entries(bind).map(([k, v]) => `
-            <span class="iv2-carrier ${v.ok ? 'is-ok' : 'is-miss'}" data-review-carrier="${escAttr(k)}">
+    return `<div class="iv2-bindability iv2-bindability-merged">
+        ${Object.entries(bind).map(([k, v]) => {
+            const pill = `<span class="iv2-carrier ${v.ok ? 'is-ok' : 'is-miss'}" data-review-carrier="${escAttr(k)}">
                 <span class="iv2-carrier-mark"></span>${esc(v.label)} ${v.ok ? '✓ ready' : `· ${v.missing.length} missing`}
-            </span>
-        `).join('')}
+            </span>`;
+            // Ready carriers render as a plain pill (no expand affordance —
+            // nothing to expand). Missing carriers wrap the same pill in a
+            // <details> so clicking shows the list of fields below it.
+            if (v.ok || !v.missing.length) {
+                return `<div class="iv2-carrier-shell">${pill}</div>`;
+            }
+            const list = v.missing.slice(0, 20).map(m =>
+                `<li style="font-size:13px;"><a href="#" data-jump-path="${escAttr(m.path)}" style="color:var(--apple-blue); text-decoration:none;">${esc(m.label)}${m.itemLabel ? ` — ${esc(m.itemLabel)}` : ''}</a></li>`
+            ).join('');
+            const more = v.missing.length > 20
+                ? `<li style="font-size:12px; color:var(--text-secondary)">…and ${v.missing.length - 20} more</li>`
+                : '';
+            return `<details class="iv2-carrier-details">
+                <summary>${pill}<span class="iv2-carrier-chev" aria-hidden="true">▾</span></summary>
+                <ul style="margin:6px 0 6px 22px; padding:0;">${list}${more}</ul>
+            </details>`;
+        }).join('')}
     </div>`;
-}
-
-function missingDetail(bind) {
-    if (!bind) return '';
-    const rows = [];
-    for (const [carrier, v] of Object.entries(bind)) {
-        if (v.ok || !v.missing.length) continue;
-        rows.push(`<details style="margin:6px 0;"><summary style="cursor:pointer; font-weight:600;">${esc(v.label)} (${v.missing.length} missing)</summary>
-            <ul style="margin:6px 0 6px 18px; padding:0;">
-                ${v.missing.slice(0, 20).map(m => `<li style="font-size:13px;"><a href="#" data-jump-path="${escAttr(m.path)}" style="color:var(--apple-blue); text-decoration:none;">${esc(m.label)}${m.itemLabel ? ` — ${esc(m.itemLabel)}` : ''}</a></li>`).join('')}
-                ${v.missing.length > 20 ? `<li style="font-size:12px; color:var(--text-secondary)">…and ${v.missing.length - 20} more</li>` : ''}
-            </ul>
-        </details>`);
-    }
-    return rows.join('');
 }
 
 function deferredBlock(data) {
@@ -52,16 +58,20 @@ function deferredBlock(data) {
 function exportButtons(data) {
     const hasHomeAuto = (data.homes && data.homes.length) || (data.autos && data.autos.length);
     const dimAttr = hasHomeAuto ? '' : 'disabled title="Add a home or auto to enable HawkSoft / EZLynx exports"';
-    // Two PDF buttons: Summary (at-a-glance underwriting) and Fact Finder
-    // (EZLynx-app-order for transcription). Agents pick whichever workflow
-    // they're in. Both produce distinct downloads so they can be kept
-    // side-by-side without overwriting.
-    return `<div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;">
-        <button type="button" class="iv2-add-btn" data-export="pdf-summary" title="Underwriting snapshot + dense detail dossier">📄 Export PDF Summary</button>
-        <button type="button" class="iv2-add-btn" data-export="pdf-factfinder" title="EZLynx Personal Lines app order — for transcription">📋 Export PDF Fact Finder</button>
-        <button type="button" class="iv2-add-btn" data-export="cmsmtf" ${dimAttr}>📤 HawkSoft CMSMTF (home/auto)</button>
-        <button type="button" class="iv2-add-btn" data-export="ezlynx" ${dimAttr}>⚡ EZLynx XML (home/auto)</button>
-        <button type="button" class="iv2-add-btn is-ghost" data-export="save-quote">💾 Save as quote</button>
+    // Save as Quote is the most common end-of-call action, so it leads
+    // visually: filled primary button on its own row. Export utilities
+    // (PDF / CMSMTF / EZLynx) follow in a secondary row, all rendered as
+    // outlined `is-ghost` buttons so the primary CTA isn't competing.
+    return `<div class="iv2-review-actions" style="margin-top:14px;">
+        <div class="iv2-review-primary">
+            <button type="button" class="iv2-add-btn iv2-cta-primary" data-export="save-quote" title="Save this intake as a draft quote so you can pick it back up later">💾 Save as Quote</button>
+        </div>
+        <div class="iv2-review-secondary" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; padding-top:10px; border-top:1px solid var(--border);">
+            <button type="button" class="iv2-add-btn is-ghost" data-export="pdf-summary" title="Underwriting snapshot + dense detail dossier">📄 Export PDF Summary</button>
+            <button type="button" class="iv2-add-btn is-ghost" data-export="pdf-factfinder" title="EZLynx Personal Lines app order — for transcription">📋 Export PDF Fact Finder</button>
+            <button type="button" class="iv2-add-btn is-ghost" data-export="cmsmtf" ${dimAttr}>📤 HawkSoft CMSMTF (home/auto)</button>
+            <button type="button" class="iv2-add-btn is-ghost" data-export="ezlynx" ${dimAttr}>⚡ EZLynx XML (home/auto)</button>
+        </div>
     </div>
     <div style="font-size:11px; color:var(--text-secondary); margin-top:6px">Boats and RVs export to PDF only — HawkSoft and EZLynx personal lines do not have native boat/RV raters.</div>`;
 }
@@ -104,7 +114,6 @@ function render() {
     dyn.innerHTML = `
         <h4 style="margin:4px 0; color:var(--text-secondary); font-size:12px; text-transform:uppercase; letter-spacing:0.05em;">Carrier readiness</h4>
         ${carriersBlock(bind)}
-        ${missingDetail(bind)}
         ${deferredBlock(data)}
         ${exportButtons(data)}
         <div class="iv2-status-legend" style="margin-top:14px;">

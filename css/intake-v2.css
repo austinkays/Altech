@@ -135,6 +135,56 @@ body.sidebar-collapsed .iv2-left-rail {
     font-size: 12px;
     color: var(--text-secondary);
 }
+/* Merged variant on the Review section: each pill is either a plain shell
+ * (carrier is ready) or a <details>/<summary> wrapper (carrier has missing
+ * fields). Clicking the pill expands the missing list inline beneath it. */
+.iv2-bindability-merged {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+}
+.iv2-carrier-shell,
+.iv2-carrier-details {
+    display: inline-block;
+    margin: 0;
+}
+.iv2-carrier-details > summary {
+    list-style: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+.iv2-carrier-details > summary::-webkit-details-marker { display: none; }
+.iv2-carrier-chev {
+    display: inline-block;
+    font-size: 9px;
+    transition: transform 0.15s ease;
+    color: var(--text-secondary);
+}
+.iv2-carrier-details[open] > summary .iv2-carrier-chev {
+    transform: rotate(180deg);
+}
+.iv2-carrier-details[open] {
+    display: block;
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* Review section action group — Save as Quote sits as the primary
+ * filled CTA above a thin divider, with the export utilities (PDF /
+ * CMSMTF / EZLynx) grouped as outlined secondary buttons below it. */
+.iv2-review-primary .iv2-cta-primary {
+    font-size: 15px;
+    padding: 10px 22px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 4px 10px rgba(0, 122, 255, 0.18);
+}
 .iv2-bindability .iv2-carrier {
     display: inline-flex;
     align-items: center;
@@ -459,6 +509,51 @@ body.sidebar-collapsed .iv2-left-rail {
     margin: 0;
 }
 
+/* VIN auto-decode loading + error states. The wrapper gets
+ * data-iv2-decoding="true" while the NHTSA fetch is in flight; CSS
+ * paints a small spinner on the right edge of the input. On 404 /
+ * timeout / no-results, data-iv2-decode-error="true" repurposes the
+ * existing field-defer-badge slot to surface a one-line red hint. */
+.iv2-field[data-iv2-decoding="true"] .iv2-input-wrap::after,
+.iv2-field[data-iv2-decoding="true"] input::after,
+.iv2-field[data-iv2-decoding="true"]::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    top: 30px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--apple-blue);
+    border-radius: 50%;
+    animation: iv2VinSpin 0.7s linear infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+.iv2-field[data-iv2-decoding="true"] { position: relative; }
+@keyframes iv2VinSpin {
+    to { transform: rotate(360deg); }
+}
+.iv2-field[data-iv2-decode-error="true"] .iv2-field-defer-badge {
+    background: rgba(220, 53, 69, 0.10);
+    color: var(--danger);
+    border-color: rgba(220, 53, 69, 0.4);
+    font-style: normal;
+    white-space: normal;
+    line-height: 1.3;
+}
+
+/* Generalize placeholder styling so example values (e.g. the Home
+ * "Property Address" placeholder "123 Main St, Anytown, WA 98101")
+ * read distinctly as hints rather than pre-filled data. Date inputs
+ * already have a placeholder-shown rule below; this covers the rest. */
+.iv2-field input::placeholder,
+.iv2-field textarea::placeholder {
+    color: var(--text-tertiary);
+    font-style: italic;
+    opacity: 0.7;
+}
+
 /* Date inputs render the placeholder ("mm/dd/yyyy") with the same
  * --text color in dark mode, which makes the agent doubt whether
  * they've actually typed a value. Re-tone the placeholder
@@ -702,9 +797,16 @@ body.dark-mode .iv2-field input[type="date"]::-webkit-calendar-picker-indicator:
 .iv2-field[data-bindable-empty="true"] input,
 .iv2-field[data-bindable-empty="true"] select,
 .iv2-field[data-bindable-empty="true"] textarea {
-    /* Amber underline, NOT a full red error border — the field is
-     * not yet invalid, just outstanding for at least one carrier. */
-    border-bottom: 2px solid #C58800;
+    /* User requested a red error treatment after the agent interacts
+     * with a required field but leaves it empty. Outline (not border)
+     * means there's zero layout shift when toggling — the field's box
+     * model stays identical, so the form doesn't reflow as the agent
+     * tabs through. Phase-3 wiring in intake-v2-layout.js only stamps
+     * `data-bindable-empty` after the first focus/blur, so the red
+     * doesn't fire on initial page load. */
+    outline: 1px solid var(--danger);
+    outline-offset: -1px;
+    border-radius: 6px;
 }
 
 /* "Decode VIN" pill — renders below the VIN input on auto cards when
