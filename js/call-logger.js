@@ -35,18 +35,37 @@ window.CallLogger = (() => {
     function _load() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const saved = JSON.parse(raw);
-                const policyEl = document.getElementById('clPolicyId');
-                const initialsEl = document.getElementById('clAgentInitials');
-                if (policyEl && saved.policyId) policyEl.value = saved.policyId;
-                if (saved.channelType) { _selectedChannel = saved.channelType; _applyChannelUI(); }
-                if (saved.activityType) { _selectedActivityType = saved.activityType; _applyActivityUI(); }
-                if (initialsEl && saved.agentInitials) initialsEl.value = saved.agentInitials;
-            }
+            const saved = raw ? JSON.parse(raw) : {};
+            const policyEl = document.getElementById('clPolicyId');
+            const initialsEl = document.getElementById('clAgentInitials');
+            if (policyEl && saved.policyId) policyEl.value = saved.policyId;
+            if (saved.channelType) { _selectedChannel = saved.channelType; _applyChannelUI(); }
+            if (saved.activityType) { _selectedActivityType = saved.activityType; _applyActivityUI(); }
+            // Restore saved initials. We deliberately don't derive from
+            // USER_NAME here — many agencies use middle initials (e.g. AJK
+            // for Austin J. Kays) and the stored full name typically lacks
+            // them, so any auto-fill would silently insert the WRONG ID into
+            // every shared log. The Format & Preview path requires the field
+            // to be non-empty (see _handleFormat) so the agent is forced to
+            // enter it exactly once; the input listener below persists it
+            // immediately so it survives every reload after that.
+            if (initialsEl && saved.agentInitials) initialsEl.value = saved.agentInitials;
         } catch (e) {
             console.warn('[CallLogger] Load error:', e);
         }
+    }
+
+    function _persistInitialsOnly(value) {
+        // Save just the initials slice of STORAGE_KEY without touching
+        // policyId / callType / channel — those are saved by _save() at
+        // format time. The input listener fires on every keystroke so we
+        // never lose initials to a refresh-mid-typing.
+        try {
+            const cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            cur.agentInitials = (value || '').trim().toUpperCase();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cur));
+            if (window.Sync && window.Sync.schedulePush) window.Sync.schedulePush();
+        } catch (_) { /* best-effort */ }
     }
 
     function _save(policyId, callType) {
@@ -696,9 +715,18 @@ window.CallLogger = (() => {
         const hawksoftPolicyId = (_selectedPolicy && _selectedPolicy.hawksoftPolicyId)
             ? _selectedPolicy.hawksoftPolicyId : '';
 
-        // Agent initials — persisted so it's remembered
+        // Agent initials — required. Without these the server-side
+        // post-processing in api/hawksoft-logger.js skips the `${initials} — `
+        // prepend on the RE: line, and the log lands in HawkSoft with no
+        // way to tell who wrote it. Block the format with a toast + focus
+        // the input so the agent enters them before sending.
         const initialsEl = document.getElementById('clAgentInitials');
         const agentInitials = initialsEl ? initialsEl.value.trim().toUpperCase() : '';
+        if (!agentInitials) {
+            App.toast('Enter your agent initials before formatting — they prefix every HawkSoft log.', 'error');
+            if (initialsEl) initialsEl.focus();
+            return;
+        }
 
         // Resolve settings
         const { userApiKey, aiModel } = _resolveAISettings();
@@ -1132,6 +1160,21 @@ window.CallLogger = (() => {
                 }
             });
             policyInput._clSearchWired = true;
+        }
+
+        // Persist initials on every keystroke. Pre-fix, the field only saved
+        // when _save() fired after a successful format, so an agent who typed
+        // their initials and then reloaded BEFORE clicking Format & Preview
+        // lost them — the next format request went out with `agentInitials=''`
+        // and the server-side post-processing block (which prepends `AJK — ` to
+        // the RE: line) is gated on cleanInitials being truthy. Result: log
+        // arrived in HawkSoft with no agent ID prefix.
+        const initialsEl = document.getElementById('clAgentInitials');
+        if (initialsEl && !initialsEl._clInitialsWired) {
+            initialsEl._clInitialsWired = true;
+            initialsEl.addEventListener('input', () => {
+                _persistInitialsOnly(initialsEl.value);
+            });
         }
 
         // Close dropdown when clicking outside

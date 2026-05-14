@@ -1609,3 +1609,55 @@ describe('call-logger.css', () => {
     expect(css).toContain('var(--');
   });
 });
+
+// ────────────────────────────────────────────────────
+// Agent initials prefix on the RE: line (the `AJK — ...` HawkSoft sees)
+// ────────────────────────────────────────────────────
+
+describe("agent initials prefix in HawkSoft log (the `AJK — ` on RE: line)", () => {
+  test("_load does NOT auto-derive initials from USER_NAME", () => {
+    // Many agencies use middle initials (e.g. 'AJK' for 'Austin J. Kays').
+    // The stored USER_NAME typically lacks the middle initial, so any
+    // automatic derivation would silently insert the WRONG ID into every
+    // shared log. Better to require an explicit one-time entry.
+    expect(source).not.toContain('_deriveInitialsFromUserName');
+    expect(source).not.toMatch(/STORAGE_KEYS\.USER_NAME[\s\S]{0,400}initialsEl\.value\s*=/);
+  });
+
+  test("_load restores saved initials when they exist", () => {
+    const block = source.slice(source.indexOf('function _load'));
+    expect(block.slice(0, 1500)).toMatch(/if\s*\(initialsEl\s*&&\s*saved\.agentInitials\)\s*initialsEl\.value\s*=\s*saved\.agentInitials/);
+  });
+
+  test("_wireEvents persists initials on every keystroke (no waiting for Format & Preview)", () => {
+    // Pre-fix, agentInitials only made it to localStorage after _save() ran
+    // from a successful format response. An agent who typed AJK and then
+    // refreshed before clicking Format lost the value — and the server-side
+    // post-processing in api/hawksoft-logger.js skips the prepend when
+    // cleanInitials is falsy.
+    const block = source.slice(source.indexOf('function _wireEvents'));
+    expect(block.slice(0, 4000)).toContain('clAgentInitials');
+    expect(block.slice(0, 4000)).toContain('_clInitialsWired');
+    expect(block.slice(0, 4000)).toContain('_persistInitialsOnly');
+  });
+
+  test("_persistInitialsOnly merges into existing STORAGE_KEY shape (no clobber)", () => {
+    // It reads STORAGE_KEY, mutates only agentInitials, writes back —
+    // so policyId / callType / channel survive the partial update.
+    const block = source.slice(source.indexOf('function _persistInitialsOnly'));
+    expect(block.slice(0, 800)).toMatch(/localStorage\.getItem\(STORAGE_KEY\)/);
+    expect(block.slice(0, 800)).toContain('cur.agentInitials =');
+    expect(block.slice(0, 800)).toContain('localStorage.setItem(STORAGE_KEY');
+  });
+
+  test("_handleFormat blocks submit when initials are empty + focuses the input", () => {
+    // Required-field guard. Server-side prepend is gated on cleanInitials,
+    // so an empty value means no `AJK — ` on the RE: line and no way to
+    // attribute the log. Block the format path with a toast + focus so
+    // the agent has to fix it before continuing.
+    const block = source.slice(source.indexOf('async function _handleFormat'));
+    expect(block.slice(0, 4000)).toMatch(/if\s*\(\s*!agentInitials\s*\)/);
+    expect(block.slice(0, 4000)).toMatch(/App\.toast\([^)]*initials/i);
+    expect(block.slice(0, 4000)).toMatch(/initialsEl\.focus\(\)/);
+  });
+});
