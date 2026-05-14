@@ -35,6 +35,21 @@ describe('Layout Regression Guardrails', () => {
     expect(layoutCss).toContain('#intakeV2Tool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }');
   });
 
+  test('intake-assist viewport overflow:hidden is scoped — does NOT leak to other plugins', () => {
+    // The bare `#pluginViewport.plugin-viewport.active { overflow:hidden }`
+    // rule from intake-assist-chat.css was being applied to EVERY plugin,
+    // including intake-v2. That `overflow:hidden` on an ancestor of
+    // .iv2-left-rail / .iv2-right-rail was killing position:sticky silently —
+    // the rails would scroll off with the rest of the page.
+    const { readIntakeAssistCss } = require('./helpers/css-loader.js');
+    const intakeAssistCss = readIntakeAssistCss();
+    // The unscoped form is now forbidden. (Match anything starting with #pluginViewport
+    // without the :has(...) guard.)
+    expect(intakeAssistCss).not.toMatch(/^#pluginViewport\.plugin-viewport\.active\s*\{/m);
+    // The replacement scopes the rule to intake-assist's `#intakeTool` only.
+    expect(intakeAssistCss).toContain('.app-shell:has(#intakeTool.active) #pluginViewport.plugin-viewport.active');
+  });
+
   test('app-main has min-width guard and explicit background', () => {
     expect(sidebarCss).toContain('.app-main {');
     expect(sidebarCss).toContain('min-width: 0;');

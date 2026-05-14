@@ -686,20 +686,23 @@ function wireTopbarHandlers() {
         });
     });
 
-    // FAB
+    // FAB — context-aware add. Pre-fix the fallback was 'operators', which
+    // meant clicking + from anywhere outside the Household section (Coverage,
+    // History, Review) created a phantom operator. 'autos' is the most-common
+    // add on the v2 flow, so default there instead.
     const fab = document.getElementById('iv2FabAdd');
     if (fab) fab.addEventListener('click', () => {
-        // Context-aware: if focus is inside a section, add to that collection.
         const active = document.activeElement;
-        let collKey = 'operators';
+        let collKey = 'autos'; // sensible default for anywhere outside Household
         if (active) {
             const card = active.closest('[data-card-of]');
             if (card) collKey = card.getAttribute('data-card-of');
             else {
-                const sec = active.closest('section.iv2-section');
+                const sec = active.closest('section.iv2-section, details.iv2-section');
                 if (sec) {
-                    if (sec.id === 'iv2-properties') collKey = 'autos'; // default: most common
-                    if (sec.id === 'iv2-household')  collKey = 'operators';
+                    if (sec.id === 'iv2-properties') collKey = 'autos';
+                    else if (sec.id === 'iv2-household')  collKey = 'operators';
+                    // Coverage/History/Review — keep 'autos' default
                 }
             }
         }
