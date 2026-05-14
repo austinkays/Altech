@@ -51,6 +51,34 @@ function renderScalarField(f) {
     </div>`;
 }
 
+// Visibility for fields that should appear conditionally on a sibling field's
+// value (e.g. "Months Continuous" only when "Continuous Coverage" is Yes).
+// Kept here instead of in fields.js because the conditions are renderer-side
+// UX, not data-shape rules — the data field still exists when hidden.
+const CONDITIONAL_REVEAL = [
+    {
+        // Reveal `priorInsurance.continuousMonths` when continuous is 'Yes'.
+        // Pre-fix, picking Yes/No produced no visible feedback because the
+        // months field is `mode:'full'` and Quick mode hides it — the agent
+        // had no way to tell the dropdown actually did anything.
+        field: 'priorInsurance.continuousMonths',
+        showIf: (data) => data.priorInsurance && data.priorInsurance.continuous === 'Yes',
+    },
+];
+
+function _applyConditionalReveal(root) {
+    const data = window.IntakeV2.data;
+    for (const rule of CONDITIONAL_REVEAL) {
+        const wrap = root.querySelector(`[data-field-wrap="${rule.field}"]`);
+        if (!wrap) continue;
+        const show = !!rule.showIf(data);
+        // Use a class so we don't fight with iv2-full-only mode toggles. The
+        // CSS rule (added in intake-v2.css) flips display:block back on when
+        // .iv2-revealed is set, overriding the mode-based hide.
+        wrap.classList.toggle('iv2-revealed', show);
+    }
+}
+
 function renderCoverage() {
     const root = document.querySelector('[data-render="coverage"]');
     if (!root) return;
@@ -76,6 +104,37 @@ function renderCoverage() {
         else el.value = v == null ? '' : String(v);
     }
     if (window.IntakeV2._defer) window.IntakeV2._defer.render();
+
+    _applyConditionalReveal(root);
+
+    // Defensive: in addition to the delegated input/change handler on the
+    // plugin root (intake-v2-core.js), wire a direct handler that updates
+    // the conditional-reveal state immediately. Pre-fix, picking Yes left
+    // the agent staring at a dropdown with no follow-up field — even
+    // though save eventually fired, the lack of visible feedback made
+    // them think the dropdown was broken.
+    const contEl = document.getElementById('iv2-priorContinuous');
+    if (contEl && !contEl._iv2ContinuousWired) {
+        contEl._iv2ContinuousWired = true;
+        contEl.addEventListener('change', () => {
+            try {
+                // Mirror into data so the reveal check below sees the fresh
+                // value, and schedule a save so the field is persisted even
+                // if the delegated handler in intake-v2-core somehow misses
+                // it. The delegated handler will also run via event bubbling,
+                // so this is idempotent.
+                window.IntakeV2._setByPath(
+                    window.IntakeV2.data,
+                    'priorInsurance.continuous',
+                    contEl.value
+                );
+                if (typeof window.IntakeV2.scheduleSave === 'function') {
+                    window.IntakeV2.scheduleSave();
+                }
+            } catch (_) { /* fallback: rely on the delegated path */ }
+            _applyConditionalReveal(root);
+        });
+    }
 }
 
 window.IntakeV2.onBoot(function () {
