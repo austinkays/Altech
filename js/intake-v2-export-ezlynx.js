@@ -197,6 +197,9 @@
         const addressOnly = `<Address>${addrInner}</Address>`;
 
         // ── Primary applicant ────────────────────────────────────────────────
+        // V200 EZAUTO <PersonalInfo> does NOT accept Industry/Occupation/Education —
+        // those fail the server-side deserializer ("Error in deserializing to
+        // V200 Ezauto"). They flow via filler JSON / CMSMTF instead.
         const primaryApplicant = [
             '<Applicant>',
             tag('ApplicantType', 'Applicant'),
@@ -210,9 +213,6 @@
             tag('Gender', expandGender(a.gender)),
             tagIf('MaritalStatus', a.maritalStatus),
             tag('Relation', 'Insured'),
-            tagIf('Industry', a.industry),
-            tagIf('Occupation', a.occupation),
-            tagIf('Education', a.education),
             '</PersonalInfo>',
             fullAddress,
             '</Applicant>',
@@ -234,9 +234,6 @@
                 tagIf('Gender', expandGender(co.gender)),
                 tagIf('MaritalStatus', co.maritalStatus),
                 tag('Relation', co.relationship || 'Spouse'),
-                tagIf('Industry', co.industry),
-                tagIf('Occupation', co.occupation),
-                tagIf('Education', co.education),
                 '</PersonalInfo>',
                 fullAddress,
                 '</Applicant>',
@@ -244,43 +241,43 @@
         })();
 
         // ── Prior policy info ────────────────────────────────────────────────
+        // V200 EZAUTO <PriorPolicyInfo> accepts PriorCarrier / PriorPolicyTerm /
+        // Expiration / YearsWithPriorCarrier. It does NOT accept
+        // YearsWithContinuousCoverage or PriorLiabilityLimits — those break
+        // deserialization. Continuous-coverage data still flows via filler JSON.
         const priorAuto = pi.auto || {};
         const priorPolicy = (() => {
-            const hasAny = priorAuto.carrier || priorAuto.exp || priorAuto.limits || pi.continuous;
+            const hasAny = priorAuto.carrier || priorAuto.exp || priorAuto.term;
             if (!hasAny) return '';
             const yrsWithPrior = (priorAuto.years || priorAuto.months)
                 ? `<YearsWithPriorCarrier>${tagIf('Years', priorAuto.years)}${tagIf('Months', priorAuto.months)}</YearsWithPriorCarrier>`
                 : '';
-            const continuous = (pi.continuous || pi.continuousMonths)
-                ? `<YearsWithContinuousCoverage>${tagIf('Years', pi.continuous && pi.continuous !== 'No' ? (priorAuto.years || '') : '')}${tagIf('Months', pi.continuousMonths)}</YearsWithContinuousCoverage>`
-                : '';
             return [
                 '<PriorPolicyInfo>',
                 tagIf('PriorCarrier', priorAuto.carrier),
+                tagIf('PriorPolicyTerm', priorAuto.term),
                 tagIf('Expiration', isoDate(priorAuto.exp)),
-                tagIf('PriorLiabilityLimits', priorAuto.limits),
                 yrsWithPrior,
-                continuous,
                 '</PriorPolicyInfo>',
             ].join('');
         })();
 
-        // ── PolicyInfo — credit-check authorization is critical for binding ─
-        const policyInfo = (() => {
-            // Always emit when we have at least one signal; CreditCheckAuth is
-            // a common deal-breaker for binding so we send it even on bare
-            // exports.
-            return [
-                '<PolicyInfo>',
-                tag('PolicyTerm', '6 Month'),
-                tagIf('CreditCheckAuth', household.creditCheckAuth ? 'Yes' : ''),
-                tagIf('MultiPolicy', hasHome ? 'Yes' : ''),
-                '</PolicyInfo>',
-            ].join('');
-        })();
+        // ── PolicyInfo ───────────────────────────────────────────────────────
+        // V200 EZAUTO <PolicyInfo> accepts PolicyTerm + Effective only.
+        // CreditCheckAuth and MultiPolicy are EZHOME-only — emitting them in
+        // EZAUTO breaks deserialization. Multi-policy intent flows via
+        // <Multicar> in <GeneralCoverage> below. CreditCheckAuth flows via
+        // filler JSON.
+        const policyInfo = [
+            '<PolicyInfo>',
+            tag('PolicyTerm', '6 Month'),
+            '</PolicyInfo>',
+        ].join('');
 
         // ── ResidenceInfo / GarageLocation ───────────────────────────────────
-        const residenceInfo = `<ResidenceInfo><GarageLocation>${addressOnly}</GarageLocation>${tagIf('YearsAtAddress', addr.yearsAt)}</ResidenceInfo>`;
+        // V200 EZAUTO <ResidenceInfo> doesn't accept YearsAtAddress; that
+        // field is captured by the home rater. Flows via filler JSON.
+        const residenceInfo = `<ResidenceInfo><GarageLocation>${addressOnly}</GarageLocation></ResidenceInfo>`;
 
         // ── Drivers ──────────────────────────────────────────────────────────
         // Filter to operators that are bound to autos OR the primary/co-applicant.
@@ -328,6 +325,14 @@
                     .map(V => `<Violation>${tagIf('Date', isoDate(V.date))}${tagIf('Description', V.type)}</Violation>`)
                     .join('');
 
+                // V200 EZAUTO <Driver> schema (per HawkSoft known-good sample):
+                //   Name / Gender / DOB / DLNumber / DLState / DateLicensed /
+                //   MaritalStatus / Relation / GoodStudent / MATDriver /
+                //   Rated / PrincipalVehicle / Violation*
+                // Industry/Occupation/Education, SR22, FR44,
+                // LicenseSuspendedRevoked, DriverTraining, DistantStudent are
+                // NOT in V200 EZAUTO and break deserialization — they flow via
+                // filler JSON / CMSMTF (drv_bFiling, etc.) instead.
                 return [
                     `<Driver id="${id}">`,
                     '<Name>',
@@ -342,17 +347,8 @@
                     tagIf('DateLicensed', dateLicensed),
                     tagIf('MaritalStatus', op.maritalStatus),
                     tag('Relation', relationHS(op.relationship, op.isPrimaryApplicant)),
-                    tagIf('Industry', op.industry),
-                    tagIf('Occupation', op.occupation),
-                    tagIf('Education', op.education),
                     tag('GoodStudent', op.goodStudent ? 'Yes' : 'No'),
                     tag('MATDriver', op.matureDriver ? 'Yes' : 'No'),
-                    // V200 EZAUTO supports these underwriting flags directly
-                    tagIf('SR22', op.sr22Required ? 'Yes' : ''),
-                    tagIf('FR44', op.sr22Required ? 'Yes' : ''), // single v2 flag covers both
-                    tagIf('LicenseSuspendedRevoked', op.licenseSuspended5y ? 'Yes' : ''),
-                    tagIf('DriverTraining', op.defensiveDriving ? 'Yes' : ''),
-                    tagIf('DistantStudent', op.distantStudent ? 'Yes' : ''),
                     tag('Rated', 'Rated'),
                     tagIf('PrincipalVehicle', principalVehicle),
                     violations,
@@ -363,6 +359,11 @@
         ].join('') : '';
 
         // ── Vehicles ─────────────────────────────────────────────────────────
+        // V200 EZAUTO <Vehicle> schema (per HawkSoft known-good sample):
+        //   UseVinLookup / Year / Vin / Make / Model / Anti-Theft /
+        //   PassiveRestraints
+        // LicensePlate, PlateState, Ownership, PurchaseDate, OriginalOwner,
+        // ExistingDamage are NOT in V200 EZAUTO — they flow via filler JSON.
         const vehicleXml = autos.length ? [
             '<Vehicles>',
             ...autos.map((veh, i) => {
@@ -374,17 +375,8 @@
                     tagIf('Vin', veh.vin),
                     tagIf('Make', veh.make),
                     tagIf('Model', veh.model),
-                    tagIf('LicensePlate', veh.licensePlate),
-                    tagIf('PlateState', veh.plateState),
                     tagIf('Anti-Theft', antiTheftHS(veh.antiTheftDevice)),
                     tag('PassiveRestraints', 'None'),
-                    tagIf('Ownership', veh.ownership),
-                    tagIf('PurchaseDate', isoDate(veh.purchaseDate)),
-                    tagIf('OriginalOwner', veh.originalOwner ? 'Yes' : ''),
-                    tagIf('ExistingDamage', veh.existingDamage && veh.existingDamage !== 'None' ? veh.existingDamage : ''),
-                    // Stated amount — most carriers want a market value when
-                    // ownership is leased/financed; v2 doesn't capture this
-                    // explicitly for autos.
                     '</Vehicle>',
                 ].join('');
             }),
@@ -392,7 +384,8 @@
         ].join('') : '';
 
         // ── VehiclesUse ──────────────────────────────────────────────────────
-        // V200 schema uses the typo <Useage> — preserve it.
+        // V200 schema uses the typo <Useage> — preserve it. DaysPerWeek is
+        // not in V200 EZAUTO — flows via filler JSON.
         const vehicleUseXml = autos.length ? [
             '<VehiclesUse>',
             ...autos.map((veh, i) => {
@@ -403,7 +396,6 @@
                     `<VehicleUse id="${id}">`,
                     tag('Useage', useage),
                     tagIf('OneWayMiles', veh.oneWayMiles),
-                    tagIf('DaysPerWeek', veh.daysPerWeek),
                     tagIf('AnnualMiles', veh.annualMiles),
                     tagIf('PrincipalOperator', principalOperator),
                     '</VehicleUse>',
@@ -425,13 +417,14 @@
             const bi = bipd ? bipd[1] : liab;
             const pd = bipd ? bipd[2] : '';
 
+            // V200 EZAUTO <GeneralCoverage>: BI / PD / UM / UIM / Multicar only.
+            // MedPay is not in V200 EZAUTO — flows via filler JSON.
             const general = [
                 '<GeneralCoverage>',
                 tagIf('BI', bi),
                 tagIf('PD', pd),
                 tagIf('UM', c0.umuim),
                 tagIf('UIM', c0.umuim),
-                tagIf('MedPay', c0.medpay),
                 autos.length > 1 ? '<Multicar>Yes</Multicar>' : '',
                 '</GeneralCoverage>',
             ].join('');
@@ -471,16 +464,9 @@
             '</VehicleAssignments>',
         ].join('') : '';
 
-        // ── LossInfo ─────────────────────────────────────────────────────────
-        const lossInfo = (() => {
-            const losses = (hist.losses || []).filter(L => !L.asset || /auto|vehicle|car/i.test(L.asset));
-            if (!losses.length) return '<LossInfo></LossInfo>';
-            return '<LossInfo>'
-                + losses.map(L => `<Loss>${tagIf('Date', isoDate(L.date))}${tagIf('Description', L.type)}${tagIf('Amount', L.amount)}</Loss>`).join('')
-                + '</LossInfo>';
-        })();
-
         // ── Assemble ─────────────────────────────────────────────────────────
+        // V200 EZAUTO has no <LossInfo> slot (the HawkSoft known-good sample
+        // has none). Loss history flows via filler JSON / PDF instead.
         const xml = '<EZAUTO xmlns="http://www.ezlynx.com/XMLSchema/Auto/V200">'
             + primaryApplicant
             + coApplicant
@@ -492,7 +478,6 @@
             + vehicleUseXml
             + coveragesXml
             + assignmentsXml
-            + lossInfo
             + '</EZAUTO>';
 
         const lastName = a.lastName || 'Client';

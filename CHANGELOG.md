@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **fix(intakev2-ezlynx): EZAUTO XML deserialization error** (May 14, 2026):
+  PR #110's native EZLynx XML builders ([js/intake-v2-export-ezlynx.js](js/intake-v2-export-ezlynx.js)) added a batch of elements to the **EZAUTO** output that aren't in EZLynx's V200 EZAUTO schema. The server's XML deserializer rejected every Auto file with `"Error in deserializing to V200 Ezauto"`. (EZHOME imports worked because EZHOME has a different, more permissive schema.) The pre-existing wrapper test ([tests/intake-v2.test.js:369](tests/intake-v2.test.js)) only asserted a sentinel string was present — it never validated schema compliance, so the regression slipped through.
+  - The HawkSoft known-good sample ([Resources/archive/HawkSoft Export to EZLynx SAMPLE.xml](Resources/archive/HawkSoft%20Export%20to%20EZLynx%20SAMPLE.xml)) and the legacy contract test ([tests/exporter-contract.test.js:63-106](tests/exporter-contract.test.js) `NOT_IN_EZAUTO`) already documented these fields as "Not in V200 EZAUTO schema — flows via filler JSON". The native builder ignored that and emitted them anyway.
+  - Removed from `<PolicyInfo>`: `<CreditCheckAuth>`, `<MultiPolicy>` (multi-policy intent still flows via `<Multicar>` in `<GeneralCoverage>`).
+  - Removed from `<PriorPolicyInfo>`: `<YearsWithContinuousCoverage>`, `<PriorLiabilityLimits>`. Added `<PriorPolicyTerm>` to match HawkSoft sample.
+  - Removed from `<ResidenceInfo>`: trailing `<YearsAtAddress>`.
+  - Removed from `<Applicant><PersonalInfo>` and the co-applicant `<PersonalInfo>`: `<Industry>`, `<Occupation>`, `<Education>`.
+  - Removed from `<Driver>`: `<Industry>`, `<Occupation>`, `<Education>`, `<SR22>`, `<FR44>`, `<LicenseSuspendedRevoked>`, `<DriverTraining>`, `<DistantStudent>`. SR-22 / FR-44 filings still flow via CMSMTF (`drv_bFiling` / `drv_sFilingState` / `drv_sFilingReason`).
+  - Removed from `<Vehicle>`: `<LicensePlate>`, `<PlateState>`, `<Ownership>`, `<PurchaseDate>`, `<OriginalOwner>`, `<ExistingDamage>`.
+  - Removed from `<VehicleUse>`: `<DaysPerWeek>`.
+  - Removed from `<GeneralCoverage>`: `<MedPay>` (V200 EZAUTO is BI/PD/UM/UIM/Multicar only).
+  - Removed the always-emitted empty `<LossInfo></LossInfo>` at the end of `<EZAUTO>`. Loss history still flows via filler JSON + PDF; the producer enters it manually in EZLynx after import.
+  - All dropped data still flows via filler JSON (used by the EZLynx desktop autofill), CMSMTF (HawkSoft import), or the PDF fact-finder — only the schema-incompatible XML path lost them.
+  - **EZHOME XML is untouched** — that path already imports correctly. The fix is EZAUTO-only.
+  - **Test hardened**: the EZLynx-XML wrapper test in `tests/intake-v2.test.js` now captures both the Auto and Home output files (was capturing only the last) and asserts the EZAUTO output contains **none** of the 22 schema-incompatible elements above. Adding any of them back fails the test.
+
 ### Added
 - **feat(intakev2-pdf): fact-finder layout + summary/fact-finder toggle** (May 14, 2026):
   The v2 intake PDF now ships **two layouts** through a single builder, selectable at export time:
