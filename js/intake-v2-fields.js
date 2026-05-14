@@ -144,8 +144,8 @@ const SCALAR = [
     { id: 'iv2-ssn',            path: 'applicant.ssn',            label: 'SSN (optional, for credit pull)', type: 'text', section: 'quick', mode: 'full' },
     { id: 'iv2-gender',         path: 'applicant.gender',         label: 'Gender',           type: 'select', options: ['', 'Male', 'Female', 'Nonbinary', 'Prefer not to say'], section: 'quick', mode: 'full' },
     { id: 'iv2-maritalStatus',  path: 'applicant.maritalStatus',  label: 'Marital Status',   type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], section: 'quick', mode: 'quick' },
-    { id: 'iv2-phone',          path: 'applicant.phone',          label: 'Phone',            type: 'tel',    section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-    { id: 'iv2-email',          path: 'applicant.email',          label: 'Email',            type: 'email',  section: 'quick', mode: 'quick', speller: 'email' },
+    { id: 'iv2-phone',          path: 'applicant.phone',          label: 'Phone',            type: 'tel',    section: 'quick', mode: 'quick', placeholder: '(555) 123-4567', inputmode: 'tel', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+    { id: 'iv2-email',          path: 'applicant.email',          label: 'Email',            type: 'email',  section: 'quick', mode: 'quick', placeholder: 'name@example.com', inputmode: 'email', speller: 'email' },
     { id: 'iv2-occupation',     path: 'applicant.occupation',     label: 'Occupation',       type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-industry',       path: 'applicant.industry',       label: 'Industry',         type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-education',      path: 'applicant.education',      label: 'Education',        type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], section: 'quick', mode: 'full' },
@@ -198,8 +198,10 @@ const SCALAR = [
     // talk-track sidebar's `tcpa-consent` and `credit-pull` prompts both ask
     // the agent to capture these on the call — keeping them in Full-only made
     // the prompts unactionable until the agent switched modes.
-    { id: 'iv2-tcpaConsent',     path: 'household.tcpaConsent',   label: 'TCPA consent obtained', type: 'checkbox', section: 'quick', mode: 'quick' },
-    { id: 'iv2-creditCheckAuth', path: 'household.creditCheckAuth', label: 'Credit pull authorized', type: 'checkbox', section: 'quick', mode: 'quick' },
+    { id: 'iv2-tcpaConsent',     path: 'household.tcpaConsent',   label: 'TCPA consent obtained', type: 'checkbox', section: 'quick', mode: 'quick',
+      hint: 'TCPA = Telephone Consumer Protection Act. Check this when the prospect verbally agrees you can call, text, or leave voicemail about this quote and any follow-ups.' },
+    { id: 'iv2-creditCheckAuth', path: 'household.creditCheckAuth', label: 'Credit pull authorized', type: 'checkbox', section: 'quick', mode: 'quick',
+      hint: 'Soft insurance-score pull used by most carriers for rating. Check this once the prospect verbally authorizes — they will not see a hard credit inquiry.' },
 
     // ── Coverage section (universal coverages — per-product details live in collection fields) ──
     { id: 'iv2-priorContinuous',       path: 'priorInsurance.continuous',       label: 'Continuous Coverage', type: 'select', options: ['', 'Yes', 'No'], section: 'coverage', mode: 'quick' },

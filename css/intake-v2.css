@@ -471,6 +471,53 @@ body.sidebar-collapsed .iv2-left-rail {
 .iv2-field input[type="date"]:valid {
     color: var(--text);
 }
+/* Dark-theme the browser's native date picker. `color-scheme: dark`
+ * tells Chrome/Edge/Safari to render the calendar dropdown with dark
+ * colors; the icon-invert is a fallback for browsers that ignore the
+ * scheme hint and otherwise paint a bright white calendar glyph that
+ * looks like a hot spot in dark mode. */
+body.dark-mode .iv2-field input[type="date"] {
+    color-scheme: dark;
+}
+body.dark-mode .iv2-field input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.85) hue-rotate(180deg);
+    cursor: pointer;
+    opacity: 0.85;
+}
+body.dark-mode .iv2-field input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Inline info icon — appears next to checkbox labels that define an
+ * `f.hint` in the field schema (e.g. TCPA consent, Credit pull). The
+ * tooltip is the native browser title; we also expose aria-label so
+ * the explanation is announced for screen readers. */
+.iv2-info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    margin-left: 4px;
+    border-radius: 50%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 700;
+    font-style: italic;
+    font-family: serif;
+    cursor: help;
+    line-height: 1;
+    vertical-align: middle;
+}
+.iv2-info-icon:hover,
+.iv2-info-icon:focus-visible {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #fff;
+    outline: none;
+}
 
 /* deferred = "Ask Later" — yellow border, dimmed value */
 .iv2-field[data-deferred="true"] input,

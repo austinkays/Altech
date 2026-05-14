@@ -112,11 +112,28 @@ function renderScalarField(f, span) {
         // <input type="checkbox"> so intake-v2-core's save/load
         // (`if (el.type === 'checkbox')`) keeps working unchanged.
         const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
-        return `<div class="iv2-field${fullClass}"${spanAttr} data-field-wrap="${escAttr(f.path)}"><label class="${rowClass}" for="${escAttr(f.id)}"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> <span>${esc(f.label)}</span></label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
+        // Inline info icon — surfaces `f.hint` as a hover tooltip so
+        // agents know what e.g. "TCPA consent obtained" / "Credit pull
+        // authorized" actually mean without leaving the form.
+        const hintIcon = f.hint
+            ? ` <span class="iv2-info-icon" tabindex="0" role="img" aria-label="${escAttr(f.hint)}" title="${escAttr(f.hint)}">i</span>`
+            : '';
+        return `<div class="iv2-field${fullClass}"${spanAttr} data-field-wrap="${escAttr(f.path)}"><label class="${rowClass}" for="${escAttr(f.id)}"><input type="checkbox" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"> <span>${esc(f.label)}${hintIcon}</span></label><span class="iv2-field-defer-badge" style="display:none">deferred</span></div>`;
     } else if (f.type === 'textarea') {
-        control = `<textarea id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}" rows="3"></textarea>`;
+        const placeholderAttr = f.placeholder ? ` placeholder="${escAttr(f.placeholder)}"` : '';
+        control = `<textarea id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}" rows="3"${placeholderAttr}></textarea>`;
     } else {
-        const input = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}">`;
+        // Optional placeholder hint (e.g. "(555) 123-4567" on a phone) —
+        // pulled from the field schema so the format hint travels with
+        // the data definition rather than being hard-coded per template.
+        const placeholderAttr = f.placeholder ? ` placeholder="${escAttr(f.placeholder)}"` : '';
+        // Inputmode / pattern keep the iOS / Android soft keyboards
+        // showing the right glyphs (digits for phone, etc.) and let
+        // the browser surface client-side validation hints without
+        // adding our own mask library.
+        const inputmodeAttr = f.inputmode ? ` inputmode="${escAttr(f.inputmode)}"` : '';
+        const patternAttr = f.pattern ? ` pattern="${escAttr(f.pattern)}"` : '';
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"${placeholderAttr}${inputmodeAttr}${patternAttr}>`;
         control = f.speller
             ? `<div class="iv2-input-wrap">${input}${spellerInsetButton(f.speller)}</div>`
             : input;
