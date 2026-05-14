@@ -204,8 +204,9 @@
         });
         boats.forEach((b, i) => {
             const age = b.year ? (new Date().getFullYear() - parseInt(b.year, 10)) : null;
-            if (age !== null && age > 30 && parseFloat(b.marketValue) > 30000) {
-                out.push({ severity: 'med', text: `Boat #${i+1}: ${age} yrs old, $${b.marketValue}` });
+            const mv = parseFloat(b.marketValue);
+            if (age !== null && age > 30 && Number.isFinite(mv) && mv > 30000) {
+                out.push({ severity: 'med', text: `Boat #${i+1}: ${age} yrs old, $${Math.round(mv).toLocaleString()}` });
             }
             if ((b.hullMaterial || '').toLowerCase() === 'wood' && age !== null && age > 5) {
                 out.push({ severity: 'med', text: `Boat #${i+1}: wood hull, ${age} yrs` });
@@ -339,10 +340,14 @@
                 };
                 coverageRatios = {
                     dwellingA: A,
+                    // Single-letter labels (B/C/D) so they fit inside narrow
+                    // segments. The "Cov A · $X" header above already names
+                    // the coverages; agents read "Cov A" once, then can
+                    // pattern-match B/C/D below.
                     segments: [
-                        { key: 'B', label: 'Cov B', amount: seg('otherStructuresB'), ratio: seg('otherStructuresB') / A },
-                        { key: 'C', label: 'Cov C', amount: seg('personalPropertyC'), ratio: seg('personalPropertyC') / A },
-                        { key: 'D', label: 'Cov D', amount: seg('lossOfUseD'), ratio: seg('lossOfUseD') / A },
+                        { key: 'B', label: 'B', amount: seg('otherStructuresB'), ratio: seg('otherStructuresB') / A },
+                        { key: 'C', label: 'C', amount: seg('personalPropertyC'), ratio: seg('personalPropertyC') / A },
+                        { key: 'D', label: 'D', amount: seg('lossOfUseD'), ratio: seg('lossOfUseD') / A },
                     ],
                     sidebar: [
                         { label: 'Liability (E)', value: cov.liabilityE },
@@ -385,7 +390,20 @@
     }
 
     // ─── Main builder ────────────────────────────────────────────────────────
-    async function buildIntakeV2PDF(v2) {
+    //
+    // opts.layout:
+    //   - 'summary'    (default) — the underwriting snapshot + dense detail
+    //                  cards used as v2's primary export since PR #110.
+    //   - 'factfinder' — a transcription-oriented layout whose section order
+    //                  mirrors the EZLynx Personal Lines screen flow
+    //                  (js/ezlynx-tool.js formFields[] lines 59-86). Agents
+    //                  read top-to-bottom while filling EZLynx / HawkSoft.
+    //
+    // Both layouts share the header, hero card, compute helpers, visual
+    // primitives, and footer. Only the body phase changes.
+    async function buildIntakeV2PDF(v2, opts) {
+        opts = opts || {};
+        const layout = (opts.layout === 'factfinder') ? 'factfinder' : 'summary';
         v2 = v2 || (window.IntakeV2 && window.IntakeV2.data) || {};
         if (!window.PDFLibs || typeof window.PDFLibs.ensure !== 'function') {
             throw new Error('PDFLibs not available');
@@ -479,7 +497,10 @@
             const filled = fields.filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false);
             if (!filled.length) return;
             const colW = CW / cols;
-            const labelW = colW * 0.42;
+            // 3-col mode uses long EZLynx labels ("UM PROPERTY DAMAGE",
+            // "CREDIT CHECK AUTH") that need more room than 2-col labels.
+            // Trade 6 extra points of label width for slightly tighter values.
+            const labelW = colW * (cols >= 3 ? 0.48 : 0.42);
             const valueW = colW - labelW - 6;
             const baseRowH = 13;
             const lineH = 11;
@@ -507,9 +528,14 @@
 
                 row.forEach(([label], ci) => {
                     const x = MG + ci * colW;
-                    doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+                    // Label font shrinks at higher column counts so long
+                    // EZLynx-style labels like "CREDIT CHECK AUTH" or "UIM
+                    // BODILY INJURY" fit inside the label column without
+                    // overlapping the value text.
+                    const labelFontSize = cols >= 3 ? 6.5 : 7.5;
+                    doc.setFontSize(labelFontSize); doc.setFont('helvetica', 'normal');
                     setColor('setTextColor', PALETTE.MID);
-                    doc.text(String(label).toUpperCase(), x + 2, y + 6);
+                    doc.text(String(label).toUpperCase(), x + 2, y + 7);
 
                     doc.setFontSize(9); doc.setFont('helvetica', 'bold');
                     setColor('setTextColor', PALETTE.INK);
@@ -873,16 +899,31 @@
                 const segW = ratio * barW;
                 setColor('setFillColor', palettes[idx % palettes.length]);
                 fillRect(cursorX, barY, segW, BAR_H);
-                // Inline label if wide enough (>40pt)
-                if (segW > 40) {
+                // Inline label tiered by segment width so even tiny "Cov B at
+                // 5%" segments get a visible letter. Without this, agents see
+                // a mystery dark bar and have to infer which Cov is which.
+                //   >=56pt → "B 10%" full
+                //   >=24pt → "B"     letter only
+                //   else   → "B"     in small font, centered vertically
+                if (segW >= 56) {
                     doc.setFontSize(8); doc.setFont('helvetica', 'bold');
                     setColor('setTextColor', PALETTE.WHITE);
                     doc.text(`${seg.label} ${Math.round(ratio * 100)}%`, cursorX + 4, barY + 10);
+                } else if (segW >= 24) {
+                    doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.WHITE);
+                    doc.text(`${seg.label}`, cursorX + 4, barY + 10);
+                } else if (segW >= 10) {
+                    doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.WHITE);
+                    doc.text(`${seg.label}`, cursorX + 2, barY + 10);
                 }
                 cursorX += segW;
             });
 
-            // Hang $amount labels under each segment
+            // Hang $amount labels under each segment, center-aligned to the
+            // segment middle. Skip segments narrower than ~22pt where the
+            // amount can't fit without overlapping the next segment's amount.
             cursorX = barX;
             model.segments.forEach((seg, idx) => {
                 const ratio = Math.min(Math.max(seg.ratio || 0, 0), 1);
@@ -891,7 +932,17 @@
                 doc.setFontSize(7); doc.setFont('helvetica', 'normal');
                 setColor('setTextColor', PALETTE.MID);
                 const amountStr = `$${Math.round(seg.amount).toLocaleString()}`;
-                doc.text(amountStr, cursorX + 2, barY + BAR_H + 8);
+                const amountW = has(doc, 'getTextWidth') ? doc.getTextWidth(amountStr) : amountStr.length * 3.6;
+                // For narrow segments fall back to abbreviated thousands form
+                // ($21k) so we still surface the dollar size without crashing
+                // into the next segment's label.
+                const tooNarrow = segW < amountW + 6;
+                const display = tooNarrow ? `$${Math.round(seg.amount / 1000)}k` : amountStr;
+                const displayW = tooNarrow
+                    ? (has(doc, 'getTextWidth') ? doc.getTextWidth(display) : display.length * 3.6)
+                    : amountW;
+                const tx = cursorX + Math.max(2, (segW - displayW) / 2);
+                doc.text(display, tx, barY + BAR_H + 8);
                 cursorX += segW;
             });
 
@@ -1152,6 +1203,42 @@
             return totalH;
         }
 
+        // sectionBand — used by the fact-finder body. A full-width filled
+        // band carrying "§N · TITLE" so each section boundary reads as a
+        // distinct beat for the agent transcribing into EZLynx/HawkSoft.
+        // Returns consumed height (22pt by default).
+        function sectionBand(num, title, x, yy, w) {
+            const BAND_H = 20;
+            if (!has(doc, 'rect')) {
+                // Text-only fallback: section label as a short line of text.
+                doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(`§${num} ${title.toUpperCase()}`, x, yy + 12);
+                doc.setFont('helvetica', 'normal');
+                return BAND_H;
+            }
+            setColor('setFillColor', PALETTE.FILL);
+            fillRect(x, yy, w, BAND_H);
+            // Accent strip — 3pt dark bar on the left edge for emphasis
+            setColor('setFillColor', PALETTE.ACCENT);
+            fillRect(x, yy, 3, BAND_H);
+            // Bottom rule under the band so the eye sees a clean break
+            setColor('setDrawColor', PALETTE.LIGHT);
+            doc.setLineWidth(0.4);
+            doc.line(x, yy + BAND_H, x + w, yy + BAND_H);
+
+            // Section number, then title in bold caps
+            doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+            setColor('setTextColor', PALETTE.MID);
+            doc.text(`§${num}`, x + 10, yy + 13);
+            doc.setFontSize(10);
+            setColor('setTextColor', PALETTE.INK);
+            doc.text(String(title || '').toUpperCase(), x + 32, yy + 13);
+            doc.setFont('helvetica', 'normal');
+            doc.setLineWidth(0.3);
+            return BAND_H;
+        }
+
         // ════════════════════════════════════════════════════════════════════
         //  ① DOCUMENT HEADER
         // ════════════════════════════════════════════════════════════════════
@@ -1306,6 +1393,13 @@
             if (fullAddress) { doc.text(fullAddress, MG, y); y += 14; }
         }
 
+        // Body branches on layout. Summary mode keeps the existing snapshot
+        // + dense detail dossier. Fact-finder mode renders a compressed cover
+        // then sections §1-§18 in EZLynx Personal Lines app order (see
+        // js/ezlynx-tool.js formFields[]). Footer (below the branch) runs in
+        // both modes.
+        if (layout === 'summary') {
+
         // ════════════════════════════════════════════════════════════════════
         //  ② SNAPSHOT (page 1 only — single-page underwriting summary)
         // ════════════════════════════════════════════════════════════════════
@@ -1332,8 +1426,9 @@
         }
 
         // Risk flags
-        sectionLabel('Risk Flags');
-        y += severityBox('Risk flags · ranked', model.riskMarkers, MG, y, CW);
+        // No outer sectionLabel — severityBox draws its own filled header,
+        // and stacking two labels just creates visual noise.
+        y += severityBox('Risk Flags · Ranked by Severity', model.riskMarkers, MG, y, CW);
         y += 8;
 
         // Coverage at a glance — home #1 only
@@ -1829,6 +1924,627 @@
             }
         }
 
+        }   // ← end of `if (layout === 'summary')` body branch
+
+        // ════════════════════════════════════════════════════════════════════
+        //  FACT FINDER BODY — sections §1-§18 in EZLynx app order
+        // ════════════════════════════════════════════════════════════════════
+        // Source of truth for section + field order: js/ezlynx-tool.js
+        // `formFields[]` (lines 59-86). Field labels mirror that array's
+        // `keyMap` so an agent transcribing into EZLynx pattern-matches the
+        // PDF text to the EZLynx field label without a mental translation.
+        //
+        // HawkSoft CMSMTF has no canonical UI screen order (most fields land
+        // in `gen_sClientMiscData[*]` catch-alls), so we organize by EZLynx
+        // primary and the HawkSoft agent still gets a sensible top-to-bottom
+        // read.
+        if (layout === 'factfinder') {
+            const ff_homes = homes;
+            const ff_autos = autos;
+            const ff_boats = boats;
+            const ff_rvs = rvs;
+            const ff_operators = operators;
+            const ff_co = v2.coApplicant || {};
+            const ff_household = v2.household || {};
+            const ff_pi = v2.priorInsurance || {};
+            const ff_dc = v2.discounts || {};
+            const ff_hist = v2.history || {};
+
+            // ── Compressed page-1 COVER (3-line risk + 3-line actions) ─────
+            // The hero card already drew above. Add a tight three-block cover:
+            // carrier-fit grid + top-3 risks + top-3 action items + an
+            // instruction strip directing the agent to the body sections.
+
+            // Carrier-fit grid (same 2x2 as summary, smaller height budget)
+            if (model.carrierFit.length) {
+                sectionLabel('Carrier Fit');
+                y += statusGrid(model.carrierFit, MG, y, CW);
+                y += 6;
+            }
+
+            // Top-3 risk callouts as bracketed-flag text (no severity bars)
+            if (model.riskMarkers.length) {
+                sectionLabel('Top Risk Flags');
+                doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                const tags = { high: '[HIGH] ', med: '[MED]  ', low: '[LOW]  ', pos: '[+]    ' };
+                model.riskMarkers.slice(0, 3).forEach(m => {
+                    need(12);
+                    doc.text(`${tags[m.severity] || '[ ]    '}${m.text}`, MG, y + 9);
+                    y += 12;
+                });
+                y += 4;
+            }
+
+            // Top-3 action items, plain numbered text (no checkboxes here)
+            if (model.actionItems.length) {
+                sectionLabel('Top Action Items');
+                doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                model.actionItems.slice(0, 3).forEach((it, i) => {
+                    need(12);
+                    const tag = it.source === 'deferred' ? ' [DEFER]'
+                        : it.source === 'talktrack' ? ' [RULE]'
+                        : '';
+                    doc.text(`${i + 1}. ${it.text}${tag}`, MG, y + 9);
+                    y += 12;
+                });
+                y += 6;
+            }
+
+            // Instruction strip
+            need(28);
+            setColor('setFillColor', PALETTE.FILL);
+            fillRect(MG, y, CW, 22);
+            setColor('setFillColor', PALETTE.ACCENT);
+            fillRect(MG, y, 3, 22);
+            doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+            setColor('setTextColor', PALETTE.INK);
+            doc.text('FACT FINDER', MG + 10, y + 9);
+            doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+            setColor('setTextColor', PALETTE.MID);
+            doc.text('Numbered sections below mirror the EZLynx Personal Lines screen order — read top to bottom while filling.', MG + 10, y + 18);
+            y += 26;
+
+            // Force the body to begin on page 2
+            doc.addPage();
+            y = MG;
+
+            // ── Section helpers ────────────────────────────────────────────
+            let sectionCounter = 0;
+            function ffSection(title) {
+                sectionCounter += 1;
+                need(28);
+                y += sectionBand(sectionCounter, title, MG, y, CW);
+                y += 6;
+            }
+
+            // Render a key/value grid but only include rows with values.
+            // Wraps the existing kvRow with a "drop empties" pre-filter so
+            // the fact-finder block-height stays predictable.
+            function ffRow(fields, cols) {
+                const filled = fields.filter(([, v]) => v !== null && v !== undefined && v !== '' && v !== false);
+                if (!filled.length) return;
+                kvRow(filled, cols || 2);
+            }
+
+            // ── §1 APPLICANT ──────────────────────────────────────────────
+            ffSection('Applicant');
+            const ffPrimaryDriver = ff_operators.find(o => o.isPrimaryApplicant) || ff_operators[0];
+            ffRow([
+                ['Prefix',          a.prefix],
+                ['First Name',      a.firstName],
+                ['Middle',          a.middleName],
+                ['Last Name',       a.lastName],
+                ['Suffix',          a.suffix],
+                ['Date of Birth',   fmtDate(a.dob)],
+                ['Gender',          a.gender],
+                ['Marital Status',  a.maritalStatus],
+                ['Phone',           a.phone],
+                ['Email',           a.email],
+                ['Education',       a.education],
+                ['Industry',        a.industry],
+                ['Occupation',      a.occupation],
+                ['Employer',        a.employerName],
+                ['Yrs Employed',    a.yearsEmployed],
+                ['SSN',             a.ssn ? '••• •• ' + String(a.ssn).slice(-4) : ''],
+                ['License Number',  ffPrimaryDriver && ffPrimaryDriver.dl && ffPrimaryDriver.dl.num],
+                ['DL State',        ffPrimaryDriver && ffPrimaryDriver.dl && ffPrimaryDriver.dl.state],
+            ], 3);
+
+            // ── §2 CO-APPLICANT ───────────────────────────────────────────
+            if (ff_co.present || ff_co.firstName || ff_co.lastName) {
+                ffSection('Co-Applicant');
+                ffRow([
+                    ['Relationship',   ff_co.relationship],
+                    ['Prefix',         ff_co.prefix],
+                    ['First Name',     ff_co.firstName],
+                    ['Last Name',      ff_co.lastName],
+                    ['Suffix',         ff_co.suffix],
+                    ['Date of Birth',  fmtDate(ff_co.dob)],
+                    ['Gender',         ff_co.gender],
+                    ['Marital Status', ff_co.maritalStatus],
+                    ['Phone',          ff_co.phone],
+                    ['Email',          ff_co.email],
+                    ['Education',      ff_co.education],
+                    ['Industry',       ff_co.industry],
+                    ['Occupation',     ff_co.occupation],
+                ], 3);
+            }
+
+            // ── §3 ADDRESS ────────────────────────────────────────────────
+            ffSection('Address');
+            ffRow([
+                ['Street',           addr.street],
+                ['City',             addr.city],
+                ['State',            addr.state],
+                ['Zip',              addr.zip],
+                ['County',           addr.county],
+                ['Years at Address', addr.yearsAt],
+            ], 3);
+            const ff_prev = addr.previous || {};
+            if (ff_prev.street || ff_prev.city) {
+                doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text('PREVIOUS ADDRESS', MG, y + 8);
+                y += 12;
+                ffRow([
+                    ['Street', ff_prev.street],
+                    ['City',   ff_prev.city],
+                    ['State',  ff_prev.state],
+                    ['Zip',    ff_prev.zip],
+                ], 3);
+            }
+
+            // ── §4 HOUSEHOLD ──────────────────────────────────────────────
+            ffSection('Household');
+            ffRow([
+                ['TCPA Consent',         ff_household.tcpaConsent ? 'Yes' : 'No'],
+                ['Credit Check Auth',    ff_household.creditCheckAuth ? 'Yes' : 'No'],
+                ['Preferred Contact',    ff_household.contactMethod],
+                ['Best Time to Call',    ff_household.contactTime],
+                ['Referral Source',      ff_household.referralSource],
+                ['Homeownership',        ff_household.homeownership],
+            ], 3);
+
+            // ── §5 AUTO POLICY ────────────────────────────────────────────
+            if (ff_autos.length) {
+                ffSection('Auto Policy');
+                const ff_paut = ff_pi.auto || {};
+                ffRow([
+                    ['Policy Term',           '6 Month'],
+                    ['Effective Date',        fmtDate(ff_paut.exp || '')],
+                    ['Prior Carrier',         ff_paut.carrier],
+                    ['Prior Policy Term',     ff_paut.years || ''],
+                    ['Prior Years w/ Carrier',ff_paut.years],
+                    ['Prior Months',          ff_paut.months],
+                    ['Continuous Coverage',   ff_pi.continuous],
+                    ['Continuous Months',     ff_pi.continuousMonths],
+                    ['Prior Expiration',      fmtDate(ff_paut.exp)],
+                    ['Prior Liability Limits',ff_paut.limits],
+                ], 3);
+            }
+
+            // ── §6 AUTO COVERAGE ──────────────────────────────────────────
+            if (ff_autos.length) {
+                ffSection('Auto Coverage');
+                // Pull general from first auto's coverages — EZLynx treats most
+                // limits as policy-wide with per-vehicle deductibles.
+                const c0 = (ff_autos[0] && ff_autos[0].coverages) || {};
+                const liab = String(c0.liab || '');
+                const bipd = liab.match(/^(\d+\/\d+)\/(\d+)$/);
+                const bi = bipd ? bipd[1] : liab;
+                // BI per-person/per-accident is the split-limits shorthand
+                // ("100/300"). PD is the third segment in thousands, so
+                // "100" → "$100,000" rendered. Send EZLynx the raw dollar
+                // amount it expects in the Property Damage dropdown.
+                const pdK = bipd ? parseInt(bipd[2], 10) : null;
+                const pdFmt = (pdK && Number.isFinite(pdK)) ? '$' + (pdK * 1000).toLocaleString() : '';
+                const isWA = (addr.state || '').toUpperCase() === 'WA';
+                ffRow([
+                    ['Bodily Injury',       bi],
+                    ['Property Damage',     pdFmt],
+                    ['UM Bodily Injury',    c0.umuim],
+                    ['UM Property Damage',  pdFmt],
+                    ['UIM Bodily Injury',   c0.umuim],
+                    ['Med Payments Auto',   fmtMoney(c0.medpay)],
+                    ['Multi-Car',           ff_autos.length > 1 ? 'Yes' : ''],
+                    ['Multi-Policy',        ff_homes.length ? 'Yes' : ''],
+                    ['WA-PIP (state)',      isWA ? '$10,000' : ''],
+                ], 3);
+            }
+
+            // ── §7 RESIDENCE ──────────────────────────────────────────────
+            ffSection('Residence');
+            ffRow([
+                ['Num Residents', String(ff_operators.length || '')],
+                ['Residence Is',  ff_household.homeownership || (ff_homes.length ? 'Own home' : '')],
+            ], 2);
+
+            // ── §8 DRIVERS ────────────────────────────────────────────────
+            if (ff_operators.length) {
+                ffSection('Drivers');
+                ff_operators.forEach((op, i) => {
+                    const dl = op.dl || {};
+                    // Per-operator violations/losses count
+                    const myViolations = (ff_hist.violations || []).filter(V => V.operatorId === op.id).length;
+                    const myLosses = (ff_hist.losses || []).filter(L => L.operatorId === op.id).length;
+                    // Date Licensed derived from DOB + yearsAuto
+                    let dateLicensed = '';
+                    if (op.dob && dl.yearsAuto) {
+                        const m = String(op.dob).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+                        const yrs = parseInt(dl.yearsAuto, 10);
+                        if (m && Number.isFinite(yrs) && yrs > 0 && yrs < 100) {
+                            const licYr = new Date().getFullYear() - yrs;
+                            dateLicensed = `${m[2]}/${m[3]}/${licYr}`;
+                        }
+                    }
+                    const name = `Driver #${i + 1}  ·  ${[op.firstName, op.lastName].filter(Boolean).join(' ') || 'Operator'}`;
+                    const flags = [];
+                    if (op.isPrimaryApplicant) flags.push('Primary');
+                    if (op.isCoApplicant)      flags.push('Co-Applicant');
+                    if (op.sr22Required)       flags.push('SR-22 / FR-44');
+                    if (op.licenseSuspended5y) flags.push('Suspended 5y');
+                    if (op.goodStudent)        flags.push('Good Student');
+                    if (op.distantStudent)     flags.push('Distant Student');
+                    if (op.matureDriver)       flags.push('Mature');
+                    if (op.defensiveDriving)   flags.push('DDC');
+                    assetCard(name + (flags.length ? '   ·   ' + flags.join(' · ') : ''), [
+                        ['First Name',     op.firstName],
+                        ['Last Name',      op.lastName],
+                        ['Date of Birth',  fmtDate(op.dob)],
+                        ['Gender',         op.gender],
+                        ['Marital Status', op.maritalStatus],
+                        ['License Number', dl.num],
+                        ['DL State',       dl.state],
+                        ['DL Status',      dl.status],
+                        ['Date Licensed',  dateLicensed],
+                        ['Age Licensed',   dl.ageLicensed],
+                        ['Relationship',   op.relationship],
+                        ['Occupation',     op.occupation],
+                        ['Industry',       op.industry],
+                        ['Education',      op.education],
+                        ['DDC Date',       fmtDate(op.defensiveDrivingAt)],
+                        ['MVR Status',     op.mvrStatus],
+                        ['Accidents',      myLosses || ''],
+                        ['Violations',     myViolations || ''],
+                    ]);
+                });
+            }
+
+            // ── §9 VEHICLES ───────────────────────────────────────────────
+            if (ff_autos.length) {
+                ffSection('Vehicles');
+                ff_autos.forEach((v, i) => {
+                    const primary = ff_operators.find(o => o.id === v.primaryOperatorId);
+                    const adds = (v.additionalOperatorIds || []).map(id => ff_operators.find(o => o.id === id))
+                        .filter(Boolean)
+                        .map(o => `${o.firstName || ''} ${o.lastName || ''}`.trim())
+                        .join(', ');
+                    const lh = v.lienHolder || {};
+                    const cov = v.coverages || {};
+                    const title = `Vehicle #${i + 1}  ·  ${[v.year, v.make, v.model].filter(Boolean).join(' ') || 'Vehicle'}`;
+                    assetCard(title, [
+                        ['Year',           v.year],
+                        ['Make',           v.make],
+                        ['Model',          v.model],
+                        ['VIN',            v.vin],
+                        ['License Plate',  v.licensePlate],
+                        ['Plate State',    v.plateState],
+                        ['Garaging Zip',   v.garagingZip],
+                        ['Vehicle Use',    v.useType],
+                        ['Annual Miles',   v.annualMiles],
+                        ['One-Way Miles',  v.oneWayMiles],
+                        ['Days/Week',      v.daysPerWeek],
+                        ['Ownership Type', v.ownership],
+                        ['Anti-Theft',     v.antiTheftDevice],
+                        ['Purchase Date',  fmtDate(v.purchaseDate)],
+                        ['Original Owner', v.originalOwner ? 'Yes' : ''],
+                        ['Existing Damage',v.existingDamage && v.existingDamage !== 'None' ? v.existingDamage : ''],
+                        ['Primary Driver', primary ? `${primary.firstName || ''} ${primary.lastName || ''}`.trim() : ''],
+                        ['Additional',     adds],
+                        ['Comprehensive',  cov.compDed],
+                        ['Collision',      cov.collDed],
+                        ['Towing',         cov.towingDed],
+                        ['Rental Reimb',   cov.rentalDed],
+                        ['Lien Holder',    lh.name],
+                        ['Lien Address',   lh.address],
+                        ['Loan / Lease #', lh.loanNumber],
+                    ]);
+                });
+            }
+
+            // ── §10 HOME DWELLING ─────────────────────────────────────────
+            if (ff_homes.length) {
+                ffSection('Home Dwelling');
+                ff_homes.forEach((h, i) => {
+                    const hz = h.hazards || {};
+                    const sys = h.systems || {};
+                    const roof = h.roof || {};
+                    const title = `Home #${i + 1}` + (h.address ? `  ·  ${h.address}` : '');
+                    assetCard(title, [
+                        ['Year Built',         h.yrBuilt],
+                        ['Dwelling Type',      h.dwellingType],
+                        ['Dwelling Use',       h.dwellingUsage],
+                        ['Occupancy Type',     h.occupancyType],
+                        ['Stories',            h.numStories],
+                        ['Construction',       h.construction],
+                        ['Exterior Walls',     h.exterior],
+                        ['Foundation Type',    h.foundation],
+                        ['Sq Ft',              h.sqFt],
+                        ['Lot Size',           h.lotSize],
+                        ['Bedrooms',           h.bedrooms],
+                        ['Num Full Baths',     h.fullBaths],
+                        ['Num Half Baths',     h.halfBaths],
+                        ['Num Occupants',      h.numOccupants],
+                        ['Roof Type',          roof.type],
+                        ['Roof Design',        roof.shape],
+                        ['Roof Year',          roof.yr],
+                        ['Heating Type',       sys.heatingType],
+                        ['Cooling',            sys.coolingType],
+                        ['Plumbing Yr',        sys.plumbingYr],
+                        ['Electrical Yr',      sys.electricalYr],
+                        ['Garage Type',        h.garage && h.garage.type],
+                        ['Garage Spaces',      h.garage && h.garage.spaces],
+                        ['Burglar Alarm',      hz.alarms],
+                        ['Fire Detection',     hz.alarms === 'Central Station' ? 'Central' : hz.alarms],
+                        ['Protection Class',   hz.protectionClass],
+                        ['Feet from Hydrant',  hz.fireHydrantFeet],
+                        ['Fire Station Dist',  hz.fireStationDist && `${hz.fireStationDist} mi`],
+                        ['Pool',               hz.pool ? 'Yes' : 'No'],
+                        ['Trampoline',         hz.trampoline ? 'Yes' : 'No'],
+                        ['Wood/Pellet Stove',  hz.woodStove ? 'Yes' : 'No'],
+                        ['Business On Prem',   hz.businessOnPremises ? 'Yes' : 'No'],
+                        ['Dogs',               hz.dogs],
+                        ['Purchase Date',      fmtDate(h.purchaseDate)],
+                    ]);
+                });
+            }
+
+            // ── §11 HOME COVERAGE ─────────────────────────────────────────
+            if (ff_homes.length) {
+                ffSection('Home Coverage');
+                const ff_phome = ff_pi.home || {};
+                ff_homes.forEach((h, i) => {
+                    const cov = h.coverages || {};
+                    const dwelling = (h.dwellingType || '').toLowerCase();
+                    const policyType = dwelling.includes('condo') ? 'HO6'
+                        : (h.occupancyType || '').toLowerCase().includes('tenant') ? 'HO4'
+                        : 'HO3';
+                    assetCard(`Home #${i + 1} Coverage`, [
+                        ['Home Policy Type',          policyType],
+                        ['Prior Home Carrier',        ff_phome.carrier],
+                        ['Prior Policy Term',         ff_phome.years ? `${ff_phome.years} yrs` : ''],
+                        ['Prior Years',               ff_phome.years],
+                        ['Prior Expiration',          fmtDate(ff_phome.exp)],
+                        ['Dwelling Coverage (A)',     fmtMoney(cov.dwellingA)],
+                        ['Other Structures (B)',      fmtMoney(cov.otherStructuresB)],
+                        ['Home Personal Property (C)',fmtMoney(cov.personalPropertyC)],
+                        ['Home Loss of Use (D)',      fmtMoney(cov.lossOfUseD)],
+                        ['Personal Liability (E)',    fmtMoney(cov.liabilityE)],
+                        ['Medical Payments (F)',      fmtMoney(cov.medPayF)],
+                        ['All Perils Deductible',     fmtMoney(cov.deductible)],
+                        ['Wind Deductible',           cov.windHailDeductible],
+                        ['Theft Deductible',          ''],
+                        ['Settlement Type',           cov.replacementType],
+                    ]);
+                });
+            }
+
+            // ── §12 HOME ENDORSEMENTS (pill row) ─────────────────────────
+            if (ff_homes.length) {
+                const allEndorsements = [];
+                ff_homes.forEach((h, i) => {
+                    const end = h.endorsements || {};
+                    const active = [];
+                    if (end.waterBackup)        active.push('Water Backup');
+                    if (end.equipmentBreakdown) active.push('Equipment Breakdown');
+                    if (end.serviceLine)        active.push('Service Line');
+                    if (end.scheduledProperty)  active.push('Scheduled Property');
+                    if (end.ordinanceLaw)       active.push('Ordinance/Law');
+                    if (end.identityTheft)      active.push('Identity Theft');
+                    if (active.length) allEndorsements.push({ home: i + 1, active });
+                });
+                if (allEndorsements.length) {
+                    ffSection('Home Endorsements');
+                    allEndorsements.forEach(e => {
+                        doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+                        setColor('setTextColor', PALETTE.MID);
+                        doc.text(`HOME #${e.home}`, MG + 2, y + 8);
+                        y += 12;
+                        y += pillRow(e.active, MG + 2, y, CW - 4, { filled: true });
+                        y += 6;
+                    });
+                }
+            }
+
+            // ── §13 MORTGAGEE / LIEN HOLDERS ─────────────────────────────
+            const ff_holders = [];
+            ff_homes.forEach((h, i) => {
+                const m = h.mortgageCompany || {};
+                if (m.name) ff_holders.push({ type: 'Mortgagee', tag: `Home #${i + 1}`, name: m.name, address: m.address, loan: m.loanNumber });
+            });
+            ff_autos.forEach((a, i) => {
+                const l = a.lienHolder || {};
+                if (l.name) ff_holders.push({ type: 'Lien Payee', tag: `Auto #${i + 1}`, name: l.name, address: l.address, loan: l.loanNumber });
+            });
+            ff_boats.forEach((b, i) => {
+                const l = b.lienHolder || {};
+                if (l.name) ff_holders.push({ type: 'Lien Payee', tag: `Boat #${i + 1}`, name: l.name, address: l.address, loan: l.loanNumber });
+            });
+            ff_rvs.forEach((r, i) => {
+                const l = r.lienHolder || {};
+                if (l.name) ff_holders.push({ type: 'Lien Payee', tag: `RV #${i + 1}`, name: l.name, address: l.address, loan: l.loanNumber });
+            });
+            if (ff_holders.length) {
+                ffSection('Mortgagee / Lien Holders');
+                ff_holders.forEach(h => {
+                    ffRow([
+                        ['Type',     h.type],
+                        ['Asset',    h.tag],
+                        ['Name',     h.name],
+                        ['Address',  h.address],
+                        ['Loan #',   h.loan],
+                    ], 3);
+                });
+            }
+
+            // ── §14 BOATS & RVs ──────────────────────────────────────────
+            if (ff_boats.length || ff_rvs.length) {
+                ffSection('Boats & RVs');
+                ff_boats.forEach((b, i) => {
+                    const cov = b.coverages || {};
+                    const lh = b.lienHolder || {};
+                    const title = `${b.kind === 'pwc' ? 'PWC' : 'Boat'} #${i + 1}  ·  ${[b.year, b.make, b.model].filter(Boolean).join(' ') || 'Boat'}`;
+                    assetCard(title, [
+                        ['Year',          b.year],
+                        ['Make',          b.make],
+                        ['Model',         b.model],
+                        ['Length',        b.length],
+                        ['HIN',           b.hin],
+                        ['Hull Material', b.hullMaterial],
+                        ['Hull Design',   b.hullDesign],
+                        ['Propulsion',    b.propulsion],
+                        ['Engines',       b.engineCount],
+                        ['Total HP',      b.totalHP],
+                        ['Mooring ZIP',   b.mooringZip],
+                        ['Waters',        b.navigationWaters],
+                        ['Lay-Up Months', b.layUpMonths],
+                        ['Market Value',  fmtMoney(b.marketValue)],
+                        ['Hull Settlement', cov.hullValueType],
+                        ['Liability',     fmtMoney(cov.liabilityLimit)],
+                        ['Deductible',    fmtMoney(cov.deductible)],
+                        ['Med Pay',       fmtMoney(cov.medPay)],
+                        ['Unins. Boater', fmtMoney(cov.umBoater)],
+                        ['Fuel Spill',    cov.fuelSpillIncluded ? 'Yes' : 'No'],
+                        ['Lien Holder',   lh.name],
+                        ['Loan #',        lh.loanNumber],
+                    ]);
+                });
+                ff_rvs.forEach((r, i) => {
+                    const cov = r.coverages || {};
+                    const lh = r.lienHolder || {};
+                    const flags = [];
+                    if (r.fullTimer)        flags.push('Full-timer');
+                    if (r.stationary)       flags.push('Stationary');
+                    if (r.rentalCharter)    flags.push('Rental/Charter');
+                    if (r.totalLossReplacementRequested) flags.push('Total Loss Replacement');
+                    const title = `RV #${i + 1}  ·  ${[r.year, r.make, r.model].filter(Boolean).join(' ') || 'RV'}  ·  Class ${r.class || '?'}`;
+                    assetCard(title + (flags.length ? '   ·   ' + flags.join(' · ') : ''), [
+                        ['Year',          r.year],
+                        ['Make',          r.make],
+                        ['Model',         r.model],
+                        ['Length',        r.length],
+                        ['VIN',           r.vin],
+                        ['Garaging Zip',  r.garagingZip],
+                        ['Market Value',  fmtMoney(r.marketValue)],
+                        ['Comp Ded',      fmtMoney(cov.compDeductible)],
+                        ['Coll Ded',      fmtMoney(cov.collDeductible)],
+                        ['Liability',     cov.liabilityLimit],
+                        ['Vacation Liab', cov.vacationLiability ? 'Yes' : ''],
+                        ['UM/UIM',        cov.umuim],
+                        ['Med Pay',       fmtMoney(cov.medPay)],
+                        ['Pers. Effects', fmtMoney(cov.personalEffects)],
+                        ['Awning Damage', cov.awningDamage ? 'Yes' : ''],
+                        ['Lien Holder',   lh.name],
+                        ['Loan #',        lh.loanNumber],
+                    ]);
+                });
+            }
+
+            // ── §15 HISTORY ──────────────────────────────────────────────
+            ffSection('Loss & Violation History (35 mo)');
+            if (ff_hist.hasCleanHistory) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text('Clean record (all operators)', MG + 2, y + 10);
+                doc.setFont('helvetica', 'normal');
+                y += 16;
+            } else if ((ff_hist.losses || []).length || (ff_hist.violations || []).length) {
+                const events = [];
+                (ff_hist.losses || []).forEach(L => {
+                    const op = ff_operators.find(o => o.id === L.operatorId);
+                    events.push({
+                        date: L.date,
+                        type: L.type + (L.amount ? ` ($${L.amount})` : '') + (L.asset ? ` · ${L.asset}` : ''),
+                        operatorName: op ? `${op.firstName || ''} ${op.lastName || ''}`.trim() : '',
+                        severity: 'med',
+                    });
+                });
+                (ff_hist.violations || []).forEach(V => {
+                    const op = ff_operators.find(o => o.id === V.operatorId);
+                    events.push({
+                        date: V.date,
+                        type: V.type,
+                        operatorName: op ? `${op.firstName || ''} ${op.lastName || ''}`.trim() : '',
+                        severity: 'low',
+                    });
+                });
+                events.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+                const now = new Date();
+                const start = new Date(now.getFullYear(), now.getMonth() - 35, 1);
+                y += timelineStrip(events, start, now, MG, y, CW);
+                y += 6;
+            } else {
+                doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text('No incidents reported yet', MG + 2, y + 10);
+                doc.setFont('helvetica', 'normal');
+                y += 16;
+            }
+
+            // ── §16 DISCOUNTS & AFFINITY ─────────────────────────────────
+            const ff_discList = [];
+            if (ff_dc.homeowner)                            ff_discList.push('Homeowner');
+            if (ff_dc.safetyCourse && ff_dc.safetyCourse.auto) ff_discList.push('Defensive Driver');
+            if (ff_dc.safetyCourse && ff_dc.safetyCourse.boat) ff_discList.push('Boater Safety');
+            if (ff_dc.safetyCourse && ff_dc.safetyCourse.rv)   ff_discList.push('RV Safety');
+            const ff_affList = [];
+            if (ff_dc.affinity && ff_dc.affinity.usaa)     ff_affList.push('USAA');
+            if (ff_dc.affinity && ff_dc.affinity.hog)      ff_affList.push('HOG');
+            if (ff_dc.affinity && ff_dc.affinity.uscgAux)  ff_affList.push('USCG Aux');
+            if (ff_dc.affinity && ff_dc.affinity.usps)     ff_affList.push('USPS');
+            if (ff_discList.length || ff_affList.length) {
+                ffSection('Discounts & Affinity');
+                if (ff_discList.length) {
+                    doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text('DISCOUNTS', MG + 2, y + 8);
+                    y += 12;
+                    y += pillRow(ff_discList, MG + 2, y, CW - 4, { filled: true });
+                    y += 6;
+                }
+                if (ff_affList.length) {
+                    doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text('AFFINITY GROUPS', MG + 2, y + 8);
+                    y += 12;
+                    y += pillRow(ff_affList, MG + 2, y, CW - 4, { filled: true });
+                    y += 6;
+                }
+            }
+
+            // ── §17 PRODUCER ACTION ITEMS — FULL LIST ────────────────────
+            if (model.actionItems && model.actionItems.length) {
+                ffSection(`Producer Action Items — Full List (${model.actionItems.length})`);
+                y += checklist(model.actionItems, MG, y, CW, model.actionItems.length);
+                y += 4;
+            }
+
+            // ── §18 AGENT NOTES ──────────────────────────────────────────
+            if (v2.notes && v2.notes.freeText) {
+                ffSection('Agent Notes');
+                doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                const lines = has(doc, 'splitTextToSize') ? doc.splitTextToSize(String(v2.notes.freeText), CW) : [String(v2.notes.freeText)];
+                for (const line of lines) {
+                    need(13);
+                    doc.text(line, MG, y + 4);
+                    y += 12;
+                }
+            }
+        }
+
         // ════════════════════════════════════════════════════════════════════
         //  PAGE FOOTER ON EVERY PAGE
         // ════════════════════════════════════════════════════════════════════
@@ -1849,7 +2565,7 @@
                     // forth in a printed packet to know which view they're
                     // looking at.
                     const pageText = i === 1
-                        ? `Snapshot · Page 1 of ${total}`
+                        ? `${layout === 'factfinder' ? 'Cover' : 'Snapshot'} · Page 1 of ${total}`
                         : `Page ${i} of ${total}`;
                     const pageTextW = has(doc, 'getTextWidth') ? doc.getTextWidth(pageText) : 0;
                     doc.text(pageText, (PAGE_W - pageTextW) / 2, PAGE_H - 12);

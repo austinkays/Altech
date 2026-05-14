@@ -24,16 +24,32 @@
 (function () {
 
 // ─── PDF orchestrator ─────────────────────────────────────────────────────
-async function exportPDF() {
+// Two layouts ship side-by-side:
+//   - 'summary'    — underwriting snapshot + dense detail dossier (default,
+//                    matches existing UI muscle memory).
+//   - 'factfinder' — EZLynx Personal Lines app-order layout for agents who
+//                    are actively transcribing into a carrier rater.
+async function exportPDF(opts) {
+    opts = opts || {};
+    const layout = (opts.layout === 'factfinder') ? 'factfinder' : 'summary';
     try {
         if (!window.IntakeV2PDFBuilder) throw new Error('IntakeV2PDFBuilder not loaded');
-        const doc = await window.IntakeV2PDFBuilder.buildIntakeV2PDF(window.IntakeV2.data);
-        const name = window.IntakeV2PDFBuilder.pdfFilename(window.IntakeV2.data);
+        const doc = await window.IntakeV2PDFBuilder.buildIntakeV2PDF(window.IntakeV2.data, { layout });
+        const suffix = layout === 'factfinder' ? 'factfinder' : 'summary';
+        const baseName = window.IntakeV2PDFBuilder.pdfFilename(window.IntakeV2.data);
+        // Inject the layout suffix into the filename before `.pdf` so the
+        // agent can keep summary + fact-finder side-by-side without
+        // overwriting.
+        const name = baseName.replace(/\.pdf$/i, `_${suffix}.pdf`);
         doc.save(name);
-        if (window.App && window.App.logExport) window.App.logExport('Intake v2 PDF', name);
+        if (window.App && window.App.logExport) {
+            window.App.logExport(`Intake v2 PDF (${layout})`, name);
+        }
         if (window.ActivityLog) window.ActivityLog.add({
             type: 'export', area: 'intake-v2', ok: true,
-            message: 'PDF intake summary downloaded',
+            message: layout === 'factfinder'
+                ? 'PDF fact finder downloaded'
+                : 'PDF intake summary downloaded',
         });
     } catch (err) {
         // eslint-disable-next-line no-console
@@ -44,10 +60,13 @@ async function exportPDF() {
     }
 }
 
+async function exportPDFSummary()    { return exportPDF({ layout: 'summary' }); }
+async function exportPDFFactFinder() { return exportPDF({ layout: 'factfinder' }); }
+
 // Public alias for tests + CommandPalette
-async function buildIntakeV2PDF(data) {
+async function buildIntakeV2PDF(data, opts) {
     if (!window.IntakeV2PDFBuilder) throw new Error('IntakeV2PDFBuilder not loaded');
-    return window.IntakeV2PDFBuilder.buildIntakeV2PDF(data);
+    return window.IntakeV2PDFBuilder.buildIntakeV2PDF(data, opts);
 }
 
 // ─── CMSMTF orchestrator (native) ─────────────────────────────────────────
@@ -193,7 +212,9 @@ async function saveAsQuote() {
     }
 }
 
-window.IntakeV2.exportPDF        = exportPDF;
+window.IntakeV2.exportPDF             = exportPDF;
+window.IntakeV2.exportPDFSummary      = exportPDFSummary;
+window.IntakeV2.exportPDFFactFinder   = exportPDFFactFinder;
 window.IntakeV2.exportCMSMTF     = exportCMSMTF;
 window.IntakeV2.exportEZLynxXML  = exportEZLynxXML;
 window.IntakeV2.saveAsQuote      = saveAsQuote;
@@ -202,7 +223,8 @@ window.IntakeV2.buildIntakeV2PDF = buildIntakeV2PDF;
 // Register CommandPalette entries once on boot
 window.IntakeV2.onBoot(function () {
     if (!window.CommandPalette || typeof window.CommandPalette.register !== 'function') return;
-    window.CommandPalette.register({ id: 'intakev2.export.pdf',     label: 'Intake v2 — Export PDF',          icon: '📄', run: () => window.IntakeV2.exportPDF() });
+    window.CommandPalette.register({ id: 'intakev2.export.pdf',             label: 'Intake v2 — Export PDF Summary',     icon: '📄', run: () => window.IntakeV2.exportPDFSummary() });
+    window.CommandPalette.register({ id: 'intakev2.export.pdf-factfinder',  label: 'Intake v2 — Export PDF Fact Finder', icon: '📋', run: () => window.IntakeV2.exportPDFFactFinder() });
     window.CommandPalette.register({ id: 'intakev2.export.cmsmtf',  label: 'Intake v2 — Export HawkSoft (home/auto)', icon: '📤', run: () => window.IntakeV2.exportCMSMTF() });
     window.CommandPalette.register({ id: 'intakev2.export.ezlynx',  label: 'Intake v2 — Export EZLynx XML (home/auto)', icon: '⚡', run: () => window.IntakeV2.exportEZLynxXML() });
     window.CommandPalette.register({ id: 'intakev2.save-as-quote',  label: 'Intake v2 — Save as quote', icon: '💾', run: () => window.IntakeV2.saveAsQuote() });

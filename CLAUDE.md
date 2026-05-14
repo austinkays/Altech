@@ -543,6 +543,23 @@ Registrations are idempotent on `id` (re-registering replaces). The palette auto
 
 ---
 
+## Intake v2 PDF — Summary vs. Fact Finder
+
+Intake v2 ships **two PDF layouts** through a single builder. The orchestrator (`js/intake-v2-export.js`) exposes them as `IntakeV2.exportPDFSummary()` (default — the legacy `IntakeV2.exportPDF()` aliases to this) and `IntakeV2.exportPDFFactFinder()`. Both call `IntakeV2PDFBuilder.buildIntakeV2PDF(data, { layout })` with `layout: 'summary' | 'factfinder'`. They share the header, hero card, footer, compute helpers, and all visual primitives — only the body branches.
+
+- **Summary** — underwriting snapshot on page 1 (carrier-fit grid, severity-density risk callouts, coverage A/B/C/D ratio bar, top-5 action items checklist) + dense detail dossier on pages 2+. The agent reads this when triaging a quote.
+- **Fact Finder** — compressed page-1 cover + numbered sections §1–§N in **EZLynx Personal Lines screen order** for top-to-bottom transcription. The agent reads this while filling EZLynx (or manually creating a HawkSoft client). Section order is anchored to `js/ezlynx-tool.js` `formFields[]` (lines 59-86); field labels mirror `keyMap` so the agent pattern-matches PDF text to the EZLynx field label without translation.
+
+**Source of truth for fact-finder section order**: `js/ezlynx-tool.js` `formFields[]`. When EZLynx reorders a screen, update `formFields[]` AND the section sequence in `buildIntakeV2PDF` (`layout === 'factfinder'` branch).
+
+**Filename convention**: `${first}_${last}_intake_${date}_summary.pdf` vs `..._factfinder.pdf` so agents can keep both side-by-side without overwriting.
+
+**Visual primitives** (all toner-friendly greyscale, all feature-detected via `has(doc, 'rect')` for JSDOM mock fallback): `statusGrid` (2×2 carrier-fit), `severityBox` (density-bar risk markers), `ratioBar` (Cov A baseline + B/C/D segments with single-letter labels for narrow segs), `pillChip`/`pillRow`, `timelineStrip` (35-month history), `checklist`, `operatorAssignmentGrid` (summary only), `sectionBand` (numbered fact-finder section header), `keystatRow`. All live in `js/intake-v2-export-pdf.js` and can be reused for future v2 exports.
+
+**Empty-state behavior**: sections without data are skipped entirely (no orphan headers). Section numbering renumbers sequentially as drawn — auto-only quotes show §1–§13, full bundles can reach §18. The cover instruction strip says "Numbered sections below mirror the EZLynx Personal Lines screen order" rather than naming a fixed range.
+
+---
+
 ## Plugins (`plugins/*.html`)
 
 Lazy-loaded HTML fragments injected into a container `<div>` by `App.navigateTo(key)`. Tool registry lives in `App.toolConfig[]` (`js/app-init.js`) — adding a tool requires both an entry there and a matching plugin HTML file + IIFE in `js/`.

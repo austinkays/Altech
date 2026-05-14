@@ -52,8 +52,13 @@ function deferredBlock(data) {
 function exportButtons(data) {
     const hasHomeAuto = (data.homes && data.homes.length) || (data.autos && data.autos.length);
     const dimAttr = hasHomeAuto ? '' : 'disabled title="Add a home or auto to enable HawkSoft / EZLynx exports"';
+    // Two PDF buttons: Summary (at-a-glance underwriting) and Fact Finder
+    // (EZLynx-app-order for transcription). Agents pick whichever workflow
+    // they're in. Both produce distinct downloads so they can be kept
+    // side-by-side without overwriting.
     return `<div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;">
-        <button type="button" class="iv2-add-btn" data-export="pdf">📄 Export PDF Summary</button>
+        <button type="button" class="iv2-add-btn" data-export="pdf-summary" title="Underwriting snapshot + dense detail dossier">📄 Export PDF Summary</button>
+        <button type="button" class="iv2-add-btn" data-export="pdf-factfinder" title="EZLynx Personal Lines app order — for transcription">📋 Export PDF Fact Finder</button>
         <button type="button" class="iv2-add-btn" data-export="cmsmtf" ${dimAttr}>📤 HawkSoft CMSMTF (home/auto)</button>
         <button type="button" class="iv2-add-btn" data-export="ezlynx" ${dimAttr}>⚡ EZLynx XML (home/auto)</button>
         <button type="button" class="iv2-add-btn is-ghost" data-export="save-quote">💾 Save as quote</button>
@@ -121,10 +126,12 @@ function render() {
     dyn.querySelectorAll('[data-export]').forEach(btn => {
         btn.addEventListener('click', () => {
             const which = btn.getAttribute('data-export');
-            if (which === 'pdf')        window.IntakeV2.exportPDF();
-            else if (which === 'cmsmtf')window.IntakeV2.exportCMSMTF();
-            else if (which === 'ezlynx')window.IntakeV2.exportEZLynxXML();
-            else if (which === 'save-quote') window.IntakeV2.saveAsQuote();
+            if (which === 'pdf-summary')         window.IntakeV2.exportPDFSummary();
+            else if (which === 'pdf-factfinder') window.IntakeV2.exportPDFFactFinder();
+            else if (which === 'pdf')            window.IntakeV2.exportPDFSummary(); // legacy alias
+            else if (which === 'cmsmtf')         window.IntakeV2.exportCMSMTF();
+            else if (which === 'ezlynx')         window.IntakeV2.exportEZLynxXML();
+            else if (which === 'save-quote')     window.IntakeV2.saveAsQuote();
         });
     });
 
