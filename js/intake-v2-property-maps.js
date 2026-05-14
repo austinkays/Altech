@@ -29,9 +29,26 @@ const THUMB_H = 240;     // Same 16:9-ish aspect ratio
 const STATIC_ZOOM = 19;  // v1's zoom level for property-level detail
 const DEBOUNCE_MS = 450; // Match v1's responsiveness budget
 
-const _attachTimers = new WeakMap();   // per-cardEl debounce timers
-const _lastAddresses = new WeakMap();  // last address rendered per cardEl (skip no-op refreshes)
-const _metaCache = new Map();          // address → { hasStreetView: boolean }
+// Key by home.id instead of the cardEl — `renderHomes` does
+// `root.innerHTML = ...` which replaces every cardEl, so a WeakMap
+// keyed by the old cardEl never matches the new one and the
+// no-op-skip never fires. Stable per-home key fixes that.
+const _attachTimers = new Map();        // home.id → debounce timer id
+const _lastAddresses = new Map();       // home.id → last rendered address (skip no-op refreshes)
+const _renderTokens = new Map();        // home.id → monotonically-increasing token (cancels in-flight renders)
+// LRU cap on the metadata cache so it doesn't grow unbounded across
+// a long agency session. 200 entries is far above the typical home
+// count per quote (≤5) and absorbs typo retries without thrashing.
+const META_CACHE_MAX = 200;
+const _metaCache = new Map();           // address → { hasStreetView: boolean }
+function _setMetaCache(address, value) {
+    if (_metaCache.size >= META_CACHE_MAX) {
+        // Evict the oldest entry (Map preserves insertion order). Cheap LRU.
+        const firstKey = _metaCache.keys().next().value;
+        if (firstKey !== undefined) _metaCache.delete(firstKey);
+    }
+    _metaCache.set(address, value);
+}
 
 function _esc(s) {
     return (window.Utils && window.Utils.escapeAttr) ? window.Utils.escapeAttr(String(s ?? '')) : String(s ?? '').replace(/"/g, '&quot;');
@@ -48,7 +65,7 @@ async function _hasStreetViewCoverage(address, apiKey) {
         if (!resp.ok) return true; // be optimistic — fall back to the image and let it 404 if it does
         const json = await resp.json();
         const ok = json && json.status === 'OK';
-        _metaCache.set(address, { hasStreetView: ok });
+        _setMetaCache(address, { hasStreetView: ok });
         return ok;
     } catch (_) {
         return true;
@@ -69,6 +86,17 @@ function _streetViewUrl2x(address, apiKey) {
 }
 
 async function _render(homeCardEl, home) {
+    // Render token cancels stale in-flight renders. Each new call to
+    // _render bumps the token; awaits below check it before each DOM
+    // write and bail if a later render has superseded this one. Without
+    // this, two quick address edits could race past the await on the
+    // API key / Street View metadata probe and both end up writing
+    // half-stale DOM to the same host element.
+    const homeKey = home && home.id;
+    const token = (_renderTokens.get(homeKey) || 0) + 1;
+    _renderTokens.set(homeKey, token);
+    const isCurrent = () => _renderTokens.get(homeKey) === token;
+
     // Find / create the thumbnails container — sits right above the
     // .iv2-field-grid so the agent sees visual confirmation of the
     // address before scrolling through the structural fields.
@@ -94,6 +122,7 @@ async function _render(homeCardEl, home) {
     host.style.display = '';
 
     const apiKey = window.IntakeV2MapsKey ? await window.IntakeV2MapsKey.get() : null;
+    if (!isCurrent()) return;
     if (!apiKey) {
         // No key (user signed out, endpoint down, dev environment).
         // Show a minimal placeholder so the agent isn't confused by an
@@ -139,6 +168,9 @@ async function _render(homeCardEl, home) {
     // metadata endpoint first.
     const svEl = host.querySelector('[data-thumb="streetview"]');
     const hasCoverage = await _hasStreetViewCoverage(address, apiKey);
+    // A later _render may have superseded this one while the metadata
+    // probe was in flight. Bail before writing to the (now stale) svEl.
+    if (!isCurrent()) return;
     if (!hasCoverage) {
         svEl.classList.remove('iv2-thumb-loading');
         svEl.innerHTML = `<div class="iv2-thumb-empty">No Street View coverage for this address.</div><span class="iv2-thumb-caption">Street View</span>`;
@@ -165,17 +197,22 @@ async function _render(homeCardEl, home) {
 
 function attach(homeCardEl, home) {
     if (!homeCardEl || !home) return;
+    const homeKey = home.id;
+    if (!homeKey) return;
     const address = home.address || '';
     // Skip no-op refreshes: re-rendering with the same address shouldn't
-    // re-fire the API calls. The map-thumbnails DOM stays in place
-    // through .innerHTML rewrites on the parent card.
-    if (_lastAddresses.get(homeCardEl) === address) return;
-    _lastAddresses.set(homeCardEl, address);
+    // re-fire the API calls. Keyed by home.id (NOT the cardEl) because
+    // `renderHomes` does `root.innerHTML = ...` which replaces every
+    // cardEl — a WeakMap keyed by the old cardEl would never match the
+    // new one and we'd refetch on every save.
+    if (_lastAddresses.get(homeKey) === address) return;
+    _lastAddresses.set(homeKey, address);
     // Debounce — protects against burst re-renders from rapid edits
     // (every keystroke in the address input fires setItemField, which
     // fires requestRerender, which calls attach again).
-    clearTimeout(_attachTimers.get(homeCardEl));
-    _attachTimers.set(homeCardEl, setTimeout(() => _render(homeCardEl, home), DEBOUNCE_MS));
+    const prev = _attachTimers.get(homeKey);
+    if (prev) clearTimeout(prev);
+    _attachTimers.set(homeKey, setTimeout(() => _render(homeCardEl, home), DEBOUNCE_MS));
 }
 
 function openSatellite(home) {

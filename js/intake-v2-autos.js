@@ -307,9 +307,18 @@ function _scheduleAutoDecode(input, btn) {
     }, 500);
 }
 
+// onBoot fires every time IntakeV2.init() runs (on each navigation to
+// the v2 tool, not just once per page-load). Without this guard the
+// delegated document listeners below would accumulate — re-navigating
+// to v2 five times means five duplicate click handlers, each running
+// the decode logic on every click. Module-scope boolean stops that.
+let _autosDelegatesWired = false;
+
 window.IntakeV2.onBoot(function () {
     this.registerRenderer('autos', renderAutos);
     renderAutos();
+    if (_autosDelegatesWired) return;
+    _autosDelegatesWired = true;
 
     // Delegated decode-button handler — wired once at boot. Uses
     // event delegation because the auto cards re-render on every

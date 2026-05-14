@@ -226,4 +226,34 @@ describe('IntakeV2SmartFill — extractVisionHazards', () => {
         expect(out.length).toBe(1);
         expect(out[0].id).toBe('treeOverhang');
     });
+
+    test('Lenient truthy detection — string "Yes" / number 1 / string "true" all surface a hazard', () => {
+        // Bug-hunt audit #7: vision boolean detection was strict
+        // (=== true) where ArcGIS is lenient. If the AI provider ever
+        // serializes booleans as strings or numbers, strict detection
+        // silently drops the hazard prompt. These cases pin the
+        // lenient detection that survives that drift.
+        for (const truthy of [true, 'true', 'Yes', 1, '1']) {
+            const out = SF.extractVisionHazards({ data: { has_pool: truthy } });
+            expect(out.length).toBe(1);
+            expect(out[0].id).toBe('pool');
+        }
+        // Brush is the inverse — false / 'false' / 'No' / 0 / '0' all
+        // mean "inadequate", which is the risk-flag direction.
+        for (const falsy of [false, 'false', 'No', 0, '0']) {
+            const out = SF.extractVisionHazards({ data: { brush_clearance_adequate: falsy } });
+            expect(out.length).toBe(1);
+            expect(out[0].id).toBe('brushClearance');
+        }
+    });
+
+    test('Null / undefined / missing brush clearance is NOT flagged (no evidence either way)', () => {
+        // "Adequate" defaults to null in the AI response when the
+        // imagery can't tell. Don't surface a hazard the agent has
+        // no basis to confirm.
+        for (const indeterminate of [null, undefined]) {
+            const out = SF.extractVisionHazards({ data: { brush_clearance_adequate: indeterminate } });
+            expect(out).toEqual([]);
+        }
+    });
 });

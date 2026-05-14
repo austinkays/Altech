@@ -85,11 +85,14 @@ async function handleKeys(req, res) {
     // per-call cost from here so a price change doesn't require a
     // client-side code edit. Falls back to defaults if the env vars
     // aren't set; v1's hardcoded "$0.50" string stays as the floor.
-    const rentcastPerCall  = parseFloat(process.env.RENTCAST_PER_CALL_USD || '0.50');
-    const rentcastFreeLimit = parseInt(process.env.RENTCAST_FREE_LIMIT || '50', 10);
+    // Clamp to non-negative values — a negative pricing string in env
+    // would otherwise sail through `parseFloat` + `Number.isFinite`
+    // and produce nonsense "${-0.50} per lookup" in the overage modal.
+    const rentcastPerCallRaw = parseFloat(process.env.RENTCAST_PER_CALL_USD || '0.50');
+    const rentcastFreeLimitRaw = parseInt(process.env.RENTCAST_FREE_LIMIT || '50', 10);
     const rentcastPricing = {
-        perCall: Number.isFinite(rentcastPerCall) ? rentcastPerCall : 0.50,
-        freeMonthlyLimit: Number.isFinite(rentcastFreeLimit) ? rentcastFreeLimit : 50,
+        perCall: Number.isFinite(rentcastPerCallRaw) && rentcastPerCallRaw >= 0 ? rentcastPerCallRaw : 0.50,
+        freeMonthlyLimit: Number.isFinite(rentcastFreeLimitRaw) && rentcastFreeLimitRaw >= 0 ? rentcastFreeLimitRaw : 50,
         currency: 'USD',
     };
 

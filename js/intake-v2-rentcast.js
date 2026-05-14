@@ -67,12 +67,27 @@ function _nextReset(periodDay) {
     return new Date(now.getFullYear(), now.getMonth() + 1, periodDay);
 }
 
+// Parse the v2 user_blobs payload back into the counter shape. Guards
+// against the case where SupabaseSync's row-AAD wrapper has stamped a
+// v=2 envelope (`{v:2, iv, ct}`) over the counter — that should never
+// happen for a plaintext metering blob, but if it ever did, the
+// envelope keys would look like `{count: undefined, periodDay:
+// undefined, periodStart: undefined}` and silently zero the counter
+// on every read. The explicit envelope check returns null so the
+// counter falls back to the {0,1,''} default instead.
+function _looksLikeAADEnvelope(o) {
+    return o && typeof o === 'object'
+        && o.v === 2 && typeof o.iv === 'string' && typeof o.ct === 'string';
+}
 async function _readBlob() {
     if (!window.Sync || typeof window.Sync.pullBlob !== 'function') return null;
     try {
         const blob = await window.Sync.pullBlob('rentcastUsage');
         if (!blob || !blob.ciphertext) return null;
-        try { return JSON.parse(blob.ciphertext); } catch { return null; }
+        let parsed = null;
+        try { parsed = JSON.parse(blob.ciphertext); } catch { return null; }
+        if (_looksLikeAADEnvelope(parsed)) return null;
+        return parsed;
     } catch (_) { return null; }
 }
 async function _writeBlob(payload) {
@@ -199,6 +214,14 @@ function _closeModal(answer) {
 }
 
 async function confirmOverage(address) {
+    // If a previous overage modal is still open (e.g. the Smart Scan
+    // button's busy guard failed and a second call came in), resolve
+    // the previous promise as a cancel before swapping the modal
+    // content — otherwise the previous caller's `await` hangs forever.
+    if (_pendingResolve) {
+        try { _pendingResolve(false); } catch (_) {}
+        _pendingResolve = null;
+    }
     const el = _modal();
     const snap = await getSnapshot();
     const subEl  = el.querySelector('.iv2-rentcast-overage-sub');

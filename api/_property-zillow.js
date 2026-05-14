@@ -127,7 +127,7 @@ IMPORTANT: Look in the listing description text for renovation info like "New ro
 
 // ── Endpoint handler (POST /api/property-intelligence?mode=zillow) ───────────
 export async function handleZillow(req, res) {
-  const { address, city, state, zip } = req.body;
+  const { address, city, state, zip, skipRentcastTier } = req.body;
 
   if (!address || !city || !state) {
     return res.status(400).json({
@@ -147,26 +147,36 @@ export async function handleZillow(req, res) {
   let accumulated = { data: {}, fieldsFound: [], sources: {} };
 
   // --- Tier 1: Rentcast (fastest, most reliable) ---
-  try {
-    const rentcast = await fetchRentcastData(address, city, state, zip || '');
-    if (rentcast) {
-      const sourceLabel = 'Rentcast (assessor/MLS records)';
-      const rentcastSources = {};
-      for (const key of Object.keys(rentcast.data)) {
-        if (key !== 'notes' && rentcast.data[key] != null) {
-          rentcastSources[key] = sourceLabel;
+  // Intake v2's overage modal sets `skipRentcastTier: true` when an
+  // agent is over their free monthly tier and picks "Skip Rentcast" —
+  // the AI/county fallback tiers still run, but we don't burn the paid
+  // Rentcast call. v1 short-circuits client-side; this is the server
+  // arm so neither path can leak a billable lookup.
+  if (skipRentcastTier) {
+    diag.rentcast = 'skipped-by-client';
+    console.log('[Zillow] Rentcast tier skipped — client opted out (over free-tier limit)');
+  } else {
+    try {
+      const rentcast = await fetchRentcastData(address, city, state, zip || '');
+      if (rentcast) {
+        const sourceLabel = 'Rentcast (assessor/MLS records)';
+        const rentcastSources = {};
+        for (const key of Object.keys(rentcast.data)) {
+          if (key !== 'notes' && rentcast.data[key] != null) {
+            rentcastSources[key] = sourceLabel;
+          }
         }
+        accumulated = { data: { ...rentcast.data }, fieldsFound: [...rentcast.fieldsFound], sources: rentcastSources };
+        diag.rentcast = 'hit';
+        console.log(`[Zillow] Rentcast hit — ${rentcast.fieldsFound.length} fields`);
+      } else {
+        diag.rentcast = 'miss';
+        console.log('[Zillow] Rentcast miss');
       }
-      accumulated = { data: { ...rentcast.data }, fieldsFound: [...rentcast.fieldsFound], sources: rentcastSources };
-      diag.rentcast = 'hit';
-      console.log(`[Zillow] Rentcast hit — ${rentcast.fieldsFound.length} fields`);
-    } else {
-      diag.rentcast = 'miss';
-      console.log('[Zillow] Rentcast miss');
+    } catch (rentErr) {
+      diag.rentcast = 'error';
+      console.warn('[Zillow] Rentcast error:', rentErr.message);
     }
-  } catch (rentErr) {
-    diag.rentcast = 'error';
-    console.warn('[Zillow] Rentcast error:', rentErr.message);
   }
 
   // --- Tier 2: Apify Redfin Detail (if ≥3 critical fields still missing) ---

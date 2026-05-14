@@ -226,15 +226,6 @@ async function _paintRentcastPills(root) {
             + (reset ? ` Free tier resets ${reset}.` : '');
     });
 }
-// Re-paint pills whenever recordCall fires anywhere on the page — keeps
-// the badge live without waiting for the next home-card repaint.
-if (window.IntakeV2Rentcast && typeof window.IntakeV2Rentcast.subscribe === 'function') {
-    window.IntakeV2Rentcast.subscribe(() => {
-        const root = document.querySelector('[data-render="homes"]');
-        if (root) _paintRentcastPills(root);
-    });
-}
-
 // Legacy `pickField` / `DWELLING_NORMALIZE` / `applyPrefill` were removed
 // in May 2026 — they only handled the Rentcast single-source fetch the
 // old tryPrefill ran, and their field coverage was a tiny subset of what
@@ -243,9 +234,32 @@ if (window.IntakeV2Rentcast && typeof window.IntakeV2Rentcast.subscribe === 'fun
 // (ArcGIS, Rentcast/Gemini, Fire Station, Vision) in parallel and merges
 // using the same ArcGIS-first priority v1's smartAutoFill uses.
 
+// `onBoot` hooks re-fire every time IntakeV2.init() is called (i.e. on
+// each navigation to the v2 tool). Guard the subscription with a
+// module-scope boolean so we don't pile up duplicate Rentcast
+// listeners — each duplicate would multi-fire _paintRentcastPills on
+// every counter change.
+let _rentcastPillSubscribed = false;
+
 window.IntakeV2.onBoot(function () {
     this.registerRenderer('homes', renderHomes);
     renderHomes();
+    // Re-paint pills whenever recordCall fires anywhere on the page —
+    // keeps the badge live without waiting for the next home-card
+    // repaint. Subscribe is INSIDE onBoot because intake-v2-rentcast.js
+    // is loaded AFTER intake-v2-property.js in index.html; running this
+    // at IIFE-load time would see window.IntakeV2Rentcast === undefined
+    // and silently skip the subscription (Phase 21 bug — pill stopped
+    // live-updating).
+    if (!_rentcastPillSubscribed
+        && window.IntakeV2Rentcast
+        && typeof window.IntakeV2Rentcast.subscribe === 'function') {
+        _rentcastPillSubscribed = true;
+        window.IntakeV2Rentcast.subscribe(() => {
+            const root = document.querySelector('[data-render="homes"]');
+            if (root) _paintRentcastPills(root);
+        });
+    }
 });
 
 })();

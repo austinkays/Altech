@@ -276,25 +276,39 @@ function _readVision(data) {
 //                  drop into the home's notes field instead of a
 //                  dedicated path).
 //   - `severity` — drives the chip color in the modal.
+// Vision booleans come back as `true | false | null` per the
+// satellite endpoint spec — but the AI provider can drift over time
+// and serialize them as `'true'` / `'Yes'` / `1`. Match the same
+// lenient truthy check ArcGIS uses (_readArcgis treats `true` / `'true'`
+// / `'Yes'` as positive evidence) so a string-shape drift doesn't
+// silently drop hazard prompts.
+const _isTruthyVisionBool = (v) =>
+    v === true || v === 'true' || v === 'Yes' || v === 1 || v === '1';
+// Brush clearance is the inverse — "false" means inadequate. Match
+// against falsy values strictly (null/undefined → not enough data to
+// flag, leave it alone).
+const _isFalsyVisionBool = (v) =>
+    v === false || v === 'false' || v === 'No' || v === 0 || v === '0';
+
 const VISION_HAZARD_HANDLERS = Object.freeze({
     pool: {
         icon: '🏊',
         label: 'Pool visible from satellite',
-        detect: (d) => d.has_pool === true,
+        detect: (d) => _isTruthyVisionBool(d.has_pool),
         applyTo: (homeId) => window.IntakeV2.setItemField('homes', homeId, 'hazards.pool', true),
         severity: 'warn',
     },
     trampoline: {
         icon: '🎪',
         label: 'Trampoline visible from satellite',
-        detect: (d) => d.has_trampoline === true,
+        detect: (d) => _isTruthyVisionBool(d.has_trampoline),
         applyTo: (homeId) => window.IntakeV2.setItemField('homes', homeId, 'hazards.trampoline', true),
         severity: 'warn',
     },
     treeOverhang: {
         icon: '🌲',
         label: 'Tree overhang over roof',
-        detect: (d) => d.tree_overhang_roof === true,
+        detect: (d) => _isTruthyVisionBool(d.tree_overhang_roof),
         // No dedicated path — append a note instead so the agent can
         // mention it during the call and reflect it in coverage.
         applyTo: (homeId, home) => {
@@ -306,7 +320,7 @@ const VISION_HAZARD_HANDLERS = Object.freeze({
     brushClearance: {
         icon: '🔥',
         label: 'Brush clearance inadequate',
-        detect: (d) => d.brush_clearance_adequate === false,
+        detect: (d) => _isFalsyVisionBool(d.brush_clearance_adequate),
         applyTo: (homeId, home) => {
             const next = [home.notes || '', '⚠ Brush clearance inadequate (AI vision).'].filter(Boolean).join(' ');
             window.IntakeV2.setItemField('homes', homeId, 'notes', next);
@@ -588,14 +602,26 @@ function _showReviewModal(homeId, payload) {
 
     // Build the row list. Sort by source priority (ArcGIS first, then
     // Zillow, then Vision, then Fire) so the agent's eye lands on the
-    // highest-confidence data first.
-    const ORDER = ['County ArcGIS', 'Rentcast/AI', 'AI Vision (satellite + Street View)', 'Fire / Protection Class'];
+    // highest-confidence data first. Sub-string matches are intentional
+    // so a server-side rename (`"Rentcast"` ↔ `"Rentcast/AI"` ↔
+    // `"Rentcast + Redfin"`) doesn't drop the row into the unsorted
+    // bucket — anything with `rentcast` anywhere lands in the Zillow
+    // tier.
+    const ORDER_RULES = [
+        { rank: 0, match: /arcgis|county/i        },
+        { rank: 1, match: /rentcast|redfin|zillow/i },
+        { rank: 2, match: /vision|satellite|street/i },
+        { rank: 3, match: /fire|protection/i      },
+    ];
+    function _sourceRank(label) {
+        if (!label) return 99;
+        for (const rule of ORDER_RULES) if (rule.match.test(label)) return rule.rank;
+        return 98;
+    }
     const rows = Object.entries(payload.merged)
         .filter(([k]) => !k.startsWith('__'))
         .sort(([ka, _a], [kb, _b]) => {
-            const sa = ORDER.indexOf(payload.sources[ka] || '');
-            const sb = ORDER.indexOf(payload.sources[kb] || '');
-            return (sa === -1 ? 99 : sa) - (sb === -1 ? 99 : sb);
+            return _sourceRank(payload.sources[ka]) - _sourceRank(payload.sources[kb]);
         });
 
     // Vision findings — hazard prompts (pool / trampoline / tree / brush)

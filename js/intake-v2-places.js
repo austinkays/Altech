@@ -11,8 +11,9 @@
 //
 // Place selection writes the full "Street, City, ST ZIP, County"
 // string back to `home.address` (single-field shape the v2 schema
-// already uses). Structured parts are stashed in `home.__placesParts`
-// so the smart-fill orchestrator can skip re-parsing.
+// already uses). Smart Scan's orchestrator calls parseAddress() on
+// the same formatted line, which is fast (<1ms) — no need to
+// cache the structured parts separately.
 //
 // v1 pain points fixed here:
 //   - Auto-bind on every card render (leaked listeners) → bind once per
@@ -31,6 +32,21 @@
 
 let _scriptPromise = null;        // promise that resolves when the Google Maps SDK is ready
 const _wiredInputs = new WeakSet(); // inputs that already have an Autocomplete attached
+// `renderHomes` does `root.innerHTML = ...` which detaches every input
+// but Google's Autocomplete SDK keeps internal references to those
+// detached nodes (event listeners + popup) — they never GC without an
+// explicit clearInstanceListeners call. Tracking the live Autocomplete
+// per home.id lets us tear down the previous one when a new input
+// shows up for the same home.
+const _autocompleteByHome = new Map();  // home.id → { input, autocomplete }
+function _cleanupAutocomplete(ac) {
+    if (!ac) return;
+    try {
+        if (window.google && window.google.maps && window.google.maps.event) {
+            window.google.maps.event.clearInstanceListeners(ac);
+        }
+    } catch (_) { /* SDK quirk — best-effort cleanup */ }
+}
 
 // Inject the Maps JS SDK once. Subsequent calls return the same promise
 // (idempotent). Resolves null if the loader can't fetch the key —
@@ -110,10 +126,20 @@ function _homeIdFor(input) {
 }
 
 // Attach Places autocomplete to a single home address input. Idempotent
-// per input via the WeakSet guard.
+// per input via the WeakSet guard. When the same home.id shows up with
+// a NEW input (after `renderHomes` rewrote innerHTML), tear down the
+// previous Autocomplete first so Google's SDK releases the detached
+// input + popup it was holding onto.
 function _attachToInput(input) {
     if (_wiredInputs.has(input)) return;
     if (!window.google || !window.google.maps || !window.google.maps.places) return;
+    const homeId = _homeIdFor(input);
+    if (homeId) {
+        const prev = _autocompleteByHome.get(homeId);
+        if (prev && prev.input !== input) {
+            _cleanupAutocomplete(prev.autocomplete);
+        }
+    }
     _wiredInputs.add(input);
 
     let sessionToken = new google.maps.places.AutocompleteSessionToken();
@@ -123,6 +149,7 @@ function _attachToInput(input) {
         fields: ['address_components', 'formatted_address'],
         sessionToken,
     });
+    if (homeId) _autocompleteByHome.set(homeId, { input, autocomplete });
 
     // Refresh session token on focus + after each place pick — bills
     // every autocomplete-then-detail cycle as one session instead of
@@ -152,10 +179,6 @@ function _attachToInput(input) {
         // re-renders the card (which picks up the new address in the
         // map-thumbnail and Smart Scan flows).
         if (line) window.IntakeV2.setItemField('homes', homeId, 'address', line);
-        // Cache the structured parts so Smart Scan can skip
-        // parseAddress's regex split. parseAddress's output and
-        // _readPlace's output are intentionally the same shape.
-        try { home.__placesParts = p; } catch (_) {}
         // Refresh session token after a successful pick (next
         // autocomplete cycle is billed as a new session).
         sessionToken = new google.maps.places.AutocompleteSessionToken();

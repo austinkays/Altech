@@ -358,6 +358,14 @@ const COLLECTIONS = {
             { idStem: 'home-mort-name',    path: 'mortgageCompany.name',      label: 'Mortgage Company',     type: 'text', mode: 'full', speller: 'general' },
             { idStem: 'home-mort-loanNum', path: 'mortgageCompany.loanNumber',label: 'Loan #',               type: 'text', mode: 'full', speller: 'dl' },
             { idStem: 'home-mort-address', path: 'mortgageCompany.address',   label: 'Mortgagee Address',    type: 'text', mode: 'full', speller: 'general' },
+
+            // Free-form per-home notes. Smart Scan's vision-hazard
+            // handlers (treeOverhang, brushClearance) append into this
+            // field — they have no dedicated path in the schema, but
+            // need somewhere visible. Also useful for ad-hoc agent
+            // observations the carrier should see.
+            { idStem: 'home-notes-header', path: '__header.notes',            label: 'Notes',                 type: 'header', mode: 'full' },
+            { idStem: 'home-notes',        path: 'notes',                     label: 'Home notes',            type: 'textarea', mode: 'full' },
         ],
     },
 
