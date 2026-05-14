@@ -81,7 +81,22 @@ async function handleKeys(req, res) {
         return res.status(500).json({ error: 'No API keys configured' });
     }
 
-    return res.status(200).json({ apiKey, geminiKey });
+    // Rentcast pricing block — intake v2's overage modal reads the
+    // per-call cost from here so a price change doesn't require a
+    // client-side code edit. Falls back to defaults if the env vars
+    // aren't set; v1's hardcoded "$0.50" string stays as the floor.
+    // Clamp to non-negative values — a negative pricing string in env
+    // would otherwise sail through `parseFloat` + `Number.isFinite`
+    // and produce nonsense "${-0.50} per lookup" in the overage modal.
+    const rentcastPerCallRaw = parseFloat(process.env.RENTCAST_PER_CALL_USD || '0.50');
+    const rentcastFreeLimitRaw = parseInt(process.env.RENTCAST_FREE_LIMIT || '50', 10);
+    const rentcastPricing = {
+        perCall: Number.isFinite(rentcastPerCallRaw) && rentcastPerCallRaw >= 0 ? rentcastPerCallRaw : 0.50,
+        freeMonthlyLimit: Number.isFinite(rentcastFreeLimitRaw) && rentcastFreeLimitRaw >= 0 ? rentcastFreeLimitRaw : 50,
+        currency: 'USD',
+    };
+
+    return res.status(200).json({ apiKey, geminiKey, rentcastPricing });
 }
 
 // ── Name Phonetics ──────────────────────────────────────────────────────

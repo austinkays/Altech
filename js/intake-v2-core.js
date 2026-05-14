@@ -522,6 +522,12 @@
                 },
                 // Required for binding any mortgaged home
                 mortgageCompany:{ name:'', loanNumber:'', address:'' },
+                // Free-form per-home notes. Smart-fill vision hazards
+                // (treeOverhang, brushClearance) append into this so
+                // they have a visible landing spot (no dedicated path
+                // exists in the schema). Plain string; renders as a
+                // textarea via home-notes field in intake-v2-fields.js.
+                notes: '',
             };
             case 'autos': return {
                 id:'', year:'', make:'', model:'', vin:'',

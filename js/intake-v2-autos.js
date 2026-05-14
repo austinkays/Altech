@@ -47,10 +47,10 @@ function renderField(item, collKey, f) {
         // Switch variant via kind:'switch'; default is the standard
         // square checkbox row. Wraps a real <input type="checkbox"> so
         // core's save/load handlers continue to match. The bindable
-        // star (✦) is appended inside the label span so it inherits
-        // the row's vertical centering instead of floating above.
+        // mark (`*`, red) is appended inside the label span so it
+        // inherits the row's vertical centering instead of floating above.
         const rowClass = f.kind === 'switch' ? 'iv2-switch-row' : 'iv2-checkbox-row';
-        const labelHTML = `${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}`;
+        const labelHTML = `${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">*</span>' : ''}`;
         return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
             <label class="${rowClass}" for="${escAttr(elId)}"><input type="checkbox" id="${escAttr(elId)}"${dataAttrs} ${v ? 'checked' : ''}> <span>${labelHTML}</span></label>
             <span class="iv2-field-defer-badge" style="display:none">deferred</span>
@@ -78,7 +78,7 @@ function renderField(item, collKey, f) {
         }
     }
     return `<div class="iv2-field${fullClass}" data-field-wrap="${escAttr(collKey)}#${escAttr(item.id)}.${escAttr(f.path)}">
-        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">✦</span>' : ''}</label>
+        <label for="${escAttr(elId)}">${esc(f.label)}${f.bindable ? ' <span class="iv2-bindable-mark" role="img" aria-label="Required to bind — at least one carrier needs this field" title="Required to bind — at least one carrier needs this field">*</span>' : ''}</label>
         ${control}
         <span class="iv2-field-defer-badge" style="display:none">deferred</span>
     </div>`;
@@ -281,9 +281,44 @@ async function _wireVinDecode(btn) {
     }
 }
 
+// Auto-decode the VIN as soon as the input reaches 17 valid characters.
+// Debounced ~500ms so an agent typing through the field doesn't fire 17
+// NHTSA round-trips. `_autoDecodedVins` remembers VINs we've already
+// auto-fired against — if the agent edits the value back to one we
+// already decoded, we don't re-fire (the click handler still works for
+// explicit retries).
+const _autoDecodedVins = new Set();
+let _autoDecodeTimer = null;
+function _scheduleAutoDecode(input, btn) {
+    clearTimeout(_autoDecodeTimer);
+    _autoDecodeTimer = setTimeout(() => {
+        const vin = (input.value || '').toUpperCase().trim();
+        if (vin.length !== 17) return;
+        // Same alphabet rule the local _isValidVin uses — keeps us from
+        // hitting NHTSA on obviously-bogus 17-char strings (e.g. an
+        // agent pasting a HIN or a phone number).
+        if (!/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return;
+        if (_autoDecodedVins.has(vin)) return;
+        _autoDecodedVins.add(vin);
+        // Reuse the click-handler path so success/failure toasts +
+        // the "Decoding…" button label work identically to the
+        // manual click case.
+        _wireVinDecode(btn);
+    }, 500);
+}
+
+// onBoot fires every time IntakeV2.init() runs (on each navigation to
+// the v2 tool, not just once per page-load). Without this guard the
+// delegated document listeners below would accumulate — re-navigating
+// to v2 five times means five duplicate click handlers, each running
+// the decode logic on every click. Module-scope boolean stops that.
+let _autosDelegatesWired = false;
+
 window.IntakeV2.onBoot(function () {
     this.registerRenderer('autos', renderAutos);
     renderAutos();
+    if (_autosDelegatesWired) return;
+    _autosDelegatesWired = true;
 
     // Delegated decode-button handler — wired once at boot. Uses
     // event delegation because the auto cards re-render on every
@@ -293,6 +328,21 @@ window.IntakeV2.onBoot(function () {
         if (!btn) return;
         if (!btn.closest('#intakeV2Tool')) return;
         _wireVinDecode(btn);
+    });
+
+    // Delegated input handler — fires the debounced auto-decode when
+    // an agent finishes typing/pasting a 17-character VIN. Limited to
+    // inputs whose sibling wrap carries a [data-iv2-decode-vin] button,
+    // so we don't run the regex on every keystroke across the form.
+    document.addEventListener('input', (e) => {
+        const el = e.target;
+        if (!el || el.tagName !== 'INPUT') return;
+        if (!el.closest('#intakeV2Tool')) return;
+        const fieldWrap = el.closest('.iv2-field');
+        if (!fieldWrap) return;
+        const btn = fieldWrap.querySelector('[data-iv2-decode-vin]');
+        if (!btn) return;
+        _scheduleAutoDecode(el, btn);
     });
 });
 

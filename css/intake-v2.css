@@ -121,6 +121,95 @@
     background: currentColor;
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05);
 }
+.iv2-bindability .iv2-carrier:hover {
+    /* Reinforce click-affordance — the pill is a button now. */
+    filter: brightness(1.08);
+}
+.iv2-bindability .iv2-carrier:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+/* Missing-fields popover anchored to the clicked carrier pill. The
+ * popover is appended once to <body> and reused across opens to keep
+ * the click-outside listener simple. */
+.iv2-carrier-popover {
+    position: fixed;
+    z-index: 9000;
+    max-width: 360px;
+    min-width: 260px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    padding: 10px 12px;
+    color: var(--text);
+    font-size: 12px;
+}
+.iv2-carrier-popover[hidden] { display: none; }
+.iv2-carrier-popover-empty {
+    color: #1B873F;
+    font-weight: 600;
+}
+.iv2-carrier-popover-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 6px;
+}
+.iv2-carrier-popover-head span { color: var(--text-secondary); }
+.iv2-carrier-popover-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.iv2-cp-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.35;
+}
+.iv2-cp-item:hover {
+    background: var(--bg-input);
+    border-color: var(--border);
+}
+.iv2-cp-item:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 1px;
+}
+.iv2-cp-owner {
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+.iv2-carrier-popover-foot {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    padding-top: 8px;
+    margin-top: 6px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+/* When the popover is open, every missing field across the form gets
+ * a colored left border so the agent can see them at a glance. The
+ * attribute is added/removed in _openCarrierPopover / _closeCarrierPopover. */
+.iv2-field[data-carrier-highlight] {
+    box-shadow: -3px 0 0 var(--apple-blue);
+    padding-left: 6px;
+}
 
 .iv2-save-status {
     font-size: 11px;
@@ -321,6 +410,34 @@
     box-shadow: 0 0 0 2px rgba(0,122,255,0.18);
 }
 
+/* Kill the number-input spinner. A spinner is useful for tiny
+ * ranges (1-12 months, 0-9 stories) but it's noise on 4-5 digit
+ * values like Square Footage / Year Built / Coverage A. Mobile
+ * keyboards still show the numeric pad because inputmode=numeric is
+ * driven by the field's type=number. */
+.iv2-field input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.iv2-field input[type="number"]::-webkit-inner-spin-button,
+.iv2-field input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Date inputs render the placeholder ("mm/dd/yyyy") with the same
+ * --text color in dark mode, which makes the agent doubt whether
+ * they've actually typed a value. Re-tone the placeholder
+ * specifically; entered values stay full --text contrast. */
+.iv2-field input[type="date"]:not(:focus):invalid,
+.iv2-field input[type="date"]:placeholder-shown {
+    color: var(--text-tertiary);
+}
+.iv2-field input[type="date"]:focus,
+.iv2-field input[type="date"]:valid {
+    color: var(--text);
+}
+
 /* deferred = "Ask Later" — yellow border, dimmed value */
 .iv2-field[data-deferred="true"] input,
 .iv2-field[data-deferred="true"] select,
@@ -336,7 +453,15 @@
  * already tabbed off it — it's an "info" cue, not an error, since
  * empty-on-load is normal. */
 .iv2-bindable-mark {
-    color: var(--apple-blue);
+    /* Conventional required-field indicator: red asterisk, slightly
+     * larger than label text so it scans cleanly. Inside the <label>
+     * with role="img" + aria-label so assistive tech reads "Required
+     * to bind" as part of the field name (no extra tab stop). */
+    color: var(--danger);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+    margin-left: 2px;
     cursor: help;
 }
 .iv2-lock-mark {
@@ -344,8 +469,155 @@
     color: var(--text-secondary);
     cursor: help;
 }
-/* role="img" + aria-label exposes the meaning to assistive tech without
- * adding a tab stop the agent would have to skip past every field. */
+
+/* Home-card year-built advisories — surfaced at the top of each home
+ * card by intake-v2-property.js when a year/roof/electrical/plumbing
+ * threshold trips. The colored left border makes severity scannable
+ * from across the page. */
+.iv2-advisory-list {
+    list-style: none;
+    margin: 0 0 12px 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.iv2-advisory {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    border-left: 3px solid var(--border);
+}
+.iv2-advisory-info {
+    background: rgba(10, 132, 255, 0.06);
+    color: var(--text-secondary);
+    border-left-color: var(--apple-blue);
+}
+.iv2-advisory-warn {
+    background: rgba(197, 136, 0, 0.08);
+    color: #C58800;
+    border-left-color: #C58800;
+}
+.iv2-advisory-risk {
+    background: rgba(179, 58, 58, 0.08);
+    color: #B33A3A;
+    border-left-color: #B33A3A;
+}
+.iv2-advisory-icon {
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.iv2-advisory-jump {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: transparent;
+    border: 1px solid currentColor;
+    color: inherit;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.85;
+}
+.iv2-advisory-jump:hover { opacity: 1; }
+.iv2-advisory-jump:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
+/* Home-card map thumbnails — satellite + Street View previews shown
+ * above the field grid as soon as the agent enters an address.
+ * Module: js/intake-v2-property-maps.js. Module re-runs on address
+ * change but is debounced + cache-keyed by address. */
+.iv2-thumbs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 4px 0 16px;
+}
+.iv2-thumb {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--bg-input);
+    aspect-ratio: 16 / 10;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+.iv2-thumb:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+.iv2-thumb:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+.iv2-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+.iv2-thumb-caption {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    background: rgba(0, 0, 0, 0.65);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+/* Skeleton placeholder shimmer while the image loads. */
+.iv2-thumb-skeleton {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.02) 0%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0.02) 100%);
+    background-size: 200% 100%;
+    animation: progressShimmer 1.4s linear infinite;
+}
+/* Empty state — no coverage / no key / load failure. */
+.iv2-thumb-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    font-size: 12px;
+    text-align: center;
+    padding: 12px;
+    line-height: 1.4;
+}
+
+/* Inline keyboard-shortcut hint — used in places like "Add operator [N]"
+ * where a hotkey duplicates a button. Bare "(N)" reads like placeholder
+ * text; the boxed letter makes it obvious it's a hotkey. */
+.iv2-kbd-hint {
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    line-height: 1.3;
+    vertical-align: middle;
+}
 .iv2-field[data-bindable-empty="true"] input,
 .iv2-field[data-bindable-empty="true"] select,
 .iv2-field[data-bindable-empty="true"] textarea {
@@ -740,3 +1012,410 @@
     }
     .iv2-left-rail, .iv2-right-rail { display: none; }
 }
+
+/* ─── Smart-fill review modal ─────────────────────────────────────────
+ *
+ * Anchored to document.body (not the iv2 workspace) so it sits above
+ * the sticky topbar + side rails. Body is a vertical list of
+ * value-suggestion rows; each row has a checkbox so the agent can
+ * uncheck any value they'd rather type themselves. Built by
+ * _showReviewModal() in js/intake-v2-smart-fill.js.
+ */
+.iv2-smartfill-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.iv2-smartfill-overlay[hidden] { display: none; }
+.iv2-smartfill-modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    width: min(720px, 100%);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: var(--text);
+}
+.iv2-smartfill-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+.iv2-smartfill-head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+.iv2-smartfill-sources {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.iv2-smartfill-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+.iv2-smartfill-close:hover { background: var(--bg-input); color: var(--text); }
+.iv2-smartfill-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 12px 20px;
+}
+.iv2-smartfill-row {
+    display: grid;
+    grid-template-columns: 22px 1fr 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    font-size: 13px;
+}
+.iv2-smartfill-row:last-child { border-bottom: none; }
+.iv2-smartfill-row input[type="checkbox"] {
+    /* Reuse the same custom checkbox style from .iv2-checkbox-row so
+     * the modal matches the rest of the form. */
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-input);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+}
+.iv2-smartfill-row input[type="checkbox"]:checked {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+}
+.iv2-smartfill-row input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.iv2-smartfill-label { color: var(--text-secondary); }
+.iv2-smartfill-value {
+    color: var(--text);
+    font-weight: 600;
+}
+.iv2-smartfill-source {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.iv2-smartfill-empty {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 24px 8px;
+    font-size: 13px;
+}
+
+/* Section wrapper inside the review modal — separates the vision
+ * findings (hazard checkboxes) from the scalar property details. */
+.iv2-smartfill-section { margin-bottom: 16px; }
+.iv2-smartfill-section:last-child { margin-bottom: 0; }
+.iv2-smartfill-section-title {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+/* Vision hazard prompt rows — distinct from scalar rows so the
+ * agent can spot the AI-vision pieces at a glance. Checkbox is
+ * UNCHECKED by default (agent must confirm each sighting); the
+ * label is the full clickable area. Severity classes flip the
+ * left-border accent — same palette as the home advisories
+ * (intake-v2-property.js _homeAdvisories). */
+.iv2-smartfill-hazards {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.iv2-smartfill-hazard {
+    display: grid;
+    grid-template-columns: 22px 24px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 8px 9px;
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: 6px;
+    cursor: pointer;
+    background: var(--bg-input);
+    transition: background 0.12s;
+}
+.iv2-smartfill-hazard:hover { background: var(--bg-card); }
+.iv2-smartfill-hazard-warn   { border-left-color: #C58800; }
+.iv2-smartfill-hazard-risk   { border-left-color: #B33A3A; }
+.iv2-smartfill-hazard input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    margin: 0;
+}
+.iv2-smartfill-hazard input[type="checkbox"]:checked {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+}
+.iv2-smartfill-hazard input[type="checkbox"]:checked::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 1px;
+    width: 5px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+.iv2-smartfill-hazard-icon  { font-size: 18px; }
+.iv2-smartfill-hazard-label { color: var(--text); font-size: 13px; font-weight: 600; }
+.iv2-smartfill-hazard-hint  { color: var(--text-tertiary); font-size: 11px; }
+
+/* Underwriter notes callout — read-only summary the vision endpoint
+ * returns alongside the hazard booleans. */
+.iv2-smartfill-vision-notes {
+    margin-top: 6px;
+    padding: 10px 12px;
+    background: rgba(10, 132, 255, 0.06);
+    border: 1px solid rgba(10, 132, 255, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.iv2-smartfill-vision-notes strong {
+    display: block;
+    color: var(--text);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+}
+.iv2-smartfill-vision-notes p { margin: 0 0 6px; line-height: 1.4; }
+.iv2-smartfill-vision-notes ul { margin: 0; padding-left: 20px; }
+.iv2-smartfill-vision-notes li { line-height: 1.4; }
+.iv2-smartfill-foot {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.iv2-smartfill-hint {
+    flex: 1;
+    color: var(--text-tertiary);
+    font-size: 11px;
+}
+.iv2-smartfill-cancel,
+.iv2-smartfill-apply {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text);
+}
+.iv2-smartfill-apply {
+    background: var(--apple-blue);
+    color: white;
+    border-color: var(--apple-blue);
+}
+.iv2-smartfill-apply:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+.iv2-smartfill-cancel:hover { background: var(--bg-card); }
+.iv2-smartfill-apply:hover:not(:disabled) { background: var(--apple-blue-hover); }
+
+/* Smart Scan trigger button — sits beside the home address input. Larger
+ * + branded ("✨ Smart Scan") to communicate that this is the
+ * one-button data-pull, not a plain icon button. */
+.iv2-smart-scan-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, var(--apple-blue), #5E5CE6);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: filter 0.15s, box-shadow 0.15s;
+    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.25);
+}
+.iv2-smart-scan-btn:hover:not(:disabled) {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 12px rgba(10, 132, 255, 0.35);
+}
+.iv2-smart-scan-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+}
+.iv2-smart-scan-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.iv2-smart-scan-btn.is-loading { background: var(--bg-input); color: var(--text); box-shadow: none; }
+.iv2-smart-scan-icon { font-size: 14px; }
+
+/* Inline spinner shown while the orchestrator is in flight. CSS-only
+ * (no JS rAF loop). Animation lives in css/animations.css. */
+.iv2-smart-scan-spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid var(--border);
+    border-top-color: var(--apple-blue);
+    border-radius: 50%;
+    animation: iv2-spin 0.8s linear infinite;
+}
+
+/* Smart Scan cell stacks the button + budget pill vertically. */
+.iv2-smart-scan-cell {
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+/* Rentcast budget pill — always-visible chip under the Smart Scan
+ * button. Colors flip via [data-tone]: ok (green), low (amber),
+ * over (red). Empty content state stays display:none. */
+.iv2-rentcast-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    letter-spacing: 0.02em;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+.iv2-rentcast-pill:empty { display: none; }
+.iv2-rentcast-pill[data-tone="ok"]   { color: #1B873F; border-color: rgba(27,135,63,0.4);  background: rgba(27,135,63,0.08); }
+.iv2-rentcast-pill[data-tone="low"]  { color: #C58800; border-color: rgba(197,136,0,0.4);  background: rgba(197,136,0,0.08); }
+.iv2-rentcast-pill[data-tone="over"] { color: #B33A3A; border-color: rgba(179,58,58,0.45); background: rgba(179,58,58,0.10); }
+
+/* Rentcast overage confirmation modal — opens when an agent is at /
+ * over their free-tier limit and tries to Smart Scan. */
+.iv2-rentcast-overage-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 10100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+.iv2-rentcast-overage-overlay[hidden] { display: none; }
+.iv2-rentcast-overage-modal {
+    width: min(480px, 100%);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
+    color: var(--text);
+    overflow: hidden;
+}
+.iv2-rentcast-overage-head {
+    padding: 18px 20px 8px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+.iv2-rentcast-overage-head h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+.iv2-rentcast-overage-sub {
+    margin: 6px 0 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+.iv2-rentcast-overage-body {
+    padding: 14px 20px;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+}
+.iv2-rentcast-overage-address {
+    margin: 0 0 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--bg-input);
+    padding: 6px 10px;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.iv2-rentcast-overage-explain {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+.iv2-rentcast-overage-foot {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+.iv2-rentcast-cancel,
+.iv2-rentcast-approve {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.iv2-rentcast-cancel {
+    background: var(--bg-input);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+.iv2-rentcast-approve {
+    background: var(--apple-blue);
+    color: white;
+    border: 1px solid var(--apple-blue);
+}
+.iv2-rentcast-approve:hover { background: var(--apple-blue-hover); }
+.iv2-rentcast-cancel:hover  { background: var(--bg-card); }

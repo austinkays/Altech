@@ -128,6 +128,151 @@ function renderScalarField(f, span) {
     </div>`;
 }
 
+// Resolve a bindability `missing` entry to the DOM id the agent should
+// scroll to + focus. Scalar paths (e.g. "applicant.firstName") look up
+// the scalar field schema; collection paths (e.g. "autos#auto-1.vin")
+// split into (collKey, itemId, fieldPath) and build the id using the
+// per-collection `idStem`. Synthetic paths like the home `address` header
+// or auto `primaryOperatorId` have their own conventions.
+//
+// Returns null if the field has no input on the page (e.g. the operator
+// picker for `primaryOperatorId`); callers fall back to scrolling to
+// the owning card.
+function _resolveMissingDomId(entry) {
+    if (!entry || !entry.path) return null;
+    const fields = window.IntakeV2Fields;
+    if (!fields) return null;
+    const path = entry.path;
+
+    // Collection path?
+    const hashIdx = path.indexOf('#');
+    if (hashIdx === -1) {
+        const f = fields.scalar.find(x => x.path === path);
+        return f ? f.id : null;
+    }
+    const collKey = path.slice(0, hashIdx);
+    const rest    = path.slice(hashIdx + 1);
+    const dotIdx  = rest.indexOf('.');
+    if (dotIdx === -1) return null;
+    const itemId    = rest.slice(0, dotIdx);
+    const fieldPath = rest.slice(dotIdx + 1);
+
+    // Synthetic paths the bindability engine adds outside the collection
+    // schemas — match by string before falling back to the schema lookup.
+    if (collKey === 'homes' && fieldPath === 'address') {
+        return `iv2-home-address-${itemId}`;
+    }
+    if (fieldPath === 'primaryOperatorId') {
+        // No <input> for this — caller should scroll to the owning card.
+        return null;
+    }
+
+    const coll = fields.collections[collKey];
+    if (!coll) return null;
+    const f = coll.fields.find(x => x.path === fieldPath);
+    if (!f) return null;
+    return `iv2-${f.idStem}-${itemId}`;
+}
+
+// Anchor for the missing-fields popover. Re-used across opens so we
+// only insert one element into the DOM.
+let _carrierPopoverEl = null;
+function _carrierPopover() {
+    if (_carrierPopoverEl) return _carrierPopoverEl;
+    const el = document.createElement('div');
+    el.id = 'iv2CarrierPopover';
+    el.className = 'iv2-carrier-popover';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-label', 'Missing fields for carrier');
+    el.hidden = true;
+    document.body.appendChild(el);
+    _carrierPopoverEl = el;
+    // Click outside to close. Stops propagation when the click lands
+    // inside the popover so list-item buttons keep working.
+    document.addEventListener('click', (e) => {
+        if (el.hidden) return;
+        if (el.contains(e.target)) return;
+        if (e.target.closest && e.target.closest('.iv2-carrier')) return;
+        _closeCarrierPopover();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (el.hidden) return;
+        if (e.key === 'Escape') _closeCarrierPopover();
+    });
+    return el;
+}
+function _closeCarrierPopover() {
+    if (!_carrierPopoverEl) return;
+    _carrierPopoverEl.hidden = true;
+    _carrierPopoverEl.removeAttribute('data-anchor');
+    // Drop the highlight left-borders the popover added to each field.
+    document.querySelectorAll('[data-carrier-highlight]')
+        .forEach(el => el.removeAttribute('data-carrier-highlight'));
+}
+function _openCarrierPopover(carrierEl) {
+    const carrier = carrierEl.getAttribute('data-carrier');
+    const info = window.IntakeV2.bindability && window.IntakeV2.bindability[carrier];
+    if (!info) return;
+    const popover = _carrierPopover();
+    const rect = carrierEl.getBoundingClientRect();
+    popover.style.position = 'fixed';
+    popover.style.top    = `${rect.bottom + 6}px`;
+    popover.style.right  = `${Math.max(8, window.innerWidth - rect.right)}px`;
+    popover.style.left   = 'auto';
+
+    if (info.ok) {
+        popover.innerHTML = `<div class="iv2-carrier-popover-empty">${esc(info.label)} is ready to quote.</div>`;
+    } else {
+        const items = info.missing.map((m, i) => {
+            const domId = _resolveMissingDomId(m);
+            const owner = m.itemLabel ? ` <span class="iv2-cp-owner">— ${esc(m.itemLabel)}</span>` : '';
+            return `<li><button type="button" class="iv2-cp-item" data-cp-jump="${escAttr(domId || '')}" data-cp-card-coll="${escAttr(m.path.split('#')[0] || '')}" data-cp-card-id="${escAttr(m.itemId || '')}" data-cp-index="${i}">${esc(m.label)}${owner}</button></li>`;
+        }).join('');
+        popover.innerHTML = `
+            <div class="iv2-carrier-popover-head">
+                <strong>${esc(info.label)}</strong>
+                <span>${info.missing.length} missing</span>
+            </div>
+            <ul class="iv2-carrier-popover-list">${items}</ul>
+            <div class="iv2-carrier-popover-foot">Click a field to jump — first field highlighted with a left border.</div>
+        `;
+        // Highlight every missing field in the form with a left border so
+        // the agent can see them at a glance once the popover is open.
+        info.missing.forEach(m => {
+            const id = _resolveMissingDomId(m);
+            if (!id) return;
+            const el = document.getElementById(id);
+            const wrap = el && el.closest('.iv2-field');
+            if (wrap) wrap.setAttribute('data-carrier-highlight', '');
+        });
+    }
+
+    popover.hidden = false;
+    popover.setAttribute('data-anchor', carrier);
+
+    // Wire jump-to-field buttons. Each click closes the popover, scrolls,
+    // and focuses the target. If the field has no dedicated input (e.g.
+    // primaryOperatorId), we scroll to the owning card instead.
+    popover.querySelectorAll('[data-cp-jump]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-cp-jump');
+            const cardColl = btn.getAttribute('data-cp-card-coll');
+            const cardId   = btn.getAttribute('data-cp-card-id');
+            _closeCarrierPopover();
+            let target = id ? document.getElementById(id) : null;
+            if (!target && cardColl && cardId) {
+                target = document.querySelector(`[data-card-of="${cardColl}"][data-card-id="${cardId}"]`)
+                      || document.querySelector(`[data-card-of="${cardColl}"]`);
+            }
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (target.matches && target.matches('input, select, textarea')) {
+                try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
+            }
+        });
+    });
+}
+
 // Three-state readiness model: green when nothing's missing, amber when
 // only one or two fields stand between the agent and a bind (close — the
 // agent can grab them on the same call), red otherwise. The 1-2 threshold
@@ -461,6 +606,38 @@ function wireTopbarHandlers() {
     // Rails toggle
     const railsBtn = document.getElementById('iv2RailsToggle');
     if (railsBtn) railsBtn.addEventListener('click', toggleRails);
+
+    // Carrier pill click → open the missing-fields popover. We use
+    // event delegation off the indicator container so the handler
+    // survives renderTopbarStatus repaints (which rewrite class lists
+    // on the pills but never replace the pills themselves).
+    const indicator = document.getElementById('iv2BindabilityIndicator');
+    if (indicator) {
+        // Make the pills look + behave clickable.
+        indicator.querySelectorAll('.iv2-carrier').forEach(el => {
+            el.setAttribute('role', 'button');
+            el.setAttribute('tabindex', '0');
+            el.style.cursor = 'pointer';
+        });
+        indicator.addEventListener('click', (e) => {
+            const pill = e.target.closest('.iv2-carrier');
+            if (!pill) return;
+            // Re-click on the open pill closes the popover (toggle).
+            const anchor = _carrierPopoverEl && _carrierPopoverEl.getAttribute('data-anchor');
+            if (anchor === pill.getAttribute('data-carrier') && !_carrierPopoverEl.hidden) {
+                _closeCarrierPopover();
+                return;
+            }
+            _openCarrierPopover(pill);
+        });
+        indicator.addEventListener('keydown', (e) => {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            const pill = e.target.closest && e.target.closest('.iv2-carrier');
+            if (!pill) return;
+            e.preventDefault();
+            _openCarrierPopover(pill);
+        });
+    }
 
     // Jump list
     document.querySelectorAll('[data-jump]').forEach(btn => {
