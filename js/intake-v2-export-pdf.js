@@ -466,7 +466,12 @@
             }
         }
         function sectionLabel(title) {
-            need(18);
+            // Reserve space for the label PLUS a typical first asset card
+            // (~80pt: 18pt header strip + 4 grid rows × 13pt + padding). The
+            // assetCard's own need() runs AFTER this label is drawn, so if we
+            // only reserve a few rows we get the AUTOS (1) orphan — label on
+            // page N, card on page N+1.
+            need(100);
             y += 6;
             setColor('setDrawColor', PALETTE.RULE);
             doc.setLineWidth(0.5);
@@ -1476,6 +1481,10 @@
         //  ③ APPLICANT INFO
         // ════════════════════════════════════════════════════════════════════
         sectionLabel('Applicant');
+        // 2-column layout (was 3): emails / long occupation strings get the
+        // full 148pt valueW at 9pt, which matches the rest of the dossier
+        // cards. 3-col was forcing kvRow to font-shrink the email cell, which
+        // visually broke the row's baseline alignment.
         kvRow([
             ['Full Name',     clientName],
             ['Date of Birth', fmtDate(a.dob)],
@@ -1489,7 +1498,7 @@
             ['Yrs Employed',  a.yearsEmployed],
             ['Education',     a.education],
             ['SSN',           a.ssn ? '••••' + String(a.ssn).slice(-4) : ''],
-        ], 3);
+        ], 2);
 
         if (v2.coApplicant && v2.coApplicant.present) {
             const c = v2.coApplicant;
@@ -1505,7 +1514,7 @@
                 ['Occupation',    c.occupation],
                 ['Industry',      c.industry],
                 ['Education',     c.education],
-            ], 3);
+            ], 2);
         }
 
         // ════════════════════════════════════════════════════════════════════
