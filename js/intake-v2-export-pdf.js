@@ -504,18 +504,46 @@
             const valueW = colW - labelW - 6;
             const baseRowH = 13;
             const lineH = 11;
+            const BASE_VAL_PT = 9;
+            const MIN_VAL_PT = 6.5;
+
+            // Pre-flight each value: when it's a single uninterruptible token
+            // (e.g. an email "name@gmail.com" — no spaces) wider than the cell,
+            // jsPDF's splitTextToSize will hack-split it mid-character, which
+            // is exactly the "austinkays@gmail.co / m" wrap producers were
+            // seeing. Auto-shrink the font for that cell down to a floor;
+            // only split as a last resort.
+            function fitValueCell(str) {
+                const text = String(str);
+                if (!has(doc, 'getStringUnitWidth')) {
+                    return { lines: [text], pt: BASE_VAL_PT };
+                }
+                const hasSpace = /\s/.test(text.trim());
+                const measure = (pt) => doc.getStringUnitWidth(text) * pt;
+                // If it fits at base size, take the fast path.
+                if (measure(BASE_VAL_PT) <= valueW) return { lines: [text], pt: BASE_VAL_PT };
+                // Single-token long value: shrink to fit one line.
+                if (!hasSpace) {
+                    for (let pt = BASE_VAL_PT - 0.5; pt >= MIN_VAL_PT; pt -= 0.5) {
+                        if (measure(pt) <= valueW) return { lines: [text], pt };
+                    }
+                    // Still too wide even at floor — fall through to split.
+                }
+                doc.setFontSize(BASE_VAL_PT);
+                const split = has(doc, 'splitTextToSize') ? doc.splitTextToSize(text, valueW) : [text];
+                return { lines: split, pt: BASE_VAL_PT };
+            }
 
             const rows = [];
             for (let i = 0; i < filled.length; i += cols) rows.push(filled.slice(i, i + cols));
 
             rows.forEach((row, ri) => {
-                doc.setFontSize(9);
+                doc.setFontSize(BASE_VAL_PT);
                 let maxLines = 1;
                 const cache = row.map(([, value]) => {
-                    const str = String(value);
-                    const lines = has(doc, 'splitTextToSize') ? doc.splitTextToSize(str, valueW) : [str];
-                    if (lines.length > maxLines) maxLines = lines.length;
-                    return lines;
+                    const fit = fitValueCell(value);
+                    if (fit.lines.length > maxLines) maxLines = fit.lines.length;
+                    return fit;
                 });
                 const rowH = baseRowH + (maxLines - 1) * lineH;
                 need(rowH + 2);
@@ -537,9 +565,10 @@
                     setColor('setTextColor', PALETTE.MID);
                     doc.text(String(label).toUpperCase(), x + 2, y + 7);
 
-                    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+                    const fit = cache[ci];
+                    doc.setFontSize(fit.pt); doc.setFont('helvetica', 'bold');
                     setColor('setTextColor', PALETTE.INK);
-                    cache[ci].forEach((line, li) => {
+                    fit.lines.forEach((line, li) => {
                         doc.text(line, x + labelW, y + 6 + li * lineH);
                     });
                 });
@@ -1156,10 +1185,21 @@
             doc.setFontSize(7); doc.setFont('helvetica', 'bold');
             setColor('setTextColor', PALETTE.MID);
             doc.text('OPERATOR', x + 4, yy + 11);
+            // Truncate header labels to whatever fits the column at 7pt bold.
+            // Old hardcoded 9-char cap turned "A1 2019 Toyota" into "A1 2019 T"
+            // even when the cell had room for the whole label.
+            const cellTextW = colW - 8;
             assets.forEach((a, i) => {
                 const cx = x + NAME_W + i * colW;
-                const trunc = a.label.length > 9 ? a.label.slice(0, 9) : a.label;
-                doc.text(trunc, cx + 4, yy + 11);
+                let label = a.label;
+                if (has(doc, 'getTextWidth')) {
+                    while (label.length > 3 && doc.getTextWidth(label) > cellTextW) {
+                        label = label.slice(0, -1);
+                    }
+                } else if (label.length > 18) {
+                    label = label.slice(0, 18);
+                }
+                doc.text(label, cx + 4, yy + 11);
             });
             // Body rows
             doc.setFont('helvetica', 'normal');
@@ -1401,12 +1441,14 @@
         if (layout === 'summary') {
 
         // ════════════════════════════════════════════════════════════════════
-        //  ② SNAPSHOT (page 1 only — single-page underwriting summary)
+        //  ② SNAPSHOT — keystat row + carrier fit
         // ════════════════════════════════════════════════════════════════════
-        // Page 1 is a fixed-height composition of visual primitives reading
-        // from `model`. After this block we force `addPage()` so the detail
-        // phase starts on page 2 — guarantees the snapshot is always exactly
-        // one page, even if a future change adds rows.
+        // The dense risk / coverage / action-items panels were dropped: they
+        // either restated information the agent already has (positives as
+        // "severity", a single-Cov-A bar at 100%) or were stale by export time
+        // (talk-track suggestions belong in the live intake rail). What stays
+        // is the at-a-glance carrier fit grid; the detail dossier follows on
+        // the same page if there's headroom, otherwise next page.
 
         // Keystat row — 4 compact KPI cells
         const keystatItems = [
@@ -1418,41 +1460,17 @@
         y += keystatRow(keystatItems, MG, y, CW);
         y += 8;
 
-        // Carrier fit grid
+        // Carrier fit grid — the only "judgement" block on the snapshot. Risk
+        // flags / coverage ratio / action items were dropped here: positives
+        // shown as "severity" reads as noise, a single-Cov-A bar at 100% adds
+        // no information, and the talk-track action-items belong in the live
+        // intake rail, not a static PDF. The flow continues straight into the
+        // detail dossier on the same page when there's headroom.
         if (model.carrierFit.length) {
             sectionLabel('Carrier Fit');
             y += statusGrid(model.carrierFit, MG, y, CW);
-            y += 8;
+            y += 10;
         }
-
-        // Risk flags
-        // No outer sectionLabel — severityBox draws its own filled header,
-        // and stacking two labels just creates visual noise.
-        y += severityBox('Risk Flags · Ranked by Severity', model.riskMarkers, MG, y, CW);
-        y += 8;
-
-        // Coverage at a glance — home #1 only
-        sectionLabel('Coverage at a Glance');
-        y += ratioBar(model.coverageRatios, MG, y, CW);
-        y += 8;
-
-        // Action items — top 5 only on page 1
-        sectionLabel('Action Items');
-        y += checklist(model.actionItems, MG, y, CW, 5);
-        if (model.actionItems.length > 5) {
-            doc.setFontSize(7.5); doc.setFont('helvetica', 'italic');
-            setColor('setTextColor', PALETTE.MID);
-            doc.text(`+ ${model.actionItems.length - 5} more in the appendix`, MG, y + 4);
-            doc.setFont('helvetica', 'normal');
-            y += 12;
-        }
-
-        // Force the detail phase onto page 2. Even if the snapshot phase
-        // bailed early on every primitive (text-only mock), the addPage call
-        // is guaranteed by jsPDF's mock surface — see test stub at
-        // tests/intake-v2.test.js:413.
-        doc.addPage();
-        y = MG;
 
         // ════════════════════════════════════════════════════════════════════
         //  ③ APPLICANT INFO
@@ -1902,15 +1920,18 @@
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  ⑫ PRODUCER ACTION ITEMS (full list — snapshot truncates to 5)
+        //  ⑫ FOLLOW-UP — deferred fields only ("Ask Later" agent commitments)
         // ════════════════════════════════════════════════════════════════════
-        // The snapshot on page 1 caps at 5 items. This appendix surfaces the
-        // complete merged list (deferred + derived + talk-track) for the
-        // agent's follow-up reference. Reuses the same `model.actionItems`
-        // computed at the top of the builder so the two views never drift.
-        if (model.actionItems && model.actionItems.length) {
-            sectionLabel(`Producer Action Items — Full List (${model.actionItems.length})`);
-            y += checklist(model.actionItems, MG, y, CW, model.actionItems.length);
+        // Talk-track suggestions ("confirm name pronunciation", "ask about
+        // Harley Owners Group", etc.) are designed for the live intake rail,
+        // not a static PDF — they're stale by the time the agent reads this.
+        // The same is true for derived risk prompts (those repeat the risk
+        // marker text). Only explicit deferred-by-agent commitments earn space
+        // in the export.
+        const deferredFollowUps = (model.actionItems || []).filter(it => it.source === 'deferred');
+        if (deferredFollowUps.length) {
+            sectionLabel(`Follow-up Items (${deferredFollowUps.length})`);
+            y += checklist(deferredFollowUps, MG, y, CW, deferredFollowUps.length);
         }
         if (v2.notes && v2.notes.freeText) {
             sectionLabel('Agent Notes');
@@ -1950,45 +1971,17 @@
             const ff_dc = v2.discounts || {};
             const ff_hist = v2.history || {};
 
-            // ── Compressed page-1 COVER (3-line risk + 3-line actions) ─────
-            // The hero card already drew above. Add a tight three-block cover:
-            // carrier-fit grid + top-3 risks + top-3 action items + an
-            // instruction strip directing the agent to the body sections.
+            // ── Compressed page-1 COVER — carrier-fit only ─────────────────
+            // The hero card already drew above. Snapshot's risk-flags / action-
+            // items cover blocks were dropped (positives-as-severity is noise
+            // and talk-track suggestions are stale by export time); fact-finder
+            // mirrors that decision. Carrier fit stays because it tells the
+            // agent at-a-glance which carrier to start with.
 
             // Carrier-fit grid (same 2x2 as summary, smaller height budget)
             if (model.carrierFit.length) {
                 sectionLabel('Carrier Fit');
                 y += statusGrid(model.carrierFit, MG, y, CW);
-                y += 6;
-            }
-
-            // Top-3 risk callouts as bracketed-flag text (no severity bars)
-            if (model.riskMarkers.length) {
-                sectionLabel('Top Risk Flags');
-                doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
-                setColor('setTextColor', PALETTE.INK);
-                const tags = { high: '[HIGH] ', med: '[MED]  ', low: '[LOW]  ', pos: '[+]    ' };
-                model.riskMarkers.slice(0, 3).forEach(m => {
-                    need(12);
-                    doc.text(`${tags[m.severity] || '[ ]    '}${m.text}`, MG, y + 9);
-                    y += 12;
-                });
-                y += 4;
-            }
-
-            // Top-3 action items, plain numbered text (no checkboxes here)
-            if (model.actionItems.length) {
-                sectionLabel('Top Action Items');
-                doc.setFontSize(9.5); doc.setFont('helvetica', 'normal');
-                setColor('setTextColor', PALETTE.INK);
-                model.actionItems.slice(0, 3).forEach((it, i) => {
-                    need(12);
-                    const tag = it.source === 'deferred' ? ' [DEFER]'
-                        : it.source === 'talktrack' ? ' [RULE]'
-                        : '';
-                    doc.text(`${i + 1}. ${it.text}${tag}`, MG, y + 9);
-                    y += 12;
-                });
                 y += 6;
             }
 
@@ -2524,10 +2517,14 @@
                 }
             }
 
-            // ── §17 PRODUCER ACTION ITEMS — FULL LIST ────────────────────
-            if (model.actionItems && model.actionItems.length) {
-                ffSection(`Producer Action Items — Full List (${model.actionItems.length})`);
-                y += checklist(model.actionItems, MG, y, CW, model.actionItems.length);
+            // ── §17 FOLLOW-UP — deferred fields only ─────────────────────
+            // Same rationale as the summary: talk-track and derived-from-risk
+            // items belong in the live intake rail. Only explicit agent "ask
+            // later" commitments earn space.
+            const ff_deferred = (model.actionItems || []).filter(it => it.source === 'deferred');
+            if (ff_deferred.length) {
+                ffSection(`Follow-up Items (${ff_deferred.length})`);
+                y += checklist(ff_deferred, MG, y, CW, ff_deferred.length);
                 y += 4;
             }
 
