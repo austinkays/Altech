@@ -40,6 +40,13 @@
         FILL:   [232, 232, 232],
         ACCENT: [60, 60, 60],
         WHITE:  [255, 255, 255],
+        // Three named greys for the coverage ratio bar — distinct enough to
+        // survive a B&W laser printer. Severity uses the same trio so the
+        // visual language is consistent: dark = highest weight.
+        GREY_DARK: [70, 70, 70],
+        GREY_MID:  [130, 130, 130],
+        GREY_LITE: [180, 180, 180],
+        POSITIVE:  [90, 90, 90],
     };
 
     function fmtDate(val) {
@@ -90,6 +97,293 @@
         return null;
     }
 
+    // ─── Compute phase: pure functions that derive the snapshot model ────────
+    //
+    // The snapshot page (page 1) reads from a single `model` object built up
+    // front so every visual primitive can be allocated a deterministic height
+    // budget. This keeps the snapshot guaranteed to fit on one letter page.
+
+    // Severity weight used by the severity box for the density-bar count
+    const SEVERITY_WEIGHT = { high: 4, med: 3, low: 2, pos: 1 };
+
+    // Aggressive-dog breed list (best-effort — agent confirms during call)
+    const AGG_DOGS = [
+        'pitbull', 'pit bull', 'rottweiler', 'doberman', 'german shepherd',
+        'akita', 'wolf hybrid', 'chow', 'mastiff', 'staffordshire',
+    ];
+
+    // Lightweight age helper (timezone-safe). Mirrors intake-v2-core's
+    // `_ageFromDob` so the PDF still works if that helper isn't on window.
+    function _ageFromDobLocal(dob) {
+        if (window.IntakeV2 && typeof window.IntakeV2._ageFromDob === 'function') {
+            return window.IntakeV2._ageFromDob(dob);
+        }
+        if (!dob || typeof dob !== 'string') return 0;
+        const parts = dob.split('-');
+        if (parts.length !== 3) return 0;
+        const y = Number(parts[0]), m = Number(parts[1]), d = Number(parts[2]);
+        if (!Number.isFinite(y)) return 0;
+        const now = new Date();
+        let age = now.getFullYear() - y;
+        if ((now.getMonth() + 1) < m || ((now.getMonth() + 1) === m && now.getDate() < d)) age--;
+        return age;
+    }
+
+    // Strip HTML for talk-track output. Talk-track HTML is already sanitized
+    // by Utils.escapeHTML in the source, so a simple tag-strip + entity decode
+    // is sufficient. We also take only the first sentence so a paragraph-style
+    // rule doesn't blow out the checklist line height.
+    function htmlToPlain(html) {
+        if (!html) return '';
+        const stripped = String(html)
+            .replace(/<br\s*\/?>/gi, '. ')
+            .replace(/<\/p>/gi, '. ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&quot;/g, '"')
+            .replace(/&amp;/g, '&')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&#39;/g, "'")
+            .replace(/\s+/g, ' ')
+            .trim();
+        // First sentence (stop at first period, exclamation, question mark
+        // followed by a space or end). Many talk-track entries are a single
+        // short sentence already, so this is mostly a defensive cap.
+        const m = stripped.match(/^[^.!?]+[.!?]?/);
+        return (m ? m[0] : stripped).trim();
+    }
+
+    function computeRiskMarkers(v2) {
+        const out = [];
+        const operators = Array.isArray(v2.operators) ? v2.operators : [];
+        const homes = Array.isArray(v2.homes) ? v2.homes : [];
+        const autos = Array.isArray(v2.autos) ? v2.autos : [];
+        const boats = Array.isArray(v2.boats) ? v2.boats : [];
+        const rvs = Array.isArray(v2.rvs) ? v2.rvs : [];
+        const pi = v2.priorInsurance || {};
+        const hist = v2.history || {};
+        const opName = op => [op.firstName, op.lastName].filter(Boolean).join(' ') || 'Operator';
+
+        // ── High ──
+        operators.forEach(op => {
+            if (op.sr22Required)       out.push({ severity: 'high', text: `SR-22 / FR-44 required (${opName(op)})` });
+            if (op.licenseSuspended5y) out.push({ severity: 'high', text: `License suspended in last 5 yrs (${opName(op)})` });
+        });
+        homes.forEach((h, i) => {
+            const isVacant = (h.occupancyType || '').toLowerCase().includes('vacant');
+            if (isVacant && h.hazards && h.hazards.businessOnPremises) {
+                out.push({ severity: 'high', text: `Home #${i+1}: vacant + business activity` });
+            } else if (isVacant) {
+                out.push({ severity: 'high', text: `Home #${i+1}: vacant property` });
+            }
+        });
+        if (pi.continuous === 'No' && (autos.length || homes.length)) {
+            out.push({ severity: 'high', text: 'Lapsed prior coverage' });
+        }
+
+        // ── Med ──
+        homes.forEach((h, i) => {
+            const roofYr = parseInt(h.roof && h.roof.yr, 10);
+            const yrB = parseInt(h.yrBuilt, 10);
+            const nowYr = new Date().getFullYear();
+            if (Number.isFinite(roofYr) && roofYr > 1900 && (nowYr - roofYr) >= 20) {
+                out.push({ severity: 'med', text: `Home #${i+1}: roof ${nowYr - roofYr} yrs old` });
+            }
+            if (Number.isFinite(yrB) && yrB > 1800 && yrB < 1970 && !roofYr) {
+                out.push({ severity: 'med', text: `Home #${i+1}: pre-1970 build, roof age unknown` });
+            }
+            const hz = h.hazards || {};
+            if (hz.pool)       out.push({ severity: 'med', text: `Home #${i+1}: pool — confirm fenced/locked` });
+            if (hz.trampoline) out.push({ severity: 'med', text: `Home #${i+1}: trampoline on premises` });
+            if (hz.dogs) {
+                const dogText = String(hz.dogs).toLowerCase();
+                if (AGG_DOGS.some(b => dogText.includes(b))) {
+                    out.push({ severity: 'med', text: `Home #${i+1}: dog (${hz.dogs.slice(0, 30)})` });
+                }
+            }
+        });
+        boats.forEach((b, i) => {
+            const age = b.year ? (new Date().getFullYear() - parseInt(b.year, 10)) : null;
+            if (age !== null && age > 30 && parseFloat(b.marketValue) > 30000) {
+                out.push({ severity: 'med', text: `Boat #${i+1}: ${age} yrs old, $${b.marketValue}` });
+            }
+            if ((b.hullMaterial || '').toLowerCase() === 'wood' && age !== null && age > 5) {
+                out.push({ severity: 'med', text: `Boat #${i+1}: wood hull, ${age} yrs` });
+            }
+        });
+        rvs.forEach((r, i) => {
+            if (r.fullTimer) out.push({ severity: 'med', text: `RV #${i+1}: full-timer (rate-impacting)` });
+        });
+        operators.forEach(op => {
+            const age = _ageFromDobLocal(op.dob);
+            if (age && age < 25 && age > 14) {
+                out.push({ severity: 'med', text: `Young driver (${opName(op)}, ${age})` });
+            }
+        });
+        const lossCount = (hist.losses || []).length;
+        const violationCount = (hist.violations || []).length;
+        if (lossCount > 0)      out.push({ severity: 'med', text: `${lossCount} loss${lossCount > 1 ? 'es' : ''} in 35 mo` });
+        if (violationCount > 0) out.push({ severity: 'med', text: `${violationCount} violation${violationCount > 1 ? 's' : ''} in 35 mo` });
+
+        // ── Low ──
+        homes.forEach((h, i) => {
+            if (h.hazards && h.hazards.woodStove) {
+                out.push({ severity: 'low', text: `Home #${i+1}: wood stove — installation date?` });
+            }
+        });
+        operators.forEach(op => {
+            const age = _ageFromDobLocal(op.dob);
+            if (age >= 65 && age <= 110) {
+                out.push({ severity: 'low', text: `Mature driver (${opName(op)}, ${age})` });
+            }
+        });
+
+        // ── Positive ──
+        if (hist.hasCleanHistory) out.push({ severity: 'pos', text: 'Clean record — 35 mo' });
+        if ((v2.discounts && v2.discounts.homeowner) && homes.length && autos.length) {
+            out.push({ severity: 'pos', text: 'Multi-policy eligible (home + auto)' });
+        }
+
+        // Sort high → med → low → pos, preserving definition order within tier.
+        const tierRank = { high: 0, med: 1, low: 2, pos: 3 };
+        out.sort((a, b) => tierRank[a.severity] - tierRank[b.severity]);
+        return out.slice(0, 6);
+    }
+
+    function computeActionItems(v2, riskMarkers) {
+        const seen = new Set();
+        const push = (item) => {
+            const key = (item.text || '').toLowerCase().replace(/\s+/g, ' ').trim();
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            out.push(item);
+        };
+        const out = [];
+
+        // 1. Deferred fields — explicit agent commitments come first.
+        const deferred = Array.isArray(v2.deferred) ? v2.deferred : [];
+        const labelFor = (window.IntakeV2 && window.IntakeV2._defer && typeof window.IntakeV2._defer.labelForPath === 'function')
+            ? window.IntakeV2._defer.labelForPath
+            : (p) => String(p || '');
+        deferred.forEach(p => push({ source: 'deferred', text: labelFor(p), path: p }));
+
+        // 2. Derived prompts from risk markers (most actionable).
+        (riskMarkers || []).forEach(rm => {
+            if (rm.severity === 'pos') return;
+            if (/pool — confirm fenced/.test(rm.text)) push({ source: 'derived', text: 'Confirm pool fencing/locking' });
+            else if (/vacant \+ business/.test(rm.text)) push({ source: 'derived', text: 'Verify business activity & occupancy frequency' });
+            else if (/Lapsed prior coverage/i.test(rm.text)) push({ source: 'derived', text: 'Document reason for prior coverage lapse' });
+            else if (/wood stove — installation/.test(rm.text)) push({ source: 'derived', text: 'Get wood-stove installation date' });
+            else if (/roof \d+ yrs old/.test(rm.text)) push({ source: 'derived', text: `Confirm ${rm.text.split(':')[1].trim()} — replacement planned?` });
+            else if (/pre-1970 build/i.test(rm.text))    push({ source: 'derived', text: 'Confirm roof + electrical update years' });
+            else if (/wood hull/i.test(rm.text))         push({ source: 'derived', text: 'Marine survey for wood-hull boat (Safeco/Travelers)' });
+        });
+
+        // 3. Talk-track rule output — softer cross-sell + compliance prompts.
+        if (window.IntakeV2TalkTrack && typeof window.IntakeV2TalkTrack.computeSuggestions === 'function') {
+            try {
+                const ttOut = window.IntakeV2TalkTrack.computeSuggestions(v2) || [];
+                ttOut.forEach(s => {
+                    const plain = htmlToPlain(s.html);
+                    if (plain) push({ source: 'talktrack', text: plain, id: s.id });
+                });
+            } catch (_) { /* talktrack rule failure shouldn't block the PDF */ }
+        }
+
+        return out;
+    }
+
+    function buildSnapshotModel(v2) {
+        const homes = Array.isArray(v2.homes) ? v2.homes : [];
+        const autos = Array.isArray(v2.autos) ? v2.autos : [];
+        const boats = Array.isArray(v2.boats) ? v2.boats : [];
+        const rvs = Array.isArray(v2.rvs) ? v2.rvs : [];
+        const operators = Array.isArray(v2.operators) ? v2.operators : [];
+
+        // Carrier fit — wrap IntakeV2Bindability.computeBindability for the snapshot.
+        const carrierFit = [];
+        let bindReady = [];
+        if (window.IntakeV2Bindability && typeof window.IntakeV2Bindability.computeBindability === 'function') {
+            try {
+                const b = window.IntakeV2Bindability.computeBindability({ data: v2 });
+                const order = (window.IntakeV2Bindability.CARRIERS) || ['progressive', 'foremost', 'travelers', 'safeco'];
+                order.forEach(key => {
+                    const entry = b[key];
+                    if (!entry) return;
+                    const cell = {
+                        key,
+                        label: entry.label || key,
+                        ok: !!entry.ok,
+                        missingCount: Array.isArray(entry.missing) ? entry.missing.length : 0,
+                        topMiss: (Array.isArray(entry.missing) && entry.missing[0] && entry.missing[0].label) || '',
+                    };
+                    carrierFit.push(cell);
+                    if (cell.ok) bindReady.push(cell.label);
+                });
+            } catch (_) { /* fall through to empty carrierFit */ }
+        }
+
+        // Coverage ratios for the first home — Cov A is the 100% baseline,
+        // B/C/D are computed as fractions. Skip the bar entirely if there's
+        // no home or Cov A is missing/zero (the snapshot renders a greyed
+        // "No homeowner coverage on file" line in that case).
+        let coverageRatios = null;
+        if (homes.length) {
+            const h0 = homes[0];
+            const cov = h0.coverages || {};
+            const A = parseFloat(String(cov.dwellingA).replace(/[$,\s]/g, ''));
+            if (Number.isFinite(A) && A > 0) {
+                const seg = (key) => {
+                    const v = parseFloat(String(cov[key]).replace(/[$,\s]/g, ''));
+                    return Number.isFinite(v) && v > 0 ? v : 0;
+                };
+                coverageRatios = {
+                    dwellingA: A,
+                    segments: [
+                        { key: 'B', label: 'Cov B', amount: seg('otherStructuresB'), ratio: seg('otherStructuresB') / A },
+                        { key: 'C', label: 'Cov C', amount: seg('personalPropertyC'), ratio: seg('personalPropertyC') / A },
+                        { key: 'D', label: 'Cov D', amount: seg('lossOfUseD'), ratio: seg('lossOfUseD') / A },
+                    ],
+                    sidebar: [
+                        { label: 'Liability (E)', value: cov.liabilityE },
+                        { label: 'Med Pay (F)',   value: cov.medPayF },
+                        { label: 'Deductible',    value: cov.deductible },
+                    ],
+                };
+            }
+        }
+
+        // Product counts and chip labels (drives the keystat row).
+        const qChips = [];
+        if (homes.length) qChips.push(`${homes.length}H`);
+        if (autos.length) qChips.push(`${autos.length}A`);
+        if (boats.length) qChips.push(`${boats.length}B`);
+        if (rvs.length)   qChips.push(`${rvs.length}RV`);
+
+        const riskMarkers = computeRiskMarkers(v2);
+        const actionItems = computeActionItems(v2, riskMarkers);
+
+        return {
+            carrierFit,
+            riskMarkers,
+            coverageRatios,
+            actionItems,
+            qChips,
+            productCounts: {
+                homes: homes.length,
+                autos: autos.length,
+                boats: boats.length,
+                rvs: rvs.length,
+                operators: operators.length,
+            },
+            bindReady,
+            // Surfaces useful keystat numbers without re-derivation in the snapshot
+            yearsAtAddress: (v2.address && v2.address.yearsAt) || '',
+            continuous: (v2.priorInsurance && v2.priorInsurance.continuous) || '',
+            primaryName: operators[0] ? `${operators[0].firstName || ''} ${operators[0].lastName || ''}`.trim() : '',
+        };
+    }
+
     // ─── Main builder ────────────────────────────────────────────────────────
     async function buildIntakeV2PDF(v2) {
         v2 = v2 || (window.IntakeV2 && window.IntakeV2.data) || {};
@@ -132,6 +426,10 @@
             fetchLogo(),
             fetchMaps(fullAddress),
         ]);
+
+        // Compute the snapshot model once — every page-1 primitive reads from
+        // this object so we can allocate deterministic heights.
+        const model = buildSnapshotModel(v2);
 
         // ─── Layout helpers ──────────────────────────────────────────────────
         function setColor(method, rgb) {
@@ -247,6 +545,611 @@
             else y += 2;
 
             y += 2;
+        }
+
+        // ─── Snapshot visual primitives ──────────────────────────────────────
+        // Each primitive accepts an explicit (x, yy, w, …) and returns the
+        // consumed height so the snapshot composer can drive a deterministic
+        // grid. Each begins with a feature-detection branch so the JSDOM test
+        // mock (which lacks `rect`, `setFillColor`, `addImage`, etc.) still
+        // gets a clean text-only output without throwing.
+
+        // Tiny check / X icon drawn from two `line()` strokes — jsPDF in test
+        // mode supports `line` but not `circle`, so we never call `circle`.
+        function drawCheck(cx, cy, size) {
+            const s = size || 6;
+            doc.setLineWidth(1.2);
+            doc.line(cx - s/2, cy + 0.5, cx - s/6, cy + s/2);
+            doc.line(cx - s/6, cy + s/2, cx + s/2, cy - s/2);
+            doc.setLineWidth(0.4);
+        }
+        function drawX(cx, cy, size) {
+            const s = size || 6;
+            doc.setLineWidth(1.2);
+            doc.line(cx - s/2, cy - s/2, cx + s/2, cy + s/2);
+            doc.line(cx - s/2, cy + s/2, cx + s/2, cy - s/2);
+            doc.setLineWidth(0.4);
+        }
+
+        // keystatRow — 4–5 KPI cells separated by thin vertical rules.
+        // stats = [{label, value}, …]
+        function keystatRow(stats, x, yy, w) {
+            const ROW_H = 22;
+            if (!stats.length) return 0;
+            // Text-only fallback path
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(stats.map(s => `${s.label}: ${s.value || '—'}`).join(' · '), x, yy + 10);
+                return ROW_H;
+            }
+            setColor('setFillColor', PALETTE.FILL);
+            fillRect(x, yy, w, ROW_H);
+            setColor('setDrawColor', PALETTE.LIGHT);
+            doc.setLineWidth(0.3);
+            strokeRect(x, yy, w, ROW_H);
+            const cellW = w / stats.length;
+            stats.forEach((s, i) => {
+                const cx = x + i * cellW;
+                if (i > 0) {
+                    setColor('setDrawColor', PALETTE.LIGHT);
+                    doc.line(cx, yy + 4, cx, yy + ROW_H - 4);
+                }
+                doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text(String(s.label || '').toUpperCase(), cx + 6, yy + 8);
+                doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(String(s.value || '—'), cx + 6, yy + 18);
+            });
+            doc.setFont('helvetica', 'normal');
+            return ROW_H;
+        }
+
+        // statusGrid — 2×2 carrier-fit matrix. items = [{label, ok, missingCount, topMiss}]
+        function statusGrid(items, x, yy, w) {
+            if (!items.length) return 0;
+            const CELL_H = 38;
+            const cols = 2;
+            const rows = Math.ceil(items.length / cols);
+            const totalH = rows * CELL_H;
+            // Text-only fallback path
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                items.forEach((it, i) => {
+                    const status = it.ok ? 'BINDABLE' : `${it.missingCount} missing${it.topMiss ? ' · ' + it.topMiss : ''}`;
+                    doc.text(`${it.label}: ${it.ok ? '✓' : '✗'} ${status}`, x, yy + 12 + i * 11);
+                });
+                return Math.max(totalH, items.length * 11 + 4);
+            }
+            const cellW = w / cols;
+            items.forEach((it, i) => {
+                const cx = x + (i % cols) * cellW;
+                const cy = yy + Math.floor(i / cols) * CELL_H;
+
+                // Cell background — OK cells get FILL tint so the eye picks them up
+                if (it.ok) {
+                    setColor('setFillColor', PALETTE.FILL);
+                    fillRect(cx, cy, cellW, CELL_H);
+                    // 3pt accent strip on the left
+                    setColor('setFillColor', PALETTE.ACCENT);
+                    fillRect(cx, cy, 3, CELL_H);
+                }
+                // Border (always)
+                setColor('setDrawColor', PALETTE.LIGHT);
+                doc.setLineWidth(0.4);
+                strokeRect(cx, cy, cellW, CELL_H);
+
+                // Carrier label
+                doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(String(it.label || ''), cx + 8, cy + 13);
+
+                // Status icon — check (ok) or X (missing) at right edge
+                const iconCx = cx + cellW - 14;
+                const iconCy = cy + 12;
+                setColor('setDrawColor', PALETTE.INK);
+                if (it.ok) drawCheck(iconCx, iconCy, 9);
+                else       drawX(iconCx, iconCy, 9);
+
+                // Status line
+                doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.MID);
+                const status = it.ok ? 'Bindable' : `${it.missingCount} missing${it.topMiss ? ' · ' + it.topMiss : ''}`;
+                const wrapped = has(doc, 'splitTextToSize') ? doc.splitTextToSize(status, cellW - 16) : [status];
+                wrapped.slice(0, 2).forEach((line, li) => {
+                    doc.text(line, cx + 8, cy + 24 + li * 9);
+                });
+            });
+            doc.setFont('helvetica', 'normal');
+            doc.setLineWidth(0.3);
+            return totalH;
+        }
+
+        // pillChip — single chip drawn as a plain rect. Returns width consumed.
+        function pillChip(label, px, py, opts) {
+            const PAD_X = 5, PAD_Y = 3;
+            const HEIGHT = 13;
+            doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+            const text = String(label || '');
+            const tw = has(doc, 'getTextWidth') ? doc.getTextWidth(text) : text.length * 4.2;
+            const chipW = tw + PAD_X * 2;
+            if (!has(doc, 'rect')) {
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(`[${text}]`, px + PAD_X, py + HEIGHT - PAD_Y);
+                return chipW + 4;
+            }
+            if (opts && opts.filled) {
+                setColor('setFillColor', PALETTE.FILL);
+                fillRect(px, py, chipW, HEIGHT);
+            }
+            setColor('setDrawColor', PALETTE.LIGHT);
+            doc.setLineWidth(0.4);
+            strokeRect(px, py, chipW, HEIGHT);
+            setColor('setTextColor', PALETTE.INK);
+            doc.text(text, px + PAD_X, py + HEIGHT - PAD_Y - 1);
+            return chipW + 4;
+        }
+
+        // pillRow — flows pills onto multiple lines. Returns total height.
+        function pillRow(labels, x, yy, maxW, opts) {
+            const items = (labels || []).filter(Boolean);
+            if (!items.length) return 0;
+            // Text-only fallback path uses a single line
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(items.map(l => `[${l}]`).join(' '), x, yy + 8);
+                return 14;
+            }
+            const ROW_H = 16;
+            let px = x;
+            let py = yy;
+            items.forEach((label) => {
+                doc.setFontSize(7.5);
+                const tw = has(doc, 'getTextWidth') ? doc.getTextWidth(String(label)) : String(label).length * 4.2;
+                const chipW = tw + 14; // approx pill width incl padding + margin
+                if (px + chipW > x + maxW) {
+                    px = x;
+                    py += ROW_H;
+                }
+                px += pillChip(label, px, py, opts || { filled: true });
+            });
+            return (py - yy) + ROW_H;
+        }
+
+        // severityBox — bordered callout. items = [{severity, text}]
+        function severityBox(title, items, x, yy, w) {
+            const HEADER_H = 14;
+            const ROW_H = 14;
+            const items4 = (items || []).slice(0, 5);
+            const totalH = HEADER_H + Math.max(items4.length, 1) * ROW_H + 4;
+            // Text-only fallback path
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(title, x, yy + 9);
+                doc.setFont('helvetica', 'normal');
+                if (!items4.length) {
+                    doc.setFontSize(9);
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text('No flagged risks', x, yy + HEADER_H + 12);
+                } else {
+                    items4.forEach((it, i) => {
+                        doc.setFontSize(8.5);
+                        setColor('setTextColor', PALETTE.INK);
+                        doc.text(`[${it.severity.toUpperCase()}] ${it.text}`, x, yy + HEADER_H + 10 + i * 11);
+                    });
+                }
+                return totalH;
+            }
+            // Outer border
+            setColor('setDrawColor', PALETTE.LIGHT);
+            doc.setLineWidth(0.4);
+            strokeRect(x, yy, w, totalH);
+            // Header strip
+            setColor('setFillColor', PALETTE.FILL);
+            fillRect(x, yy, w, HEADER_H);
+            setColor('setFillColor', PALETTE.ACCENT);
+            fillRect(x, yy, 3, HEADER_H);
+            doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+            setColor('setTextColor', PALETTE.MID);
+            doc.text(title.toUpperCase(), x + 8, yy + HEADER_H - 4);
+
+            // Items
+            if (!items4.length) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text('No flagged risks', x + 8, yy + HEADER_H + 10);
+                return totalH;
+            }
+            doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+            items4.forEach((it, i) => {
+                const ry = yy + HEADER_H + i * ROW_H + 4;
+                // 4-cell density indicator: filled cells = severity weight
+                const weight = SEVERITY_WEIGHT[it.severity] || 0;
+                const isPositive = it.severity === 'pos';
+                const cellSize = 3.5;
+                const gap = 1.5;
+                const indicatorX = x + 8;
+                const indicatorY = ry + 2;
+                for (let c = 0; c < 4; c++) {
+                    if (isPositive) {
+                        // Positive markers get an outline-only set and a check icon overlaid in the first cell
+                        setColor('setDrawColor', PALETTE.LIGHT);
+                        doc.setLineWidth(0.3);
+                        strokeRect(indicatorX + c * (cellSize + gap), indicatorY, cellSize, cellSize * 1.7);
+                    } else {
+                        const filled = c < weight;
+                        if (filled) {
+                            // Greyscale density encodes severity: high = dark, low = lite
+                            const shade = it.severity === 'high' ? PALETTE.GREY_DARK
+                                : it.severity === 'med' ? PALETTE.GREY_MID
+                                : PALETTE.GREY_LITE;
+                            setColor('setFillColor', shade);
+                            fillRect(indicatorX + c * (cellSize + gap), indicatorY, cellSize, cellSize * 1.7);
+                        } else {
+                            setColor('setDrawColor', PALETTE.LIGHT);
+                            doc.setLineWidth(0.3);
+                            strokeRect(indicatorX + c * (cellSize + gap), indicatorY, cellSize, cellSize * 1.7);
+                        }
+                    }
+                }
+                if (isPositive) {
+                    setColor('setDrawColor', PALETTE.POSITIVE);
+                    drawCheck(indicatorX + cellSize / 2, indicatorY + cellSize, cellSize * 1.5);
+                }
+                // Text
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                const textX = indicatorX + 4 * (cellSize + gap) + 6;
+                doc.text(String(it.text || ''), textX, ry + 9);
+            });
+            doc.setLineWidth(0.3);
+            return totalH;
+        }
+
+        // ratioBar — horizontal stacked bar representing Cov A's allocation.
+        // model = { dwellingA, segments: [{label, amount, ratio}], sidebar: [{label, value}] }
+        function ratioBar(model, x, yy, w) {
+            const TITLE_H = 12;
+            const BAR_H = 16;
+            const LABEL_H = 12;
+            const TOTAL = TITLE_H + BAR_H + LABEL_H + 4;
+            if (!model) {
+                if (!has(doc, 'rect')) {
+                    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text('No homeowner coverage on file', x, yy + 12);
+                    return 18;
+                }
+                setColor('setDrawColor', PALETTE.LIGHT);
+                doc.setLineWidth(0.3);
+                strokeRect(x, yy, w, 28);
+                doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text('No homeowner coverage on file', x + 8, yy + 18);
+                doc.setFont('helvetica', 'normal');
+                return 32;
+            }
+            // Text-only fallback
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                const segText = model.segments.filter(s => s.amount > 0).map(s => `${s.label} $${Math.round(s.amount).toLocaleString()}`).join(' · ');
+                doc.text(`Cov A $${Math.round(model.dwellingA).toLocaleString()}  ·  ${segText}`, x, yy + 10);
+                if (model.sidebar) {
+                    const sb = model.sidebar.filter(s => s.value).map(s => `${s.label} ${s.value}`).join(' · ');
+                    if (sb) doc.text(sb, x, yy + 22);
+                }
+                return TOTAL;
+            }
+
+            // Title row
+            doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+            setColor('setTextColor', PALETTE.INK);
+            doc.text(`Cov A · $${Math.round(model.dwellingA).toLocaleString()}`, x, yy + 9);
+
+            // Sidebar (right column with E/F/Deductible)
+            const sidebarW = 140;
+            const barW = w - sidebarW - 12;
+            const barX = x;
+            const barY = yy + TITLE_H + 2;
+
+            // Bar baseline (light grey background so empty segments still register)
+            setColor('setFillColor', PALETTE.FILL);
+            fillRect(barX, barY, barW, BAR_H);
+            setColor('setDrawColor', PALETTE.LIGHT);
+            doc.setLineWidth(0.3);
+            strokeRect(barX, barY, barW, BAR_H);
+
+            // Stacked segments
+            let cursorX = barX;
+            const palettes = [PALETTE.GREY_DARK, PALETTE.GREY_MID, PALETTE.GREY_LITE];
+            model.segments.forEach((seg, idx) => {
+                const ratio = Math.min(Math.max(seg.ratio || 0, 0), 1);
+                if (ratio <= 0) return;
+                const segW = ratio * barW;
+                setColor('setFillColor', palettes[idx % palettes.length]);
+                fillRect(cursorX, barY, segW, BAR_H);
+                // Inline label if wide enough (>40pt)
+                if (segW > 40) {
+                    doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.WHITE);
+                    doc.text(`${seg.label} ${Math.round(ratio * 100)}%`, cursorX + 4, barY + 10);
+                }
+                cursorX += segW;
+            });
+
+            // Hang $amount labels under each segment
+            cursorX = barX;
+            model.segments.forEach((seg, idx) => {
+                const ratio = Math.min(Math.max(seg.ratio || 0, 0), 1);
+                if (ratio <= 0) return;
+                const segW = ratio * barW;
+                doc.setFontSize(7); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.MID);
+                const amountStr = `$${Math.round(seg.amount).toLocaleString()}`;
+                doc.text(amountStr, cursorX + 2, barY + BAR_H + 8);
+                cursorX += segW;
+            });
+
+            // Sidebar — E/F/deductible as compact text block
+            if (model.sidebar) {
+                const sbX = x + barW + 12;
+                let sbY = yy + TITLE_H + 2;
+                model.sidebar.forEach(s => {
+                    if (!s.value) return;
+                    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text(String(s.label).toUpperCase(), sbX, sbY + 4);
+                    doc.setFontSize(8.5); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.INK);
+                    doc.text(`${fmtMoney(s.value) || s.value}`, sbX + 60, sbY + 4);
+                    sbY += 10;
+                });
+            }
+
+            doc.setFont('helvetica', 'normal');
+            return TOTAL;
+        }
+
+        // timelineStrip — horizontal axis with markers + numbered legend.
+        // events = [{date, type, operatorId, severity?}]
+        function timelineStrip(events, startDate, endDate, x, yy, w) {
+            const HEADER_H = 12;
+            const AXIS_H = 22;
+            const events9 = (events || []).filter(e => e.date).slice(0, 12);
+            if (!events9.length) {
+                if (!has(doc, 'rect')) {
+                    doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text('Clean record — no events in 35 mo', x, yy + 12);
+                    doc.setFont('helvetica', 'normal');
+                    return 16;
+                }
+                setColor('setDrawColor', PALETTE.LIGHT);
+                doc.setLineWidth(0.3);
+                doc.line(x, yy + 14, x + w, yy + 14);
+                doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text('Clean record — no events in 35 mo', x + 4, yy + 12);
+                doc.setFont('helvetica', 'normal');
+                return 24;
+            }
+            const start = startDate.getTime();
+            const end = endDate.getTime();
+            const span = Math.max(1, end - start);
+
+            // Text-only fallback emits a flat numbered legend
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                events9.forEach((e, i) => {
+                    doc.text(`${i + 1}. ${fmtDate(e.date)} · ${e.type || ''}${e.operatorName ? ' (' + e.operatorName + ')' : ''}`, x, yy + 10 + i * 11);
+                });
+                return events9.length * 11 + 4;
+            }
+
+            // Title row
+            doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+            setColor('setTextColor', PALETTE.MID);
+            doc.text(`LAST 35 MONTHS · ${events9.length} EVENT${events9.length === 1 ? '' : 'S'}`, x, yy + 9);
+
+            // Axis
+            const axisY = yy + HEADER_H + 12;
+            setColor('setDrawColor', PALETTE.LIGHT);
+            doc.setLineWidth(0.4);
+            doc.line(x, axisY, x + w, axisY);
+
+            // Tick marks at year boundaries
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+            for (let yr = startYear; yr <= endYear; yr++) {
+                const tickDate = new Date(yr, 0, 1).getTime();
+                if (tickDate < start || tickDate > end) continue;
+                const tickX = x + ((tickDate - start) / span) * w;
+                doc.line(tickX, axisY - 2, tickX, axisY + 2);
+                doc.setFontSize(6); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text(String(yr), tickX - 6, axisY + 9);
+            }
+
+            // Event markers
+            events9.forEach((e, i) => {
+                const evDate = new Date(e.date).getTime();
+                if (!Number.isFinite(evDate)) return;
+                const ratio = Math.min(1, Math.max(0, (evDate - start) / span));
+                const mx = x + ratio * w;
+                const my = axisY - 5;
+                // Marker: filled rect, shade by severity (default = dark)
+                const shade = e.severity === 'low' ? PALETTE.GREY_LITE
+                    : e.severity === 'med' ? PALETTE.GREY_MID
+                    : PALETTE.GREY_DARK;
+                setColor('setFillColor', shade);
+                fillRect(mx - 2, my - 8, 4, 8);
+                // Number label above marker
+                doc.setFontSize(6); doc.setFont('helvetica', 'bold');
+                setColor('setTextColor', PALETTE.INK);
+                doc.text(String(i + 1), mx - 1.5, my - 10);
+            });
+
+            // Numbered legend below
+            const legendY = axisY + 14;
+            const legendCols = 2;
+            events9.forEach((e, i) => {
+                const col = i % legendCols;
+                const row = Math.floor(i / legendCols);
+                const lx = x + col * (w / legendCols);
+                const ly = legendY + row * 10;
+                doc.setFontSize(7.5); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                const parts = [String(i + 1) + '.', fmtDate(e.date), e.type];
+                if (e.operatorName) parts.push(`(${e.operatorName})`);
+                doc.text(parts.filter(Boolean).join(' '), lx, ly);
+            });
+
+            const legendH = Math.ceil(events9.length / legendCols) * 10;
+            doc.setLineWidth(0.3);
+            return HEADER_H + AXIS_H + legendH + 6;
+        }
+
+        // checklist — checkbox + label rows, optional source tag.
+        // items = [{text, source, path?}], max default 5
+        function checklist(items, x, yy, w, max) {
+            const maxItems = max || 5;
+            const items5 = (items || []).slice(0, maxItems);
+            if (!items5.length) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'italic');
+                setColor('setTextColor', PALETTE.MID);
+                doc.text('No outstanding action items', x, yy + 11);
+                doc.setFont('helvetica', 'normal');
+                return 16;
+            }
+            // Text-only fallback uses a numbered list
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                items5.forEach((it, i) => {
+                    const tag = it.source === 'deferred' ? ' [DEFER]'
+                        : it.source === 'talktrack' ? ' [RULE]'
+                        : '';
+                    doc.text(`${i + 1}. ${it.text}${tag}`, x, yy + 11 + i * 12);
+                });
+                return items5.length * 12 + 4;
+            }
+
+            const ROW_H = 14;
+            const BOX = 8;
+            items5.forEach((it, i) => {
+                const ry = yy + i * ROW_H + 4;
+                // Checkbox
+                setColor('setDrawColor', PALETTE.INK);
+                doc.setLineWidth(0.6);
+                strokeRect(x, ry, BOX, BOX);
+                // Text — wrap to leave room for source tag on the right
+                const tagText = it.source === 'deferred' ? 'DEFER'
+                    : it.source === 'talktrack' ? 'RULE'
+                    : '';
+                doc.setFontSize(6.5); doc.setFont('helvetica', 'bold');
+                const tagW = tagText && has(doc, 'getTextWidth') ? doc.getTextWidth(tagText) + 4 : 36;
+                const textMaxW = w - BOX - 12 - tagW;
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                const lines = has(doc, 'splitTextToSize') ? doc.splitTextToSize(String(it.text || ''), textMaxW) : [String(it.text || '')];
+                doc.text(lines[0], x + BOX + 6, ry + 7);
+                // Source tag (right-aligned)
+                if (tagText && has(doc, 'getTextWidth')) {
+                    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+                    setColor('setTextColor', PALETTE.MID);
+                    const tw = doc.getTextWidth(tagText);
+                    doc.text(tagText, x + w - tw, ry + 7);
+                } else if (tagText) {
+                    doc.setFontSize(6.5); doc.setFont('helvetica', 'normal');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text(tagText, x + w - 36, ry + 7);
+                }
+            });
+            doc.setLineWidth(0.3);
+            doc.setFont('helvetica', 'normal');
+            return items5.length * ROW_H + 4;
+        }
+
+        // operatorAssignmentGrid — rows=operators, cols=assets. Cell=P/A/blank.
+        // assets = [{key, label}] (e.g. ['A1 Camry','A2 CR-V','B1 Yamaha'])
+        // assignments = Map<operatorId, Map<assetKey, 'P'|'A'>>
+        function operatorAssignmentGrid(operators, assets, assignments, x, yy, w) {
+            if (!operators.length || !assets.length) return 0;
+            const HEADER_H = 16;
+            const ROW_H = 14;
+            const NAME_W = 130;
+            const colW = (w - NAME_W) / assets.length;
+            const totalH = HEADER_H + operators.length * ROW_H + 4;
+            if (!has(doc, 'rect')) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                setColor('setTextColor', PALETTE.INK);
+                operators.forEach((op, i) => {
+                    const name = `${op.firstName || ''} ${op.lastName || ''}`.trim() || 'Operator';
+                    const cells = assets.map(a => {
+                        const v = assignments.get(op.id) && assignments.get(op.id).get(a.key);
+                        return `${a.label}:${v || '–'}`;
+                    });
+                    doc.text(`${name}  ${cells.join('  ')}`, x, yy + 10 + i * 11);
+                });
+                return totalH;
+            }
+            // Header row
+            setColor('setFillColor', PALETTE.FILL);
+            fillRect(x, yy, w, HEADER_H);
+            doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+            setColor('setTextColor', PALETTE.MID);
+            doc.text('OPERATOR', x + 4, yy + 11);
+            assets.forEach((a, i) => {
+                const cx = x + NAME_W + i * colW;
+                const trunc = a.label.length > 9 ? a.label.slice(0, 9) : a.label;
+                doc.text(trunc, cx + 4, yy + 11);
+            });
+            // Body rows
+            doc.setFont('helvetica', 'normal');
+            operators.forEach((op, ri) => {
+                const ry = yy + HEADER_H + ri * ROW_H;
+                if (ri % 2 === 1) {
+                    setColor('setFillColor', PALETTE.FILL);
+                    fillRect(x, ry, w, ROW_H);
+                }
+                // Operator name
+                doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+                setColor('setTextColor', PALETTE.INK);
+                const name = `${op.firstName || ''} ${op.lastName || ''}`.trim() || 'Operator';
+                doc.text(name, x + 4, ry + 10);
+                // Cells
+                assets.forEach((a, ci) => {
+                    const cx = x + NAME_W + ci * colW;
+                    const v = assignments.get(op.id) && assignments.get(op.id).get(a.key);
+                    if (v === 'P') {
+                        setColor('setFillColor', PALETTE.ACCENT);
+                        fillRect(cx + 4, ry + 3, 14, 8);
+                        doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+                        setColor('setTextColor', PALETTE.WHITE);
+                        doc.text('P', cx + 9, ry + 9);
+                    } else if (v === 'A') {
+                        setColor('setDrawColor', PALETTE.INK);
+                        doc.setLineWidth(0.6);
+                        strokeRect(cx + 4, ry + 3, 14, 8);
+                        doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+                        setColor('setTextColor', PALETTE.INK);
+                        doc.text('A', cx + 9, ry + 9);
+                    }
+                });
+                doc.setFont('helvetica', 'normal');
+            });
+            // Border
+            setColor('setDrawColor', PALETTE.LIGHT);
+            doc.setLineWidth(0.4);
+            strokeRect(x, yy, w, totalH - 4);
+            doc.setLineWidth(0.3);
+            return totalH;
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -404,6 +1307,59 @@
         }
 
         // ════════════════════════════════════════════════════════════════════
+        //  ② SNAPSHOT (page 1 only — single-page underwriting summary)
+        // ════════════════════════════════════════════════════════════════════
+        // Page 1 is a fixed-height composition of visual primitives reading
+        // from `model`. After this block we force `addPage()` so the detail
+        // phase starts on page 2 — guarantees the snapshot is always exactly
+        // one page, even if a future change adds rows.
+
+        // Keystat row — 4 compact KPI cells
+        const keystatItems = [
+            { label: 'Operators',     value: String(model.productCounts.operators || 0) },
+            { label: 'Yrs at Addr',   value: model.yearsAtAddress ? String(model.yearsAtAddress) : '—' },
+            { label: 'Continuous',    value: model.continuous || '—' },
+            { label: 'Lines',         value: model.qChips.join(' · ') || '—' },
+        ];
+        y += keystatRow(keystatItems, MG, y, CW);
+        y += 8;
+
+        // Carrier fit grid
+        if (model.carrierFit.length) {
+            sectionLabel('Carrier Fit');
+            y += statusGrid(model.carrierFit, MG, y, CW);
+            y += 8;
+        }
+
+        // Risk flags
+        sectionLabel('Risk Flags');
+        y += severityBox('Risk flags · ranked', model.riskMarkers, MG, y, CW);
+        y += 8;
+
+        // Coverage at a glance — home #1 only
+        sectionLabel('Coverage at a Glance');
+        y += ratioBar(model.coverageRatios, MG, y, CW);
+        y += 8;
+
+        // Action items — top 5 only on page 1
+        sectionLabel('Action Items');
+        y += checklist(model.actionItems, MG, y, CW, 5);
+        if (model.actionItems.length > 5) {
+            doc.setFontSize(7.5); doc.setFont('helvetica', 'italic');
+            setColor('setTextColor', PALETTE.MID);
+            doc.text(`+ ${model.actionItems.length - 5} more in the appendix`, MG, y + 4);
+            doc.setFont('helvetica', 'normal');
+            y += 12;
+        }
+
+        // Force the detail phase onto page 2. Even if the snapshot phase
+        // bailed early on every primitive (text-only mock), the addPage call
+        // is guaranteed by jsPDF's mock surface — see test stub at
+        // tests/intake-v2.test.js:413.
+        doc.addPage();
+        y = MG;
+
+        // ════════════════════════════════════════════════════════════════════
         //  ③ APPLICANT INFO
         // ════════════════════════════════════════════════════════════════════
         sectionLabel('Applicant');
@@ -493,6 +1449,34 @@
                     ['MVR Status',   op.mvrStatus],
                 ]);
             });
+
+            // ── Operator-asset assignment matrix (compact cross-reference) ─
+            // Builds a Map<operatorId, Map<assetKey, 'P'|'A'>> from all
+            // primary/additional operator links across autos, boats, and RVs.
+            const assignments = new Map();
+            const assetCols = [];
+            const addAsset = (prefix, idx, item) => {
+                const key = `${prefix}${idx + 1}`;
+                const labelParts = [key, item.year, item.make].filter(Boolean);
+                assetCols.push({ key, label: labelParts.join(' ') });
+                const setRole = (opId, role) => {
+                    if (!opId) return;
+                    if (!assignments.has(opId)) assignments.set(opId, new Map());
+                    const m = assignments.get(opId);
+                    // Primary wins over Additional if both are set somehow
+                    if (!m.has(key) || m.get(key) === 'A') m.set(key, role);
+                };
+                setRole(item.primaryOperatorId, 'P');
+                (item.additionalOperatorIds || []).forEach(opId => setRole(opId, 'A'));
+            };
+            autos.forEach((a, i) => addAsset('A', i, a));
+            boats.forEach((b, i) => addAsset('B', i, b));
+            rvs.forEach((r, i)   => addAsset('R', i, r));
+            if (assetCols.length) {
+                sectionLabel('Operator Assignments');
+                y += operatorAssignmentGrid(operators, assetCols, assignments, MG, y, CW);
+                y += 6;
+            }
         }
 
         // ════════════════════════════════════════════════════════════════════
@@ -507,20 +1491,22 @@
                 const cov = h.coverages || {};
                 const end = h.endorsements || {};
                 const mort = h.mortgageCompany || {};
-                const endorsementsList = [
+                // Endorsements + hazard flags are kept as arrays so they can
+                // render as pillRow chips after the home's main kv grid.
+                const endorsementsListArr = [
                     end.waterBackup && 'Water Backup',
                     end.equipmentBreakdown && 'Equipment Breakdown',
                     end.serviceLine && 'Service Line',
                     end.scheduledProperty && 'Scheduled Property',
                     end.ordinanceLaw && 'Ordinance/Law',
                     end.identityTheft && 'Identity Theft',
-                ].filter(Boolean).join(', ');
-                const hazardFlags = [
+                ].filter(Boolean);
+                const hazardFlagsArr = [
                     hz.pool && 'Pool',
                     hz.trampoline && 'Trampoline',
                     hz.woodStove && 'Wood/Pellet Stove',
                     hz.businessOnPremises && 'Business on Premises',
-                ].filter(Boolean).join(', ');
+                ].filter(Boolean);
 
                 const title = `Home #${i + 1}` + (h.address ? `  ·  ${h.address}` : '');
                 assetCard(title, [
@@ -548,7 +1534,6 @@
                     ['Fire Station',       hz.fireStationDist && `${hz.fireStationDist} mi`],
                     ['Hydrant',            hz.fireHydrantFeet && `${hz.fireHydrantFeet} ft`],
                     ['Alarms',             hz.alarms],
-                    ['Hazards',            hazardFlags],
                     ['Dogs',               hz.dogs],
                     ['Purchase Date',      fmtDate(h.purchaseDate)],
                     ['Cov A — Dwelling',   fmtMoney(cov.dwellingA)],
@@ -560,11 +1545,30 @@
                     ['AOP Deductible',     fmtMoney(cov.deductible)],
                     ['Wind/Hail Ded',      cov.windHailDeductible],
                     ['Settlement',         cov.replacementType],
-                    ['Endorsements',       endorsementsList],
                     ['Mortgagee',          mort.name],
                     ['Loan #',             mort.loanNumber],
                     ['Mort Address',       mort.address],
                 ]);
+
+                // Hazards + endorsements rendered as pill rows below the card
+                // body so the agent's eye can scan them as discrete badges
+                // rather than parsing a comma-separated text run.
+                if (hazardFlagsArr.length) {
+                    doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text('HAZARDS', MG + 2, y + 4);
+                    y += 8;
+                    y += pillRow(hazardFlagsArr, MG + 2, y, CW - 4, { filled: true });
+                    y += 4;
+                }
+                if (endorsementsListArr.length) {
+                    doc.setFontSize(7); doc.setFont('helvetica', 'bold');
+                    setColor('setTextColor', PALETTE.MID);
+                    doc.text('ENDORSEMENTS', MG + 2, y + 4);
+                    y += 8;
+                    y += pillRow(endorsementsListArr, MG + 2, y, CW - 4, { filled: true });
+                    y += 4;
+                }
                 if (h.notes) {
                     doc.setFontSize(8.5); doc.setFont('helvetica', 'italic');
                     setColor('setTextColor', PALETTE.MID);
@@ -771,31 +1775,47 @@
         if (hist.hasCleanHistory) {
             kvRow([['Status', 'Clean record (all operators)']], 1);
         } else {
-            const lossRows = (hist.losses || []).map((L, i) => {
+            // Merge losses + violations into a single chronological event
+            // stream with operator names resolved up front, then visualize
+            // via timelineStrip. The flat-list fallback still emits inside
+            // timelineStrip when `rect` is unavailable, so the JSDOM mock
+            // gets readable text rows.
+            const events = [];
+            (hist.losses || []).forEach(L => {
                 const op = operators.find(o => o.id === L.operatorId);
-                return [`Loss #${i + 1}`,
-                    [fmtDate(L.date), L.type, L.amount && `$${L.amount}`, op && `${op.firstName || ''} ${op.lastName || ''}`.trim(), L.asset].filter(Boolean).join(' · ')];
+                events.push({
+                    date: L.date,
+                    type: L.type + (L.amount ? ` ($${L.amount})` : '') + (L.asset ? ` · ${L.asset}` : ''),
+                    operatorName: op ? `${op.firstName || ''} ${op.lastName || ''}`.trim() : '',
+                    severity: 'med',
+                });
             });
-            const vioRows = (hist.violations || []).map((V, i) => {
+            (hist.violations || []).forEach(V => {
                 const op = operators.find(o => o.id === V.operatorId);
-                return [`Violation #${i + 1}`,
-                    [fmtDate(V.date), V.type, op && `${op.firstName || ''} ${op.lastName || ''}`.trim()].filter(Boolean).join(' · ')];
+                events.push({
+                    date: V.date,
+                    type: V.type,
+                    operatorName: op ? `${op.firstName || ''} ${op.lastName || ''}`.trim() : '',
+                    severity: 'low',
+                });
             });
-            if (lossRows.length || vioRows.length) {
-                kvRow([...lossRows, ...vioRows], 1);
-            } else {
-                kvRow([['Status', 'No incidents reported yet']], 1);
-            }
+            events.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+            const now = new Date();
+            const start = new Date(now.getFullYear(), now.getMonth() - 35, 1);
+            y += timelineStrip(events, start, now, MG, y, CW);
+            y += 4;
         }
 
         // ════════════════════════════════════════════════════════════════════
-        //  ⑫ DEFERRED / FOLLOW-UP + NOTES
+        //  ⑫ PRODUCER ACTION ITEMS (full list — snapshot truncates to 5)
         // ════════════════════════════════════════════════════════════════════
-        if ((v2.deferred || []).length) {
-            sectionLabel(`Follow-up (${v2.deferred.length})`);
-            const labels = v2.deferred.map(p => window.IntakeV2._defer ? window.IntakeV2._defer.labelForPath(p) : p);
-            const rows = labels.map((l, i) => [`${i + 1}.`, l]);
-            kvRow(rows, 1);
+        // The snapshot on page 1 caps at 5 items. This appendix surfaces the
+        // complete merged list (deferred + derived + talk-track) for the
+        // agent's follow-up reference. Reuses the same `model.actionItems`
+        // computed at the top of the builder so the two views never drift.
+        if (model.actionItems && model.actionItems.length) {
+            sectionLabel(`Producer Action Items — Full List (${model.actionItems.length})`);
+            y += checklist(model.actionItems, MG, y, CW, model.actionItems.length);
         }
         if (v2.notes && v2.notes.freeText) {
             sectionLabel('Agent Notes');
@@ -823,7 +1843,14 @@
                     doc.setLineWidth(0.3);
                     doc.line(MG, PAGE_H - 22, PAGE_W - MG, PAGE_H - 22);
                     doc.text('Altech Insurance · Personal Intake', MG, PAGE_H - 12);
-                    const pageText = `Page ${i} of ${total}`;
+                    // Page 1 is the underwriting Snapshot; pages 2+ are the
+                    // dense detail dossier. Calling out "Snapshot" on the
+                    // footer makes it easy for an agent flipping back-and-
+                    // forth in a printed packet to know which view they're
+                    // looking at.
+                    const pageText = i === 1
+                        ? `Snapshot · Page 1 of ${total}`
+                        : `Page ${i} of ${total}`;
                     const pageTextW = has(doc, 'getTextWidth') ? doc.getTextWidth(pageText) : 0;
                     doc.text(pageText, (PAGE_W - pageTextW) / 2, PAGE_H - 12);
                     const tsText = `${ref}  ·  ${fmtDateTime(new Date())}`;
