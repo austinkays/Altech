@@ -76,6 +76,11 @@ function loadSecureStorage() {
     return SS;
 }
 
+// Vault meta from the last createVault() call. Tests that lock + re-unlock
+// the same MK use this to call `unlockVault(meta, passphrase)`.
+let _vaultMeta = null;
+const _vaultPassphrase = 'secure-storage-test';
+
 beforeEach(async () => {
     _store.clear();
     // Replace localStorage WHOLESALE so the previous test's proxy overrides
@@ -90,7 +95,7 @@ beforeEach(async () => {
         key: (i) => Array.from(_store.keys())[i] || null,
     };
     CryptoHelper._internals.reset();
-    await CryptoHelper.createVault('secure-storage-test');
+    _vaultMeta = await CryptoHelper.createVault(_vaultPassphrase);
     CryptoHelper.enableV2();
 });
 
@@ -330,17 +335,16 @@ describe('SecureStorage — pending-migration retry after vault unlock', () => {
         // Repro for the CGL-dashboard spam: when a verify-queue drain calls
         // setItemSync N times, _retryPendingMigration fires N times. If one
         // sensitive key permanently fails quota, the noise is N copies of
-        // the same warning. The block-set short-circuits subsequent attempts.
+        // the same line. The block-set + _quotaInfoLogged guard short-
+        // circuit subsequent attempts so the message prints once per session.
 
         // Stage one oversized key — we simulate quota by making setItem throw
         // ONLY for this key, ONLY when the value starts with the v1 prefix.
         _store.set('altech_cgl_cache', JSON.stringify({ huge: 'x'.repeat(100) }));
 
         const realSetItem = globalThis.localStorage.setItem;
-        let quotaThrows = 0;
         globalThis.localStorage.setItem = (k, v) => {
             if (k === 'altech_cgl_cache' && typeof v === 'string' && v.startsWith('altech-sec:v1:')) {
-                quotaThrows++;
                 const err = new Error("Setting the value of 'altech_cgl_cache' exceeded the quota.");
                 err.name = 'QuotaExceededError';
                 throw err;
@@ -349,16 +353,23 @@ describe('SecureStorage — pending-migration retry after vault unlock', () => {
         };
 
         const warnLog = [];
+        const infoLog = [];
         const realWarn = console.warn;
+        const realInfo = console.info;
         console.warn = (...args) => { warnLog.push(args.join(' ')); };
+        console.info = (...args) => { infoLog.push(args.join(' ')); };
 
         try {
             const SS = loadSecureStorage();
             await SS.init();
             expect(SS.pendingMigrationCount()).toBe(1);
-            // Init's own write attempt should fire exactly once.
+            // Quota message is info-level now (the user can't fix it; cache
+            // + IndexedDB still work) — and prints exactly once at init.
+            const initQuotaInfos = infoLog.filter(m => m.includes('cgl_cache')).length;
+            expect(initQuotaInfos).toBe(1);
+            // No console.warn for quota — it's not an error condition.
             const initQuotaWarns = warnLog.filter(m => m.includes('cgl_cache')).length;
-            expect(initQuotaWarns).toBe(1);
+            expect(initQuotaWarns).toBe(0);
 
             // Now drain a "verify queue" — 25 unrelated setItemSync calls.
             // Each triggers _retryPendingMigration. WITHOUT the quota-block,
@@ -368,26 +379,73 @@ describe('SecureStorage — pending-migration retry after vault unlock', () => {
             }
             await new Promise(r => setTimeout(r, 50));
 
+            const totalQuotaInfos = infoLog.filter(m => m.includes('cgl_cache')).length;
+            expect(totalQuotaInfos).toBe(1); // still just the original init info
             const totalQuotaWarns = warnLog.filter(m => m.includes('cgl_cache')).length;
-            expect(totalQuotaWarns).toBe(1); // still just the original init warning
+            expect(totalQuotaWarns).toBe(0);
             // Sanity — the unrelated key succeeded.
             expect(_store.get('altech_reminders')).toMatch(/^altech-sec:v1:/);
         } finally {
             console.warn = realWarn;
+            console.info = realInfo;
             globalThis.localStorage.setItem = realSetItem;
         }
     });
 
-    test('init collapses per-key decrypt warnings into a single summary line', async () => {
-        // Pre-bugfix: every locked-vault key logged its own "decrypt failed at
-        // init" line. With 7+ sensitive keys carrying ciphertext, that's 7
-        // identical warnings on every page load. Now: one summary.
+    test('vault-locked-at-init: collapses encrypt + decrypt failures into one info line', async () => {
+        // The common cold-load case: v2 is enabled, the user landed on the
+        // page before unlocking. Init's encrypt and decrypt failures are
+        // expected — VaultUI is about to prompt for the passphrase. Replace
+        // the pre-fix scary `console.warn` lines with one info-level summary.
         _store.set('altech_cgl_state',      'altech-sec:v1:bogus-ct');
         _store.set('altech_reminders',      'altech-sec:v1:bogus-ct');
         _store.set('altech_client_history', 'altech-sec:v1:bogus-ct');
+        // Plus a plaintext-on-disk key that needs encryption migration.
+        _store.set('altech_call_logger', JSON.stringify([{ id: 'note-1' }]));
 
         CryptoHelper.lock();
 
+        const warnLog = [];
+        const infoLog = [];
+        const realWarn = console.warn;
+        const realInfo = console.info;
+        console.warn = (...args) => { warnLog.push(args.join(' ')); };
+        console.info = (...args) => { infoLog.push(args.join(' ')); };
+
+        try {
+            const SS = loadSecureStorage();
+            await SS.init();
+
+            // No warnings — the locked-vault state isn't an error.
+            const decryptWarns = warnLog.filter(m => m.includes('could not be decrypted'));
+            const encryptWarns = warnLog.filter(m => m.includes('migration encrypt deferred'));
+            expect(decryptWarns).toHaveLength(0);
+            expect(encryptWarns).toHaveLength(0);
+
+            // One info line consolidates both buckets.
+            const summary = infoLog.filter(m => m.includes('Vault locked at init'));
+            expect(summary).toHaveLength(1);
+            expect(summary[0]).toMatch(/3 pending decrypt/);
+            expect(summary[0]).toMatch(/1 pending encrypt/);
+            expect(summary[0]).toContain('will rehydrate after unlock');
+
+            // Pending sets are populated so migrate() can drain them.
+            expect(SS.pendingDecryptCount()).toBe(3);
+            expect(SS.pendingMigrationCount()).toBe(1);
+        } finally {
+            console.warn = realWarn;
+            console.info = realInfo;
+        }
+    });
+
+    test('vault-unlocked-but-bogus-cipher: still warns (data corruption is actionable)', async () => {
+        // Differentiated from the locked case above: vault IS unlocked, so the
+        // failure must be data corruption or a key mismatch. The user can act
+        // on this (restore from cloud, contact support) — keep the warning.
+        _store.set('altech_cgl_state', 'altech-sec:v1:bogus-ct');
+        _store.set('altech_reminders', 'altech-sec:v1:bogus-ct');
+
+        // Vault stays UNLOCKED (don't call lock()).
         const warnLog = [];
         const realWarn = console.warn;
         console.warn = (...args) => { warnLog.push(args.join(' ')); };
@@ -397,13 +455,9 @@ describe('SecureStorage — pending-migration retry after vault unlock', () => {
             await SS.init();
             const decryptWarns = warnLog.filter(m => m.includes('could not be decrypted'));
             expect(decryptWarns).toHaveLength(1);
-            // Summary names the count and the keys.
-            expect(decryptWarns[0]).toMatch(/3 key\(s\)/);
+            expect(decryptWarns[0]).toMatch(/2 key\(s\)/);
             expect(decryptWarns[0]).toContain('altech_cgl_state');
             expect(decryptWarns[0]).toContain('altech_reminders');
-            // The pre-fix per-key noise is gone.
-            const oldNoise = warnLog.filter(m => m.includes('decrypt failed at init for'));
-            expect(oldNoise).toHaveLength(0);
         } finally {
             console.warn = realWarn;
         }
@@ -429,5 +483,75 @@ describe('SecureStorage — pending-migration retry after vault unlock', () => {
         expect(SS.pendingMigrationCount()).toBe(0);
         expect(_store.get('altech_cgl_state')).toMatch(/^altech-sec:v1:/);
         expect(_store.get('altech_reminders')).toMatch(/^altech-sec:v1:/);
+    });
+
+    test('migrate() re-decrypts pending-decrypt envelopes after vault unlock', async () => {
+        // The CGL-dashboard scenario: a v2-encrypted envelope is on disk
+        // before init runs, the vault is locked at init so decrypt returns
+        // null, the cache stays empty. After unlock, migrate() must
+        // re-decrypt and populate the cache so the next plugin read works.
+
+        // Pre-stage a REAL v2 envelope by encrypting under the active key,
+        // then locking — so the bytes are valid, just unreadable until unlock.
+        const ct = await CryptoHelper.encrypt({ policies: [{ id: 'p1' }] });
+        _store.set('altech_cgl_state', 'altech-sec:v1:' + ct);
+        CryptoHelper.lock();
+
+        const SS = loadSecureStorage();
+        await SS.init();
+        // Decrypt failed at init; cache is empty.
+        expect(SS.pendingDecryptCount()).toBe(1);
+        expect(SS.getParsed('altech_cgl_state')).toBeNull();
+
+        // Unlock the vault with the same passphrase / meta as setup — re-derives
+        // the same MK, so the envelope decrypts successfully on retry.
+        const ok = await CryptoHelper.unlockVault(_vaultMeta, _vaultPassphrase);
+        expect(ok).toBe(true);
+
+        // migrate() should re-decrypt and populate the cache.
+        const result = await SS.migrate();
+        expect(result.decrypted).toBe(1);
+        expect(SS.pendingDecryptCount()).toBe(0);
+        expect(SS.getParsed('altech_cgl_state')).toEqual({ policies: [{ id: 'p1' }] });
+    });
+
+    test('auto-retry sweep re-decrypts pending envelopes when a sensitive key is written', async () => {
+        // Same as above but exercising the implicit retry path: the user
+        // doesn't need to explicitly call SS.migrate(); any setItemSync on
+        // a sensitive key triggers the sweep.
+        const ct = await CryptoHelper.encrypt([{ id: 1, text: 'remember' }]);
+        _store.set('altech_reminders', 'altech-sec:v1:' + ct);
+        CryptoHelper.lock();
+
+        const SS = loadSecureStorage();
+        await SS.init();
+        expect(SS.pendingDecryptCount()).toBe(1);
+
+        // Unlock and write to a DIFFERENT sensitive key.
+        await CryptoHelper.unlockVault(_vaultMeta, _vaultPassphrase);
+        SS.setItemSync('altech_cgl_state', { unrelated: true });
+        await new Promise(r => setTimeout(r, 20));
+
+        expect(SS.pendingDecryptCount()).toBe(0);
+        expect(SS.getParsed('altech_reminders')).toEqual([{ id: 1, text: 'remember' }]);
+    });
+
+    test('migrate() return shape includes both migrated and decrypted counts', async () => {
+        // Stage one plaintext-pending-encrypt and one envelope-pending-decrypt.
+        _store.set('altech_call_logger', JSON.stringify([{ id: 'note' }]));
+        const ct = await CryptoHelper.encrypt({ foo: 'bar' });
+        _store.set('altech_cgl_state', 'altech-sec:v1:' + ct);
+        CryptoHelper.lock();
+
+        const SS = loadSecureStorage();
+        await SS.init();
+        expect(SS.pendingMigrationCount()).toBe(1);
+        expect(SS.pendingDecryptCount()).toBe(1);
+
+        await CryptoHelper.unlockVault(_vaultMeta, _vaultPassphrase);
+        const result = await SS.migrate();
+        expect(result.migrated).toBe(1);
+        expect(result.decrypted).toBe(1);
+        expect(result.pending).toBe(0);
     });
 });

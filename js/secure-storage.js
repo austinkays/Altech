@@ -108,6 +108,13 @@ window.SecureStorage = (() => {
     // converge once v2 unlocks. P0 fix May 11 2026 — previously plaintext
     // could persist on disk forever if the user booted with a locked vault.
     const _pendingMigration = new Set();
+    // Keys whose envelope ciphertext we couldn't decrypt at init — typically
+    // because the v2 vault was still locked when boot started (the common
+    // cold-load state). migrate() retries these after unlock; auto-retry
+    // sweep also tries them on the next sensitive-key write. Separate from
+    // _pendingMigration because the remedy is different: we need to fetch
+    // the plaintext (via decrypt) before we can populate the cache.
+    const _pendingDecrypt = new Set();
     // Keys whose ciphertext is too large for localStorage (fat cgl_cache is
     // the usual culprit). The retry loop fires on every setItemSync; without
     // a backoff, a verify-queue drain (~25 writes) spams the console with
@@ -115,6 +122,11 @@ window.SecureStorage = (() => {
     // stays in _pendingMigration (so a manual migrate() can still try) but
     // is skipped by the automatic retry sweep until the next page load.
     const _quotaBlocked = new Set();
+    // Set once we've emitted the per-session "quota too tight" info line for
+    // a key, so the retry-side path doesn't repeat the message the init-side
+    // already printed. Independent of _quotaBlocked because that one gates
+    // RETRIES; this one gates LOGGING.
+    const _quotaInfoLogged = new Set();
 
     function _isQuotaError(e) {
         if (!e) return false;
@@ -187,6 +199,17 @@ window.SecureStorage = (() => {
                 _ready = true;
                 return;
             }
+            // "Vault locked at init" is the normal cold-load state: v2 is
+            // enabled but the MK hasn't been restored from sessionStorage yet
+            // (that happens later via VaultUI.maybePromptUnlockOnLoad). Every
+            // decrypt + encrypt failure in this state is expected — the user
+            // will be prompted to unlock momentarily and migrate() will fix
+            // things up. Collapse the per-key noise into ONE info-level line.
+            const _vaultLockedAtInit = !!(typeof CryptoHelper.isV2Enabled === 'function'
+                && CryptoHelper.isV2Enabled()
+                && typeof CryptoHelper.isV2Unlocked === 'function'
+                && !CryptoHelper.isV2Unlocked());
+
             // We call localStorage.* directly here because the proxy is not
             // installed yet (it goes in at the END of init(), once the cache
             // is populated). Using bare `localStorage.*` avoids needing _ls().
@@ -194,6 +217,8 @@ window.SecureStorage = (() => {
             // line — when the vault is locked, every sensitive key fails the
             // same way and N identical warnings is noise, not information.
             const _decryptFailed = [];
+            const _encryptDeferred = [];
+            const _quotaDeferred = [];
             for (const key of SENSITIVE) {
                 const raw = localStorage.getItem(key);
                 if (raw == null) { _cache.set(key, null); continue; }
@@ -201,13 +226,15 @@ window.SecureStorage = (() => {
                 if (_looksEncrypted(raw)) {
                     // v1 envelope — decrypt with current key.
                     const plain = await _tryDecryptEnvelope(raw);
-                    _cache.set(key, plain);
                     if (plain == null) {
-                        // Decrypt failed (vault locked OR data was encrypted by a
-                        // different key). Don't queue for re-encrypt — we don't
-                        // have the plaintext to write back. The user must unlock
-                        // and reload for the cache to populate.
+                        // Decrypt failed. If the vault is just locked, queue
+                        // the key for re-decryption after unlock and leave the
+                        // cache "unset" (getItem returns null). migrate() and
+                        // the auto-retry sweep both try _pendingDecrypt keys.
+                        _pendingDecrypt.add(key);
                         _decryptFailed.push(key);
+                    } else {
+                        _cache.set(key, plain);
                     }
                 } else {
                     // Either legacy ciphertext (no envelope prefix, pre-v1 format)
@@ -251,19 +278,45 @@ window.SecureStorage = (() => {
                                 // Block the auto-retry sweep — it'll just fail
                                 // again on every subsequent setItemSync.
                                 _quotaBlocked.add(key);
+                                _quotaDeferred.push(key);
+                                _quotaInfoLogged.add(key);
+                            } else {
+                                _encryptDeferred.push(key);
                             }
-                            console.warn('[SecureStorage] migration write deferred for', key, '— storage quota exceeded; runtime reads use the cache');
                         }
                     } else {
                         _pendingMigration.add(key);
-                        console.warn('[SecureStorage] migration encrypt deferred for', key, '— will retry on next write');
+                        _encryptDeferred.push(key);
                     }
                 }
             }
-            if (_decryptFailed.length) {
-                console.warn('[SecureStorage]', _decryptFailed.length,
-                    'key(s) could not be decrypted at init — vault locked or key mismatch:',
-                    _decryptFailed.join(', '));
+            // One consolidated log line per scenario:
+            //   • vault locked at init (the common cold-load case): info-level,
+            //     names the deferred keys, mentions that unlock will rehydrate.
+            //   • vault unlocked but data still didn't decrypt: warning-level,
+            //     points at corruption / wrong-key as the likely cause.
+            //   • plaintext didn't fit when encrypted (quota): info-level, makes
+            //     it clear runtime reads via the cache still work.
+            if (_vaultLockedAtInit && (_decryptFailed.length || _encryptDeferred.length)) {
+                const parts = [];
+                if (_decryptFailed.length) parts.push(`${_decryptFailed.length} pending decrypt`);
+                if (_encryptDeferred.length) parts.push(`${_encryptDeferred.length} pending encrypt`);
+                console.info('[SecureStorage] Vault locked at init —', parts.join(', '),
+                    '(will rehydrate after unlock)');
+            } else {
+                if (_decryptFailed.length) {
+                    console.warn('[SecureStorage]', _decryptFailed.length,
+                        'key(s) could not be decrypted at init — vault locked or key mismatch:',
+                        _decryptFailed.join(', '));
+                }
+                if (_encryptDeferred.length) {
+                    console.warn('[SecureStorage] migration encrypt deferred for',
+                        _encryptDeferred.join(', '), '— will retry on next write');
+                }
+            }
+            if (_quotaDeferred.length) {
+                console.info('[SecureStorage]', _quotaDeferred.join(', '),
+                    'too large for localStorage when encrypted — runtime reads use the cache + IndexedDB');
             }
             // Install the transparent localStorage proxy AFTER the cache is
             // populated. Any plugin code that does `localStorage.getItem(K)` for
@@ -392,18 +445,20 @@ window.SecureStorage = (() => {
     }
 
     // Fire-and-forget retry sweep — tries to encrypt every still-pending
-    // key with the CURRENT cache value. Race-safe: only flushes a
-    // ciphertext when the cache hasn't moved on. Called from setItem(Sync)
-    // so the system converges as soon as the vault is unlocked.
+    // key with the CURRENT cache value AND re-decrypt any pending-decrypt
+    // envelopes. Race-safe: only flushes a ciphertext when the cache
+    // hasn't moved on. Called from setItem(Sync) so the system converges
+    // as soon as the vault is unlocked.
     function _retryPendingMigration() {
-        if (_pendingMigration.size === 0) return;
         if (typeof CryptoHelper === 'undefined' || !CryptoHelper.encrypt) return;
+        if (_pendingMigration.size === 0 && _pendingDecrypt.size === 0) return;
+        // Encrypt sweep: plaintext-on-disk keys waiting for ciphertext.
         for (const key of Array.from(_pendingMigration)) {
             // Quota-blocked keys won't fit on disk — retrying just spams the
             // console with identical errors. The cache still serves runtime
             // reads, so the practical impact is "no at-rest ciphertext for
             // this one oversized key", which the user has already been
-            // toasted about by the original quota error.
+            // told about by the original info line.
             if (_quotaBlocked.has(key)) continue;
             const snapshot = _cache.get(key);
             if (snapshot == null) { _pendingMigration.delete(key); continue; }
@@ -417,8 +472,11 @@ window.SecureStorage = (() => {
                     } catch (e) {
                         if (_isQuotaError(e)) {
                             _quotaBlocked.add(key);
-                            console.warn('[SecureStorage] quota exceeded for', key,
-                                '— retries disabled for this session (cache remains active)');
+                            if (!_quotaInfoLogged.has(key)) {
+                                _quotaInfoLogged.add(key);
+                                console.info('[SecureStorage]', key,
+                                    'too large for localStorage when encrypted — runtime reads use the cache + IndexedDB');
+                            }
                         } else {
                             console.warn('[SecureStorage] retry write failed for', key,
                                 '—', (e && e.message) || e);
@@ -427,24 +485,77 @@ window.SecureStorage = (() => {
                 })
                 .catch(e => console.warn('[SecureStorage] retry encrypt failed for', key, '—', (e && e.message) || e));
         }
+        // Decrypt sweep: envelope-on-disk keys waiting for vault unlock.
+        for (const key of Array.from(_pendingDecrypt)) {
+            const raw = _ls().getItem(key);
+            if (raw == null || !_looksEncrypted(raw)) {
+                // Disk value changed (another write went through). Drop the
+                // pending state — either the new write was plaintext that we'll
+                // handle elsewhere, or it was already-decrypted ciphertext.
+                _pendingDecrypt.delete(key);
+                continue;
+            }
+            _tryDecryptEnvelope(raw)
+                .then(plain => {
+                    if (plain == null) return; // still locked / wrong key — leave queued
+                    _cache.set(key, plain);
+                    _pendingDecrypt.delete(key);
+                })
+                .catch(() => { /* swallow — leave queued */ });
+        }
     }
 
     // Public API for hooks (vault-ui unlock flow, manual sweeps). Resolves
-    // when every pending migration has been attempted at least once.
+    // when every pending operation has been attempted at least once.
+    // Handles BOTH directions: plaintext-on-disk waiting to be encrypted,
+    // and envelope-on-disk waiting to be decrypted (the common cold-load
+    // case where init ran before the vault was unlocked).
     async function migrate() {
-        if (_pendingMigration.size === 0) return { migrated: 0, pending: 0 };
-        const before = _pendingMigration.size;
-        const tasks = Array.from(_pendingMigration).map(async (key) => {
+        const beforeMigrate = _pendingMigration.size;
+        const beforeDecrypt = _pendingDecrypt.size;
+        if (beforeMigrate === 0 && beforeDecrypt === 0) {
+            return { migrated: 0, decrypted: 0, pending: 0 };
+        }
+        const encryptTasks = Array.from(_pendingMigration).map(async (key) => {
+            if (_quotaBlocked.has(key)) return;
             const snapshot = _cache.get(key);
             if (snapshot == null) { _pendingMigration.delete(key); return; }
             const env = await _encryptToEnvelope(snapshot);
             if (env && _cache.get(key) === snapshot) {
-                _ls().setItem(key, env);
-                _pendingMigration.delete(key);
+                try {
+                    _ls().setItem(key, env);
+                    _pendingMigration.delete(key);
+                } catch (e) {
+                    if (_isQuotaError(e)) {
+                        _quotaBlocked.add(key);
+                        if (!_quotaInfoLogged.has(key)) {
+                            _quotaInfoLogged.add(key);
+                            console.info('[SecureStorage]', key,
+                                'too large for localStorage when encrypted — runtime reads use the cache + IndexedDB');
+                        }
+                    }
+                    // Non-quota errors leave the key queued for the next sweep.
+                }
             }
         });
-        await Promise.allSettled(tasks);
-        return { migrated: before - _pendingMigration.size, pending: _pendingMigration.size };
+        const decryptTasks = Array.from(_pendingDecrypt).map(async (key) => {
+            const raw = _ls().getItem(key);
+            if (raw == null || !_looksEncrypted(raw)) {
+                _pendingDecrypt.delete(key);
+                return;
+            }
+            const plain = await _tryDecryptEnvelope(raw);
+            if (plain != null) {
+                _cache.set(key, plain);
+                _pendingDecrypt.delete(key);
+            }
+        });
+        await Promise.allSettled([...encryptTasks, ...decryptTasks]);
+        return {
+            migrated: beforeMigrate - _pendingMigration.size,
+            decrypted: beforeDecrypt - _pendingDecrypt.size,
+            pending: _pendingMigration.size + _pendingDecrypt.size,
+        };
     }
 
     function removeItem(key) {
@@ -463,6 +574,7 @@ window.SecureStorage = (() => {
         isSensitive: (key) => SENSITIVE_SET.has(key),
         // Inspection — tests verify pending state after a CRYPTO_LOCKED scenario.
         pendingMigrationCount: () => _pendingMigration.size,
+        pendingDecryptCount: () => _pendingDecrypt.size,
         SENSITIVE_KEYS: SENSITIVE.slice(),
     });
 })();
