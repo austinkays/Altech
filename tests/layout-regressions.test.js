@@ -25,6 +25,16 @@ describe('Layout Regression Guardrails', () => {
     expect(layoutCss).not.toContain('#quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100vh; }');
   });
 
+  test('intake v2 uses no-transform animation so sticky rails + fixed FAB compute against the viewport', () => {
+    // The default .plugin-container.active animation is `pluginFadeIn` which
+    // ends on `transform: translateY(0)`. With animation-fill-mode: both, the
+    // transform persists, creating a new containing block — that kills
+    // position:sticky on .iv2-left-rail / .iv2-right-rail and re-anchors
+    // position:fixed on .iv2-fab to the workspace bottom instead of the
+    // viewport. Same fix the quoting tool already uses.
+    expect(layoutCss).toContain('#intakeV2Tool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }');
+  });
+
   test('app-main has min-width guard and explicit background', () => {
     expect(sidebarCss).toContain('.app-main {');
     expect(sidebarCss).toContain('min-width: 0;');
