@@ -1609,3 +1609,49 @@ describe('call-logger.css', () => {
     expect(css).toContain('var(--');
   });
 });
+
+// ────────────────────────────────────────────────────
+// Agent initials persistence + USER_NAME fallback
+// ────────────────────────────────────────────────────
+
+describe("agent initials prefix in HawkSoft log (the `AJK — ` on RE: line)", () => {
+  test("_load derives initials from USER_NAME when nothing saved yet", () => {
+    // First-time pre-fill: if STORAGE_KEY has no agentInitials, fall back
+    // to USER_NAME so the AJK prefix isn't gated on the agent remembering
+    // to type their own initials every time.
+    expect(source).toContain('_deriveInitialsFromUserName()');
+    const block = source.slice(source.indexOf('function _deriveInitialsFromUserName'));
+    expect(block.slice(0, 500)).toContain('STORAGE_KEYS.USER_NAME');
+    expect(block.slice(0, 500)).toMatch(/split\(\s*\/\\s\+\/\s*\)/);
+  });
+
+  test("_load only pre-fills when the input is empty (preserves saved override)", () => {
+    // saved.agentInitials wins; USER_NAME derivation only fires when nothing
+    // is stored AND the input itself is empty (so a stale render that has
+    // a value doesn't get clobbered).
+    const block = source.slice(source.indexOf('function _load'));
+    expect(block.slice(0, 1500)).toMatch(/if\s*\(saved\.agentInitials\)/);
+    expect(block.slice(0, 1500)).toMatch(/else if\s*\(\s*!initialsEl\.value\s*\)/);
+  });
+
+  test("_wireEvents persists initials on every keystroke (no waiting for Format & Preview)", () => {
+    // Pre-fix, agentInitials only made it to localStorage after _save() ran
+    // from a successful format response. An agent who typed AJK and then
+    // refreshed before clicking Format lost the value — and the server-side
+    // post-processing in api/hawksoft-logger.js skips the prepend when
+    // cleanInitials is falsy.
+    const block = source.slice(source.indexOf('function _wireEvents'));
+    expect(block.slice(0, 4000)).toContain('clAgentInitials');
+    expect(block.slice(0, 4000)).toContain('_clInitialsWired');
+    expect(block.slice(0, 4000)).toContain('_persistInitialsOnly');
+  });
+
+  test('_persistInitialsOnly merges into existing STORAGE_KEY shape (no clobber)', () => {
+    // It reads STORAGE_KEY, mutates only agentInitials, writes back —
+    // so policyId / callType / channel survive the partial update.
+    const block = source.slice(source.indexOf('function _persistInitialsOnly'));
+    expect(block.slice(0, 800)).toMatch(/localStorage\.getItem\(STORAGE_KEY\)/);
+    expect(block.slice(0, 800)).toContain('cur.agentInitials =');
+    expect(block.slice(0, 800)).toContain('localStorage.setItem(STORAGE_KEY');
+  });
+});

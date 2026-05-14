@@ -35,18 +35,53 @@ window.CallLogger = (() => {
     function _load() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                const saved = JSON.parse(raw);
-                const policyEl = document.getElementById('clPolicyId');
-                const initialsEl = document.getElementById('clAgentInitials');
-                if (policyEl && saved.policyId) policyEl.value = saved.policyId;
-                if (saved.channelType) { _selectedChannel = saved.channelType; _applyChannelUI(); }
-                if (saved.activityType) { _selectedActivityType = saved.activityType; _applyActivityUI(); }
-                if (initialsEl && saved.agentInitials) initialsEl.value = saved.agentInitials;
+            const saved = raw ? JSON.parse(raw) : {};
+            const policyEl = document.getElementById('clPolicyId');
+            const initialsEl = document.getElementById('clAgentInitials');
+            if (policyEl && saved.policyId) policyEl.value = saved.policyId;
+            if (saved.channelType) { _selectedChannel = saved.channelType; _applyChannelUI(); }
+            if (saved.activityType) { _selectedActivityType = saved.activityType; _applyActivityUI(); }
+            if (initialsEl) {
+                if (saved.agentInitials) {
+                    initialsEl.value = saved.agentInitials;
+                } else if (!initialsEl.value) {
+                    // First-time pre-fill: derive initials from USER_NAME so
+                    // the AJK prefix on every log isn't gated on the agent
+                    // remembering to type their own initials. They can edit
+                    // the field if the derivation is wrong; the input-event
+                    // wiring in _wireEvents persists the override.
+                    const derived = _deriveInitialsFromUserName();
+                    if (derived) initialsEl.value = derived;
+                }
             }
         } catch (e) {
             console.warn('[CallLogger] Load error:', e);
         }
+    }
+
+    function _deriveInitialsFromUserName() {
+        try {
+            if (typeof STORAGE_KEYS === 'undefined' || !STORAGE_KEYS.USER_NAME) return '';
+            const userName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
+            if (!userName) return '';
+            return userName.trim().split(/\s+/)
+                .map(p => (p && p[0]) ? p[0].toUpperCase() : '')
+                .join('')
+                .slice(0, 5);
+        } catch (_) { return ''; }
+    }
+
+    function _persistInitialsOnly(value) {
+        // Save just the initials slice of STORAGE_KEY without touching
+        // policyId / callType / channel — those are saved by _save() at
+        // format time. The input listener fires on every keystroke so we
+        // never lose initials to a refresh-mid-typing.
+        try {
+            const cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            cur.agentInitials = (value || '').trim().toUpperCase();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(cur));
+            if (window.Sync && window.Sync.schedulePush) window.Sync.schedulePush();
+        } catch (_) { /* best-effort */ }
     }
 
     function _save(policyId, callType) {
@@ -1132,6 +1167,21 @@ window.CallLogger = (() => {
                 }
             });
             policyInput._clSearchWired = true;
+        }
+
+        // Persist initials on every keystroke. Pre-fix, the field only saved
+        // when _save() fired after a successful format, so an agent who typed
+        // their initials and then reloaded BEFORE clicking Format & Preview
+        // lost them — the next format request went out with `agentInitials=''`
+        // and the server-side post-processing block (which prepends `AJK — ` to
+        // the RE: line) is gated on cleanInitials being truthy. Result: log
+        // arrived in HawkSoft with no agent ID prefix.
+        const initialsEl = document.getElementById('clAgentInitials');
+        if (initialsEl && !initialsEl._clInitialsWired) {
+            initialsEl._clInitialsWired = true;
+            initialsEl.addEventListener('input', () => {
+                _persistInitialsOnly(initialsEl.value);
+            });
         }
 
         // Close dropdown when clicking outside
