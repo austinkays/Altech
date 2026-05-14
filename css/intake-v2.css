@@ -1276,10 +1276,26 @@ body.iv2-modal-open {
 .iv2-smartfill-foot {
     /* Mirrors .iv2-smartfill-head — pinned to the bottom of the
      * panel so the Apply/Skip buttons never scroll off when the
-     * body fills with rows. */
+     * body fills with rows.
+     *
+     * The position/inset/background/border resets defend against the
+     * global `footer { position: fixed; bottom: 12px; ... }` rule in
+     * css/layout.css that styles the wizard's app-shell footer. If
+     * this element ever ends up as a <footer> tag again (it used to
+     * be), those styles would yank it out of the modal panel and pin
+     * it to the viewport bottom. The explicit resets here keep the
+     * class doing the right thing regardless of tag name. */
+    position: static;
+    inset: auto;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+    border-radius: 0;
     flex-shrink: 0;
     padding: 12px 20px;
-    border-top: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
     gap: 10px;

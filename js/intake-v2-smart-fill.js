@@ -565,11 +565,11 @@ function _modal() {
                 <button type="button" class="iv2-smartfill-close" aria-label="Close">✕</button>
             </header>
             <div class="iv2-smartfill-body"></div>
-            <footer class="iv2-smartfill-foot">
+            <div class="iv2-smartfill-foot">
                 <span class="iv2-smartfill-hint">Uncheck any value you'd rather type yourself.</span>
                 <button type="button" class="iv2-smartfill-cancel">Skip</button>
                 <button type="button" class="iv2-smartfill-apply">Apply selected</button>
-            </footer>
+            </div>
         </div>
     `;
     document.body.appendChild(el);
