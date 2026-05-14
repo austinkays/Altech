@@ -35,21 +35,30 @@ describe('Layout Regression Guardrails', () => {
     expect(layoutCss).toContain('#intakeV2Tool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }');
   });
 
-  test('intake v2 rails are sticky with z-index + solid background so they ride above the form during scroll', () => {
-    // The rails pin Quick Start (left) + Talk Track (right) to the top of the
-    // viewport while the agent scrolls. They need (a) position: sticky for the
-    // pin behavior, (b) z-index > 0 so the form card shadows don't bleed over
-    // them, and (c) a solid background so the scrolling content doesn't show
-    // through. We pull the whole intake-v2.css and assert the rule body
-    // contains all three.
+  test('intake v2 rails use position:fixed (not sticky) so they are GUARANTEED pinned to the viewport during scroll', () => {
+    // PRs #115, #122, #123 each tried `position: sticky` and each fixed a
+    // real ancestor bug, but the rails still didn't stick on the deployed
+    // build (`body { overflow-x: hidden } + .app-content { overflow-y: auto }`
+    // interact in a way Chromium doesn't reliably honour for nested sticky).
+    // PR #127 cut the dependency chain by switching to position: fixed.
+    // The combined rule body must carry:
+    //   - position: fixed (the pin mechanism)
+    //   - z-index high enough to clear the section cards
+    //   - solid bg so scrolling content can't show through
     const intakeV2Css = read('css/intake-v2.css');
     const railRule = intakeV2Css.match(/\.iv2-left-rail,\s*\.iv2-right-rail\s*\{([\s\S]+?)\}/);
     expect(railRule).not.toBeNull();
     const body = railRule[1];
-    expect(body).toMatch(/position:\s*sticky/);
-    expect(body).toMatch(/top:\s*72px/);
+    expect(body).toMatch(/position:\s*fixed/);
+    expect(body).not.toMatch(/position:\s*sticky/);
     expect(body).toMatch(/z-index:\s*\d+/);
     expect(body).toMatch(/background:\s*var\(--bg-card\)/);
+    // Individual offset rules must place the rails relative to the sidebar
+    // (left) and the viewport edge (right) so they line up with the original
+    // grid columns even though they're now out of flow.
+    expect(intakeV2Css).toMatch(/\.iv2-left-rail\s*\{[^}]*left:\s*calc\(var\(--sidebar-width/);
+    expect(intakeV2Css).toMatch(/\.iv2-right-rail\s*\{[^}]*right:\s*16px/);
+    expect(intakeV2Css).toMatch(/body\.sidebar-collapsed\s+\.iv2-left-rail\s*\{[^}]*left:\s*calc\(var\(--sidebar-collapsed-width/);
   });
 
   test('intake-assist viewport overflow:hidden is scoped — does NOT leak to other plugins', () => {
