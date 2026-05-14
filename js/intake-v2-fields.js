@@ -144,7 +144,7 @@ const SCALAR = [
     { id: 'iv2-ssn',            path: 'applicant.ssn',            label: 'SSN (optional, for credit pull)', type: 'text', section: 'quick', mode: 'full' },
     { id: 'iv2-gender',         path: 'applicant.gender',         label: 'Gender',           type: 'select', options: ['', 'Male', 'Female', 'Nonbinary', 'Prefer not to say'], section: 'quick', mode: 'full' },
     { id: 'iv2-maritalStatus',  path: 'applicant.maritalStatus',  label: 'Marital Status',   type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], section: 'quick', mode: 'quick' },
-    { id: 'iv2-phone',          path: 'applicant.phone',          label: 'Phone',            type: 'tel',    section: 'quick', mode: 'quick', placeholder: '(555) 123-4567', inputmode: 'tel', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+    { id: 'iv2-phone',          path: 'applicant.phone',          label: 'Phone',            type: 'tel',    section: 'quick', mode: 'quick', placeholder: '(555) 123-4567', inputmode: 'tel', format: 'phone', bindable: requiredBy('progressive','foremost','travelers','safeco') },
     { id: 'iv2-email',          path: 'applicant.email',          label: 'Email',            type: 'email',  section: 'quick', mode: 'quick', placeholder: 'name@example.com', inputmode: 'email', speller: 'email' },
     { id: 'iv2-occupation',     path: 'applicant.occupation',     label: 'Occupation',       type: 'text',   section: 'quick', mode: 'full' },
     { id: 'iv2-industry',       path: 'applicant.industry',       label: 'Industry',         type: 'text',   section: 'quick', mode: 'full' },
@@ -179,7 +179,7 @@ const SCALAR = [
     { id: 'iv2-addrStreet', path: 'address.street', label: 'Street Address', type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
     { id: 'iv2-addrCity',   path: 'address.city',   label: 'City',           type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
     { id: 'iv2-addrState',  path: 'address.state',  label: 'State',          type: 'select', options: usStateOptions(), section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-    { id: 'iv2-addrZip',    path: 'address.zip',    label: 'ZIP Code',       type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+    { id: 'iv2-addrZip',    path: 'address.zip',    label: 'ZIP Code',       type: 'text',   section: 'quick', mode: 'quick', placeholder: '12345', inputmode: 'numeric', format: 'zip', bindable: requiredBy('progressive','foremost','travelers','safeco') },
     { id: 'iv2-county',     path: 'address.county', label: 'County',         type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
     { id: 'iv2-yearsAt',    path: 'address.yearsAt',label: 'Years at Address', type: 'number', section: 'quick', mode: 'full' },
 
@@ -187,7 +187,7 @@ const SCALAR = [
     { id: 'iv2-prevAddrStreet', path: 'address.previous.street', label: 'Previous Street', type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
     { id: 'iv2-prevAddrCity',   path: 'address.previous.city',   label: 'Previous City',   type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
     { id: 'iv2-prevAddrState',  path: 'address.previous.state',  label: 'Previous State',  type: 'select', options: usStateOptions(), section: 'quick', mode: 'full' },
-    { id: 'iv2-prevAddrZip',    path: 'address.previous.zip',    label: 'Previous ZIP',    type: 'text',   section: 'quick', mode: 'full' },
+    { id: 'iv2-prevAddrZip',    path: 'address.previous.zip',    label: 'Previous ZIP',    type: 'text',   section: 'quick', mode: 'full', inputmode: 'numeric', format: 'zip' },
 
     // ── Household preferences ─────────────────────────────────────────────
     { id: 'iv2-homeownership',   path: 'household.homeownership', label: 'Homeownership', type: 'select', options: ['', 'Own home', 'Rent', 'Condo', 'Manufactured home'], section: 'quick', mode: 'quick' },
@@ -260,7 +260,7 @@ const COLLECTIONS = {
             // required list. Pre-fix, DL State was Quick but DL Number was
             // Full-only (despite sitting visually next to State), so an agent
             // working in Quick captured the state but lost the actual number.
-            { idStem: 'op-dl-num',         path: 'dl.num',          label: 'DL Number',  type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'dl' },
+            { idStem: 'op-dl-num',         path: 'dl.num',          label: 'DL Number',  type: 'text',   mode: 'quick', format: 'dl', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'dl' },
             { idStem: 'op-dl-state',       path: 'dl.state',        label: 'DL State',   type: 'select', options: usStateOptions(), mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'op-dl-status',      path: 'dl.status',       label: 'License Status', type: 'select', options: ['', 'Valid', 'Permit', 'Suspended', 'Revoked', 'None'], mode: 'full' },
             // `computed: true` marks a field as derived from other inputs
@@ -387,14 +387,14 @@ const COLLECTIONS = {
             // speller — clicking validates + sanitizes + fetches NHTSA and
             // auto-fills the year/make/model fields of this same auto card.
             // See VinDecoder.decodeForIntake in js/vin-decoder.js.
-            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', bindable: requiredBy('progressive'), speller: 'vin', decode: 'vin', placeholder: '1HGBH41JXMN109186' },
+            { idStem: 'auto-vin',           path: 'vin',           label: 'VIN',       type: 'text',   mode: 'quick', format: 'vin', bindable: requiredBy('progressive'), speller: 'vin', decode: 'vin', placeholder: '1HGBH41JXMN109186' },
             // License plate + plate state are HawkSoft-required and used by
             // EZLynx for ID-card generation. Added May 2026 — historically
             // intake v2 leaned on VIN alone, which left agents copy/pasting
             // plates from the prior carrier's dec page into the export.
-            { idStem: 'auto-licensePlate',  path: 'licensePlate',  label: 'License Plate', type: 'text', mode: 'full', speller: 'plate' },
+            { idStem: 'auto-licensePlate',  path: 'licensePlate',  label: 'License Plate', type: 'text', mode: 'full', format: 'plate', speller: 'plate' },
             { idStem: 'auto-plateState',    path: 'plateState',    label: 'Plate State',   type: 'select', options: usStateOptions(), mode: 'full' },
-            { idStem: 'auto-garagingZip',   path: 'garagingZip',   label: 'Garaging ZIP', type: 'text',  mode: 'quick' },
+            { idStem: 'auto-garagingZip',   path: 'garagingZip',   label: 'Garaging ZIP', type: 'text',  mode: 'quick', inputmode: 'numeric', format: 'zip' },
             { idStem: 'auto-useType',       path: 'useType',       label: 'Use',       type: 'select', options: ['', 'Pleasure', 'Commute', 'Business', 'Farm', 'Artisan'], mode: 'quick' },
             { idStem: 'auto-annualMiles',   path: 'annualMiles',   label: 'Annual Miles', type: 'number', mode: 'full' },
             { idStem: 'auto-ownership',     path: 'ownership',     label: 'Ownership', type: 'select', options: ['', 'Owned', 'Financed', 'Leased'], mode: 'full' },
@@ -506,8 +506,8 @@ const COLLECTIONS = {
             { idStem: 'rv-make',           path: 'make',           label: 'Make',          type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'rv-model',          path: 'model',          label: 'Model',         type: 'text',   mode: 'quick' },
             { idStem: 'rv-length',         path: 'length',         label: 'Length (ft)',   type: 'number', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
-            { idStem: 'rv-vin',            path: 'vin',            label: 'VIN',           type: 'text',   mode: 'full' },
-            { idStem: 'rv-garagingZip',    path: 'garagingZip',    label: 'Garaging ZIP',  type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
+            { idStem: 'rv-vin',            path: 'vin',            label: 'VIN',           type: 'text',   mode: 'full', format: 'vin' },
+            { idStem: 'rv-garagingZip',    path: 'garagingZip',    label: 'Garaging ZIP',  type: 'text',   mode: 'quick', inputmode: 'numeric', format: 'zip', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'rv-fullTimer',      path: 'fullTimer',      label: 'Full-Time Residence', type: 'checkbox', mode: 'quick' },
             { idStem: 'rv-stationary',     path: 'stationary',     label: 'Stationary year-round', type: 'checkbox', mode: 'full' },
             { idStem: 'rv-rentalCharter',  path: 'rentalCharter',  label: 'Rented or chartered', type: 'checkbox', mode: 'full' },
