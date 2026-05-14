@@ -806,6 +806,16 @@
 
 /* Quick mode hides .iv2-full-only fields */
 .iv2-workspace[data-mode="quick"] .iv2-full-only { display: none !important; }
+/* Conditional reveal — a field tagged `iv2-revealed` by the renderer
+ * (e.g. "Months Continuous" once Continuous Coverage = Yes) overrides
+ * the mode-based hide so the agent sees the follow-up regardless of
+ * whether they're in Quick or Full mode. */
+.iv2-workspace[data-mode="quick"] .iv2-full-only.iv2-revealed { display: block !important; }
+.iv2-field.iv2-revealed { animation: iv2RevealIn 0.18s ease-out; }
+@keyframes iv2RevealIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
 
 /* ─── Entity cards (operator / home / auto / boat / rv) ──────────────────── */
 .iv2-card {
