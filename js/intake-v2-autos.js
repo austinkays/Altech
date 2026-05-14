@@ -74,7 +74,13 @@ function renderField(item, collKey, f) {
         // when it's not set so undefined values don't end up as the
         // literal string "undefined".
         const phAttr = f.placeholder ? ` placeholder="${escAttr(f.placeholder)}"` : '';
-        const input = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs}${phAttr} value="${escAttr(v ?? '')}">`;
+        // Opt-in input-time formatter — see intake-v2-formatters.js for the
+        // supported names (phone / vin / plate / dl / zip). Stamped as an
+        // attribute so the same capture-phase handler in intake-v2-layout.js
+        // can apply it to both scalar (Quick Start) and collection (cards)
+        // inputs without per-card wiring.
+        const fmtAttr = f.format ? ` data-iv2-format="${escAttr(f.format)}"` : '';
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(elId)}"${dataAttrs}${phAttr}${fmtAttr} value="${escAttr(v ?? '')}">`;
         // Inset phonetic-speller button — VIN gets mode='vin' (warns on
         // I/O/Q), license plate gets mode='plate' (uppercase + strip
         // whitespace). Click delegation + Alt+P shortcut live in

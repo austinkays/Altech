@@ -133,7 +133,11 @@ function renderScalarField(f, span) {
         // adding our own mask library.
         const inputmodeAttr = f.inputmode ? ` inputmode="${escAttr(f.inputmode)}"` : '';
         const patternAttr = f.pattern ? ` pattern="${escAttr(f.pattern)}"` : '';
-        const input = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"${placeholderAttr}${inputmodeAttr}${patternAttr}>`;
+        // Opt-in input-time formatter (phone / vin / plate / dl / zip).
+        // The handler is delegated in capture phase below so the formatted
+        // value is what the core save listener reads.
+        const formatAttr = f.format ? ` data-iv2-format="${escAttr(f.format)}"` : '';
+        const input = `<input type="${escAttr(f.type)}" id="${escAttr(f.id)}" data-iv2-path="${escAttr(f.path)}"${placeholderAttr}${inputmodeAttr}${patternAttr}${formatAttr}>`;
         control = f.speller
             ? `<div class="iv2-input-wrap">${input}${spellerInsetButton(f.speller)}</div>`
             : input;
@@ -504,15 +508,62 @@ function renderJumpProgress() {
     });
 }
 
+// Translate the agent's current focus into a talk-track scope tag so
+// computeSuggestions can promote relevant rules. Card focus wins over
+// section focus (a focused field inside an Auto card is "auto" even if
+// it's inside the Properties section).
+function _detectFocusedScope() {
+    try {
+        const active = document.activeElement;
+        if (!active || active === document.body) return null;
+        if (!active.closest || !active.closest('#intakeV2Tool')) return null;
+        const card = active.closest('[data-card-of]');
+        if (card) {
+            const coll = card.getAttribute('data-card-of');
+            if (coll === 'autos')     return 'auto';
+            if (coll === 'boats')     return 'boat';
+            if (coll === 'rvs')       return 'rv';
+            if (coll === 'homes')     return 'home';
+            if (coll === 'operators') return 'household';
+        }
+        const sec = active.closest('section.iv2-section, details.iv2-section');
+        if (sec && sec.id) {
+            if (sec.id === 'iv2-history')    return 'history';
+            if (sec.id === 'iv2-coverage')   return 'coverage';
+            if (sec.id === 'iv2-quick')      return 'quick';
+            if (sec.id === 'iv2-household')  return 'household';
+            // 'iv2-properties' on its own is ambiguous — no card focused yet,
+            // so leave scope null and let global rules show first.
+        }
+    } catch (_) { /* defensive — focus traversal can fail in test envs */ }
+    return null;
+}
+
 function renderTalkTrack() {
     const root = document.getElementById('iv2TalkTrack');
     if (!root || !window.IntakeV2TalkTrack) return;
-    const suggestions = window.IntakeV2TalkTrack.computeSuggestions(window.IntakeV2.data);
+    const scope = _detectFocusedScope();
+    const suggestions = window.IntakeV2TalkTrack.computeSuggestions(window.IntakeV2.data, { scope });
     if (!suggestions.length) {
-        root.innerHTML = `<em style="color:var(--text-secondary)">No prompts right now. Suggestions appear as the conversation progresses.</em>`;
+        root.innerHTML = `<em style="color:var(--text-secondary)">No prompts right now. Suggestions appear as you fill the form.</em>`;
         return;
     }
     root.innerHTML = suggestions.slice(0, 3).map(s => `<div class="iv2-talk-item" data-talk-id="${escAttr(s.id)}">${s.html}</div>`).join('<hr style="border:none; border-top:1px solid var(--border); margin:8px 0">');
+}
+
+// Re-paint the talk track when the agent moves focus to a different
+// section / card so the prompts re-prioritize without waiting for a save.
+// Debounced so tab-traversal across many fields in the same scope doesn't
+// thrash the right rail.
+let _talkTrackFocusTimer = null;
+function wireTalkTrackFocusReprioritize() {
+    if (wireTalkTrackFocusReprioritize._wired) return;
+    wireTalkTrackFocusReprioritize._wired = true;
+    document.addEventListener('focusin', (e) => {
+        if (!e.target || !e.target.closest || !e.target.closest('#intakeV2Tool')) return;
+        if (_talkTrackFocusTimer) clearTimeout(_talkTrackFocusTimer);
+        _talkTrackFocusTimer = setTimeout(renderTalkTrack, 120);
+    });
 }
 
 function renderLastEntries() {
@@ -599,6 +650,29 @@ function wireSpellerDelegation() {
 // avoids needing every renderer to emit a parallel data-bindable
 // attribute. Cleared the moment the agent types anything into the
 // field so a real value drops the warning without waiting for blur.
+// Input-time formatters (phone / vin / plate / dl / zip). Capture-phase
+// so this runs BEFORE the bubble-phase save listener in intake-v2-core.js
+// reads `el.value` — the formatted value is what gets persisted to data.
+function wireInputFormatters() {
+    if (wireInputFormatters._wired) return;
+    wireInputFormatters._wired = true;
+    document.addEventListener('input', (e) => {
+        const el = e.target;
+        if (!el || typeof el.matches !== 'function') return;
+        if (!el.matches('input')) return;
+        const fmt = el.getAttribute && el.getAttribute('data-iv2-format');
+        if (!fmt) return;
+        if (!window.IntakeV2Formatters || typeof window.IntakeV2Formatters.apply !== 'function') return;
+        const before = el.value;
+        const after = window.IntakeV2Formatters.apply(fmt, before);
+        if (after !== before) {
+            el.value = after;
+            // Cursor lands at end of formatted string — see file header
+            // for the trade-off note (linear typing is the common case).
+        }
+    }, true); // capture phase — must beat core's bubble-phase save listener
+}
+
 function wireBindableUnderlines() {
     if (wireBindableUnderlines._wired) return;
     wireBindableUnderlines._wired = true;
@@ -787,6 +861,8 @@ window.IntakeV2.onBoot(function () {
     wireTopbarHandlers();
     wireSpellerDelegation();
     wireBindableUnderlines();
+    wireInputFormatters();
+    wireTalkTrackFocusReprioritize();
     renderJumpBadges();
     renderTopbarStatus();
     renderTalkTrack();
