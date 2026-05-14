@@ -159,6 +159,41 @@ describe('undoComplete — 5-second undo window', () => {
     });
 });
 
+// ── 'once' frequency — no recurrence ─────────────────────────────────────
+
+describe("'once' reminders never reset", () => {
+    test('overdue label for once is "Past due" — does NOT promise a midnight reset', () => {
+        // Without the special case, an overdue once-task falls through to
+        // "Missed — resets tonight at midnight", which is a lie: once-tasks
+        // are skipped by _autoAdvanceRecurring and _getNextDueDate.
+        const block = SRC.slice(SRC.indexOf('function _getStatusLabel'));
+        expect(block.slice(0, 2000)).toMatch(/task\.frequency === ['"]once['"]\)\s*return\s*['"]Past due['"]/);
+    });
+
+    test('_autoAdvanceRecurring continues past once-tasks (no auto-advance)', () => {
+        const block = SRC.slice(SRC.indexOf('function _autoAdvanceRecurring'));
+        expect(block.slice(0, 500)).toMatch(/task\.frequency === ['"]once['"]\)\s*continue/);
+    });
+
+    test('_getNextDueDate breaks instead of advancing for once', () => {
+        const block = SRC.slice(SRC.indexOf('function _getNextDueDate'));
+        expect(block.slice(0, 2000)).toMatch(/break;\s*\/\/\s*['"]once['"]/);
+    });
+
+    test('completeTask skips dueDate advance for once', () => {
+        const block = SRC.slice(SRC.indexOf('function completeTask'));
+        expect(block.slice(0, 800)).toMatch(/task\.frequency !== ['"]once['"]/);
+    });
+
+    test("reminders-sweep digest excludes completed once-tasks", () => {
+        // A once-task finished yesterday must NOT keep firing the
+        // "X reminders due today" toast on subsequent days.
+        const sweep = readSrc('api/reminders-sweep.js');
+        const block = sweep.slice(sweep.indexOf('function _isDueOrOverdue'));
+        expect(block.slice(0, 1500)).toMatch(/task\.frequency === ['"]once['"]\s*&&\s*last/);
+    });
+});
+
 // ── modal HTML wiring ────────────────────────────────────────────────────
 
 describe('reminders.html — new inputs', () => {

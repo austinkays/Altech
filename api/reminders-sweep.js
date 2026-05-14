@@ -49,6 +49,10 @@ function _isDueOrOverdue(task, today, todayStr) {
     if (task.dueDate > todayStr) return false;
     const comps = task.completions || [];
     const last = comps.length ? new Date(comps[comps.length - 1]) : null;
+    // 'once' tasks stay completed forever — any completion disqualifies them
+    // from future digests. Without this, a once-task finished yesterday still
+    // surfaces in tomorrow's "X reminders due today" toast.
+    if (task.frequency === 'once' && last) return false;
     if (last) {
         const lastPstStr = new Intl.DateTimeFormat('en-CA', {
             timeZone: 'America/Los_Angeles',
