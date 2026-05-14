@@ -41,34 +41,18 @@ window.CallLogger = (() => {
             if (policyEl && saved.policyId) policyEl.value = saved.policyId;
             if (saved.channelType) { _selectedChannel = saved.channelType; _applyChannelUI(); }
             if (saved.activityType) { _selectedActivityType = saved.activityType; _applyActivityUI(); }
-            if (initialsEl) {
-                if (saved.agentInitials) {
-                    initialsEl.value = saved.agentInitials;
-                } else if (!initialsEl.value) {
-                    // First-time pre-fill: derive initials from USER_NAME so
-                    // the AJK prefix on every log isn't gated on the agent
-                    // remembering to type their own initials. They can edit
-                    // the field if the derivation is wrong; the input-event
-                    // wiring in _wireEvents persists the override.
-                    const derived = _deriveInitialsFromUserName();
-                    if (derived) initialsEl.value = derived;
-                }
-            }
+            // Restore saved initials. We deliberately don't derive from
+            // USER_NAME here — many agencies use middle initials (e.g. AJK
+            // for Austin J. Kays) and the stored full name typically lacks
+            // them, so any auto-fill would silently insert the WRONG ID into
+            // every shared log. The Format & Preview path requires the field
+            // to be non-empty (see _handleFormat) so the agent is forced to
+            // enter it exactly once; the input listener below persists it
+            // immediately so it survives every reload after that.
+            if (initialsEl && saved.agentInitials) initialsEl.value = saved.agentInitials;
         } catch (e) {
             console.warn('[CallLogger] Load error:', e);
         }
-    }
-
-    function _deriveInitialsFromUserName() {
-        try {
-            if (typeof STORAGE_KEYS === 'undefined' || !STORAGE_KEYS.USER_NAME) return '';
-            const userName = localStorage.getItem(STORAGE_KEYS.USER_NAME);
-            if (!userName) return '';
-            return userName.trim().split(/\s+/)
-                .map(p => (p && p[0]) ? p[0].toUpperCase() : '')
-                .join('')
-                .slice(0, 5);
-        } catch (_) { return ''; }
     }
 
     function _persistInitialsOnly(value) {
@@ -731,9 +715,18 @@ window.CallLogger = (() => {
         const hawksoftPolicyId = (_selectedPolicy && _selectedPolicy.hawksoftPolicyId)
             ? _selectedPolicy.hawksoftPolicyId : '';
 
-        // Agent initials — persisted so it's remembered
+        // Agent initials — required. Without these the server-side
+        // post-processing in api/hawksoft-logger.js skips the `${initials} — `
+        // prepend on the RE: line, and the log lands in HawkSoft with no
+        // way to tell who wrote it. Block the format with a toast + focus
+        // the input so the agent enters them before sending.
         const initialsEl = document.getElementById('clAgentInitials');
         const agentInitials = initialsEl ? initialsEl.value.trim().toUpperCase() : '';
+        if (!agentInitials) {
+            App.toast('Enter your agent initials before formatting — they prefix every HawkSoft log.', 'error');
+            if (initialsEl) initialsEl.focus();
+            return;
+        }
 
         // Resolve settings
         const { userApiKey, aiModel } = _resolveAISettings();

@@ -1611,27 +1611,22 @@ describe('call-logger.css', () => {
 });
 
 // ────────────────────────────────────────────────────
-// Agent initials persistence + USER_NAME fallback
+// Agent initials prefix on the RE: line (the `AJK — ...` HawkSoft sees)
 // ────────────────────────────────────────────────────
 
 describe("agent initials prefix in HawkSoft log (the `AJK — ` on RE: line)", () => {
-  test("_load derives initials from USER_NAME when nothing saved yet", () => {
-    // First-time pre-fill: if STORAGE_KEY has no agentInitials, fall back
-    // to USER_NAME so the AJK prefix isn't gated on the agent remembering
-    // to type their own initials every time.
-    expect(source).toContain('_deriveInitialsFromUserName()');
-    const block = source.slice(source.indexOf('function _deriveInitialsFromUserName'));
-    expect(block.slice(0, 500)).toContain('STORAGE_KEYS.USER_NAME');
-    expect(block.slice(0, 500)).toMatch(/split\(\s*\/\\s\+\/\s*\)/);
+  test("_load does NOT auto-derive initials from USER_NAME", () => {
+    // Many agencies use middle initials (e.g. 'AJK' for 'Austin J. Kays').
+    // The stored USER_NAME typically lacks the middle initial, so any
+    // automatic derivation would silently insert the WRONG ID into every
+    // shared log. Better to require an explicit one-time entry.
+    expect(source).not.toContain('_deriveInitialsFromUserName');
+    expect(source).not.toMatch(/STORAGE_KEYS\.USER_NAME[\s\S]{0,400}initialsEl\.value\s*=/);
   });
 
-  test("_load only pre-fills when the input is empty (preserves saved override)", () => {
-    // saved.agentInitials wins; USER_NAME derivation only fires when nothing
-    // is stored AND the input itself is empty (so a stale render that has
-    // a value doesn't get clobbered).
+  test("_load restores saved initials when they exist", () => {
     const block = source.slice(source.indexOf('function _load'));
-    expect(block.slice(0, 1500)).toMatch(/if\s*\(saved\.agentInitials\)/);
-    expect(block.slice(0, 1500)).toMatch(/else if\s*\(\s*!initialsEl\.value\s*\)/);
+    expect(block.slice(0, 1500)).toMatch(/if\s*\(initialsEl\s*&&\s*saved\.agentInitials\)\s*initialsEl\.value\s*=\s*saved\.agentInitials/);
   });
 
   test("_wireEvents persists initials on every keystroke (no waiting for Format & Preview)", () => {
@@ -1646,12 +1641,23 @@ describe("agent initials prefix in HawkSoft log (the `AJK — ` on RE: line)", (
     expect(block.slice(0, 4000)).toContain('_persistInitialsOnly');
   });
 
-  test('_persistInitialsOnly merges into existing STORAGE_KEY shape (no clobber)', () => {
+  test("_persistInitialsOnly merges into existing STORAGE_KEY shape (no clobber)", () => {
     // It reads STORAGE_KEY, mutates only agentInitials, writes back —
     // so policyId / callType / channel survive the partial update.
     const block = source.slice(source.indexOf('function _persistInitialsOnly'));
     expect(block.slice(0, 800)).toMatch(/localStorage\.getItem\(STORAGE_KEY\)/);
     expect(block.slice(0, 800)).toContain('cur.agentInitials =');
     expect(block.slice(0, 800)).toContain('localStorage.setItem(STORAGE_KEY');
+  });
+
+  test("_handleFormat blocks submit when initials are empty + focuses the input", () => {
+    // Required-field guard. Server-side prepend is gated on cleanInitials,
+    // so an empty value means no `AJK — ` on the RE: line and no way to
+    // attribute the log. Block the format path with a toast + focus so
+    // the agent has to fix it before continuing.
+    const block = source.slice(source.indexOf('async function _handleFormat'));
+    expect(block.slice(0, 4000)).toMatch(/if\s*\(\s*!agentInitials\s*\)/);
+    expect(block.slice(0, 4000)).toMatch(/App\.toast\([^)]*initials/i);
+    expect(block.slice(0, 4000)).toMatch(/initialsEl\.focus\(\)/);
   });
 });
