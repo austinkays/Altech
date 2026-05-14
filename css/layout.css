@@ -591,6 +591,11 @@ body.dark-mode #breadcrumbBar {
 .plugin-container.active { display: block; animation: pluginFadeIn 0.4s var(--transition-smooth) both; }
 /* Quoting tool uses opacity-only animation — transform breaks position:fixed on its footer */
 #quotingTool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }
+/* Intake v2 needs the same — position:sticky on .iv2-left-rail / .iv2-right-rail
+ * and position:fixed on .iv2-fab both compute relative to the transformed
+ * ancestor (translateY) otherwise, which makes the rails stop sticking and
+ * pins the FAB to the bottom of the workspace instead of the viewport. */
+#intakeV2Tool.active { animation: pluginFadeInNoTransform 0.4s var(--transition-smooth) both; min-height: 100%; }
 .plugin-container:not(.active) { content-visibility: auto; }
 
 /* ═══════════════════════════════════════════════════════════════════════
