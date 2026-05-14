@@ -326,6 +326,89 @@ describe('SecureStorage — pending-migration retry after vault unlock', () => {
         expect(SS.pendingMigrationCount()).toBe(0);
     });
 
+    test("quota-blocked keys aren't retried by the auto-sweep (no console spam)", async () => {
+        // Repro for the CGL-dashboard spam: when a verify-queue drain calls
+        // setItemSync N times, _retryPendingMigration fires N times. If one
+        // sensitive key permanently fails quota, the noise is N copies of
+        // the same warning. The block-set short-circuits subsequent attempts.
+
+        // Stage one oversized key — we simulate quota by making setItem throw
+        // ONLY for this key, ONLY when the value starts with the v1 prefix.
+        _store.set('altech_cgl_cache', JSON.stringify({ huge: 'x'.repeat(100) }));
+
+        const realSetItem = globalThis.localStorage.setItem;
+        let quotaThrows = 0;
+        globalThis.localStorage.setItem = (k, v) => {
+            if (k === 'altech_cgl_cache' && typeof v === 'string' && v.startsWith('altech-sec:v1:')) {
+                quotaThrows++;
+                const err = new Error("Setting the value of 'altech_cgl_cache' exceeded the quota.");
+                err.name = 'QuotaExceededError';
+                throw err;
+            }
+            return realSetItem(k, v);
+        };
+
+        const warnLog = [];
+        const realWarn = console.warn;
+        console.warn = (...args) => { warnLog.push(args.join(' ')); };
+
+        try {
+            const SS = loadSecureStorage();
+            await SS.init();
+            expect(SS.pendingMigrationCount()).toBe(1);
+            // Init's own write attempt should fire exactly once.
+            const initQuotaWarns = warnLog.filter(m => m.includes('cgl_cache')).length;
+            expect(initQuotaWarns).toBe(1);
+
+            // Now drain a "verify queue" — 25 unrelated setItemSync calls.
+            // Each triggers _retryPendingMigration. WITHOUT the quota-block,
+            // cgl_cache fires quota 25 more times. WITH it, zero.
+            for (let i = 0; i < 25; i++) {
+                SS.setItemSync('altech_reminders', [{ id: i }]);
+            }
+            await new Promise(r => setTimeout(r, 50));
+
+            const totalQuotaWarns = warnLog.filter(m => m.includes('cgl_cache')).length;
+            expect(totalQuotaWarns).toBe(1); // still just the original init warning
+            // Sanity — the unrelated key succeeded.
+            expect(_store.get('altech_reminders')).toMatch(/^altech-sec:v1:/);
+        } finally {
+            console.warn = realWarn;
+            globalThis.localStorage.setItem = realSetItem;
+        }
+    });
+
+    test('init collapses per-key decrypt warnings into a single summary line', async () => {
+        // Pre-bugfix: every locked-vault key logged its own "decrypt failed at
+        // init" line. With 7+ sensitive keys carrying ciphertext, that's 7
+        // identical warnings on every page load. Now: one summary.
+        _store.set('altech_cgl_state',      'altech-sec:v1:bogus-ct');
+        _store.set('altech_reminders',      'altech-sec:v1:bogus-ct');
+        _store.set('altech_client_history', 'altech-sec:v1:bogus-ct');
+
+        CryptoHelper.lock();
+
+        const warnLog = [];
+        const realWarn = console.warn;
+        console.warn = (...args) => { warnLog.push(args.join(' ')); };
+
+        try {
+            const SS = loadSecureStorage();
+            await SS.init();
+            const decryptWarns = warnLog.filter(m => m.includes('could not be decrypted'));
+            expect(decryptWarns).toHaveLength(1);
+            // Summary names the count and the keys.
+            expect(decryptWarns[0]).toMatch(/3 key\(s\)/);
+            expect(decryptWarns[0]).toContain('altech_cgl_state');
+            expect(decryptWarns[0]).toContain('altech_reminders');
+            // The pre-fix per-key noise is gone.
+            const oldNoise = warnLog.filter(m => m.includes('decrypt failed at init for'));
+            expect(oldNoise).toHaveLength(0);
+        } finally {
+            console.warn = realWarn;
+        }
+    });
+
     test('setItemSync also drains the pending queue (fire-and-forget retry)', async () => {
         // Stage one key with vault locked.
         _store.set('altech_cgl_state', JSON.stringify({ deferred: true }));

@@ -5,6 +5,12 @@
 
 const IDB_ANNOTATIONS_KEY = 'user_annotations';
 
+// Module-scoped throttle for "encrypt-at-rest failed" warnings. When the
+// vault is locked at page load, every IDB write fails the same way; logging
+// once is informative, logging N times is noise. Reset on the next
+// successful wrap so a later locking event still surfaces.
+let _wrapWarnLogged = false;
+
 window.CglIDB = {
     _db: null,
     DB_NAME: 'altech_cgl',
@@ -71,9 +77,16 @@ window.CglIDB = {
         if (typeof CryptoHelper === 'undefined' || !CryptoHelper.encrypt) return value;
         try {
             const ct = await CryptoHelper.encrypt(value);
-            if (typeof ct === 'string' && ct.length > 40) return { __sec: 'v1', ct };
+            if (typeof ct === 'string' && ct.length > 40) {
+                _wrapWarnLogged = false; // re-arm the warning if the vault re-locks later
+                return { __sec: 'v1', ct };
+            }
         } catch (e) {
-            console.warn('[CGL IDB] encrypt-at-rest failed; storing plaintext:', (e && e.message) || e);
+            if (!_wrapWarnLogged) {
+                _wrapWarnLogged = true;
+                console.warn('[CGL IDB] encrypt-at-rest failed; storing plaintext (further occurrences suppressed):',
+                    (e && e.message) || e);
+            }
         }
         return value;
     },
