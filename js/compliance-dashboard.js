@@ -975,6 +975,7 @@ const ComplianceDashboard = {
         const tableContainer = document.getElementById('cglTableContainer');
 
         this.policies = cached.policies || [];
+        this._normalizePolicyKeys();
         const cacheAge = Date.now() - (cached.cachedAt || 0);
         const ageMin = Math.round(cacheAge / 60000);
         const fetchTime = cached.metadata?.fetchedAt ? new Date(cached.metadata.fetchedAt).toLocaleString() : 'unknown';
@@ -1085,6 +1086,7 @@ const ComplianceDashboard = {
             }
 
             this.policies = data.policies || [];
+            this._normalizePolicyKeys();
 
             if (data.metadata && data.metadata.fetchedAt) {
                 const fetchTime = new Date(data.metadata.fetchedAt).toLocaleString();
@@ -1384,6 +1386,7 @@ const ComplianceDashboard = {
 
         if (cachedData) {
             this.policies = cachedData.policies;
+            this._normalizePolicyKeys();
             const fetchTime = cachedData.metadata?.fetchedAt
                 ? new Date(cachedData.metadata.fetchedAt).toLocaleString()
                 : 'unknown';
@@ -1739,6 +1742,28 @@ const ComplianceDashboard = {
             if (this.isHidden(p.policyNumber)) count++;
         });
         return count;
+    },
+
+    // HawkSoft policies occasionally arrive with NO policy number (binders,
+    // data gaps). Every annotation (verify/dismiss/snooze/notes) is keyed by
+    // policyNumber and the empty-key guards turn those actions into silent
+    // no-ops — so a no-number policy can never be dismissed and keeps
+    // resurfacing at the top of the list. Give each one a STABLE synthetic
+    // key from the HawkSoft policy id (deterministic client+carrier+exp
+    // fallback) so it keys/hides/persists like any other. Idempotent — runs
+    // after every policies load; the row still DISPLAYS the number blank
+    // (renderPolicies checks `_syntheticPolicyNumber`).
+    _normalizePolicyKeys() {
+        if (!Array.isArray(this.policies)) return;
+        for (const p of this.policies) {
+            if (!p) continue;
+            if (p.policyNumber && String(p.policyNumber).trim()) continue;
+            const id = p.policyId || p.hawksoftPolicyId || p.id;
+            p.policyNumber = id
+                ? 'NOPOL-' + id
+                : 'NOPOL-' + [p.clientNumber, p.carrier, p.expirationDate].map(x => x || '').join('~');
+            p._syntheticPolicyNumber = true;
+        }
     },
 
     // --- User actions ---
@@ -2386,6 +2411,9 @@ const ComplianceDashboard = {
 
         tbody.innerHTML = paginated.map(policy => {
             const rawPolicyNumber = String(policy.policyNumber || '');
+            // rawPolicyNumber is the IDENTITY key (annotations/onclick/isHidden).
+            // For a synthetic key the user should still see the cell blank.
+            const displayPolicyNumber = policy._syntheticPolicyNumber ? '' : rawPolicyNumber;
             const isVerified = !!this.verifiedPolicies[rawPolicyNumber];
             const isDismissed = !!this.dismissedPolicies[rawPolicyNumber];
             const isSnoozed = this._isSnoozeActive(rawPolicyNumber);
@@ -2461,7 +2489,7 @@ const ComplianceDashboard = {
                         ${noteIcons && !isAnyUpdateDone ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
                     </td>
                     <td style="font-family: monospace; font-size: 13px;">
-                        <div>${Utils.escapeHTML(rawPolicyNumber)}</div>
+                        <div>${Utils.escapeHTML(displayPolicyNumber)}</div>
                         ${renewedTo
                             ? `<span class="cgl-renewed-badge" id="renewed-badge-${pnAttr}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
                                 <span onclick="ComplianceDashboard.searchForPolicy('${escJsAttr(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
