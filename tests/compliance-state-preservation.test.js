@@ -380,4 +380,44 @@ describe('CGL Compliance — state preservation across PR #40 (L&I/CCB tracker)'
         expect(apiCalled).toBe(false);
         expect(CD.clientCompliance['CLIENT-X'].classification).toBe('exempt');
     });
+
+    // Regression: a HawkSoft policy with NO policy number could never be
+    // dismissed — every annotation keys off policyNumber and the empty-key
+    // guards no-op'd, so it kept resurfacing. _normalizePolicyKeys() now
+    // assigns a stable synthetic key so dismiss/hide works + persists.
+    test('no-policy-number policy gets a stable synthetic key and can be dismissed', () => {
+        const { CD } = loadDashboard();
+        CD.policies = [{
+            clientName: '2 R Construction LLC', clientNumber: 'C-2R', carrier: 'CBIC RLI',
+            policyType: 'cgl', expirationDate: '2026-05-05', policyId: 'HS-998',
+            // no policyNumber
+        }];
+        CD._normalizePolicyKeys();
+        const key = CD.policies[0].policyNumber;
+        expect(key).toBe('NOPOL-HS-998');
+        expect(CD.policies[0]._syntheticPolicyNumber).toBe(true);
+
+        // Idempotent — a second pass must not re-key it.
+        CD._normalizePolicyKeys();
+        expect(CD.policies[0].policyNumber).toBe('NOPOL-HS-998');
+
+        // Dismiss now works and the policy reads as hidden + persists.
+        expect(CD.isHidden(key)).toBe(false);
+        CD.dismissPolicy(key);
+        expect(CD.dismissedPolicies[key]).toBeTruthy();
+        expect(CD.isHidden(key)).toBe(true);
+        expect(CD._getStateSnapshot().dismissedPolicies[key]).toBeTruthy();
+    });
+
+    test('_normalizePolicyKeys falls back to client+carrier+exp when no id', () => {
+        const { CD } = loadDashboard();
+        CD.policies = [{ clientName: 'X', clientNumber: 'C1', carrier: 'ACME', expirationDate: '2026-01-01' }];
+        CD._normalizePolicyKeys();
+        expect(CD.policies[0].policyNumber).toBe('NOPOL-C1~ACME~2026-01-01');
+        // Real policy numbers are left untouched.
+        CD.policies = [{ policyNumber: 'REAL-123', clientNumber: 'C2' }];
+        CD._normalizePolicyKeys();
+        expect(CD.policies[0].policyNumber).toBe('REAL-123');
+        expect(CD.policies[0]._syntheticPolicyNumber).toBeUndefined();
+    });
 });
