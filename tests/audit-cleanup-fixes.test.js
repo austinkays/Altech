@@ -200,13 +200,17 @@ describe('compliance-dashboard guards', () => {
     const src = readSrc('js/compliance-dashboard.js');
 
     test('escJsAttr helper is defined and applied at policy-number sites', () => {
-        // Dual-escape helper: backslash-escape for the JS string, then
-        // HTML-attr-encode. Both layers must be present.
-        expect(src).toContain('function escJsAttr(s)');
+        // The dual-escape helper now lives in cgl-utils.js (window.CglUtil),
+        // extracted during the monolith decomposition. Both escape layers
+        // must still be present in its definition.
+        const cglUtilSrc = readSrc('js/cgl-utils.js');
+        expect(cglUtilSrc).toContain('function escJsAttr(s)');
         // The JS-layer escape (must come before the HTML-attr layer).
-        expect(src).toContain(".replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\")");
-        expect(src).toContain('Utils.escapeAttr(js)');
-        // The broken legacy escape must be gone (it produced `\\'` not `\'`).
+        expect(cglUtilSrc).toContain(".replace(/\\\\/g, '\\\\\\\\').replace(/'/g, \"\\\\'\")");
+        expect(cglUtilSrc).toContain('Utils.escapeAttr(js)');
+        // compliance-dashboard.js aliases it so the onclick template call
+        // sites stay untouched, and the broken legacy escape must be gone.
+        expect(src).toContain('const escJsAttr = CglUtil.escJsAttr');
         expect(src).not.toContain('replace(/\'/g, "\\\\\\\\\'");');
         // Master pn binding routes through escJsAttr, while attribute ids
         // keep the raw policy number encoded as an HTML attribute.

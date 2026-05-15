@@ -15,17 +15,11 @@ const IDB_ANNOTATIONS_KEY = 'user_annotations';
 // CglIDB is defined in compliance-idb.js and exposed on window
 const CglIDB = window.CglIDB;
 
-// Escape a value for safe insertion inside a JS string literal that itself
-// sits inside an HTML attribute — i.e. <button onclick="X('${escJsAttr(v)}')">.
-// Two layers: first backslash-escape the value for JS string syntax (so a
-// stray apostrophe can't close the quote and inject code), then HTML-encode
-// the result for the attribute (so a stray quote can't close the attribute).
-// JS-layer first; the HTML layer never touches backslashes so order is safe.
-function escJsAttr(s) {
-    if (s == null) return '';
-    const js = String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return Utils.escapeAttr(js);
-}
+// Pure formatters / parsers / HTML micro-builders live in cgl-utils.js
+// (window.CglUtil), loaded before this file. escJsAttr is aliased here so the
+// many onclick="X('${escJsAttr(v)}')" template call sites stay untouched.
+const CglUtil = window.CglUtil;
+const escJsAttr = CglUtil.escJsAttr;
 
 
 const ComplianceDashboard = {
@@ -297,14 +291,14 @@ const ComplianceDashboard = {
                 const localD = this.dismissedPolicies;
                 const diskV = data.verifiedPolicies || {};
                 const diskD = data.dismissedPolicies || {};
-                this.verifiedPolicies = this._smartMergeDict(localV, diskV);
-                this.dismissedPolicies = this._smartMergeDict(localD, diskD);
+                this.verifiedPolicies = CglUtil._smartMergeDict(localV, diskV);
+                this.dismissedPolicies = CglUtil._smartMergeDict(localD, diskD);
                 // Merge notes — local wins, but NEVER delete disk-only notes
                 const diskN = data.policyNotes || {};
-                this.policyNotes = this._smartMergeDict(this.policyNotes, diskN);
+                this.policyNotes = CglUtil._smartMergeDict(this.policyNotes, diskN);
                 // Merge client compliance annotations — local wins, but NEVER delete disk-only entries
                 const diskCC = data.clientCompliance || {};
-                this.clientCompliance = this._smartMergeDict(this.clientCompliance, diskCC);
+                this.clientCompliance = CglUtil._smartMergeDict(this.clientCompliance, diskCC);
                 // Restore preferences from disk if not set locally
                 if (data.sortField && !localStorage.getItem(STORAGE_KEY)) {
                     this.sortField = data.sortField;
@@ -338,14 +332,6 @@ const ComplianceDashboard = {
 
     // ── Safe-Load helper methods ──
 
-    _hasAnnotationData(obj) {
-        if (!obj) return false;
-        return (Object.keys(obj.verifiedPolicies || {}).length > 0)
-            || (Object.keys(obj.dismissedPolicies || {}).length > 0)
-            || (Object.keys(obj.policyNotes || {}).length > 0)
-            || (Object.keys(obj.clientCompliance || {}).length > 0);
-    },
-
     _applyAnnotations(ann) {
         this.verifiedPolicies = ann.verifiedPolicies || {};
         this.dismissedPolicies = ann.dismissedPolicies || {};
@@ -361,10 +347,9 @@ const ComplianceDashboard = {
 
     _getStateSnapshot() {
         // Scrub any `undefined` values across the entire tree before this is
-        // handed to CloudSync._pushDoc — Firestore rejects payloads containing
-        // undefined with an `invalid-argument` error, and the older Socrata
-        // summarizers (waLicense/orLicense) can leak undefineds through.
-        // _scrubUndefined is defined alongside verifyClient further down.
+        // persisted/synced — undefined + empty-string keys are unsafe in the
+        // serialized blob, and the older Socrata summarizers (waLicense/
+        // orLicense) can leak undefineds through. Scrub lives in CglUtil.
         const raw = {
             verifiedPolicies: this.verifiedPolicies,
             dismissedPolicies: this.dismissedPolicies,
@@ -379,23 +364,11 @@ const ComplianceDashboard = {
             notifyTypes: this.notifyTypes,
             lastSaved: new Date().toISOString()
         };
-        return this._scrubUndefined ? this._scrubUndefined(raw) : raw;
+        return CglUtil._scrubUndefined(raw);
     },
 
     async _writeAnnotationsToIDB() {
         return CglIDB.setAnnotations(this._getStateSnapshot());
-    },
-
-    // Smart merge: NEVER delete annotation keys from target
-    // target keys win on conflicts, source fills gaps
-    _smartMergeDict(target, source) {
-        const merged = { ...target };
-        for (const key of Object.keys(source || {})) {
-            if (!(key in merged)) {
-                merged[key] = source[key];
-            }
-        }
-        return merged;
     },
 
     // ── Nuclear Option: Full backup download ──
@@ -446,9 +419,9 @@ const ComplianceDashboard = {
                 return;
             }
             // Smart merge — never delete existing annotations
-            this.verifiedPolicies = this._smartMergeDict(this.verifiedPolicies, backup.verifiedPolicies);
-            this.dismissedPolicies = this._smartMergeDict(this.dismissedPolicies, backup.dismissedPolicies);
-            this.policyNotes = this._smartMergeDict(this.policyNotes, backup.policyNotes);
+            this.verifiedPolicies = CglUtil._smartMergeDict(this.verifiedPolicies, backup.verifiedPolicies);
+            this.dismissedPolicies = CglUtil._smartMergeDict(this.dismissedPolicies, backup.dismissedPolicies);
+            this.policyNotes = CglUtil._smartMergeDict(this.policyNotes, backup.policyNotes);
             this.saveState();
             this.filterPolicies();
             this.updateStats();
@@ -788,9 +761,9 @@ const ComplianceDashboard = {
                 if (raw) {
                     const local = JSON.parse(raw);
                     if (local.verifiedPolicies || local.dismissedPolicies || local.policyNotes) {
-                        this.verifiedPolicies = this._smartMergeDict(this.verifiedPolicies, local.verifiedPolicies || {});
-                        this.dismissedPolicies = this._smartMergeDict(this.dismissedPolicies, local.dismissedPolicies || {});
-                        this.policyNotes = this._smartMergeDict(this.policyNotes, local.policyNotes || {});
+                        this.verifiedPolicies = CglUtil._smartMergeDict(this.verifiedPolicies, local.verifiedPolicies || {});
+                        this.dismissedPolicies = CglUtil._smartMergeDict(this.dismissedPolicies, local.dismissedPolicies || {});
+                        this.policyNotes = CglUtil._smartMergeDict(this.policyNotes, local.policyNotes || {});
                     }
                 }
             } catch (e) {}
@@ -802,9 +775,9 @@ const ComplianceDashboard = {
                     new Promise((_, reject) => setTimeout(() => reject(new Error('IDB timeout')), 2000))
                 ]);
                 if (ann && (ann.verifiedPolicies || ann.dismissedPolicies || ann.policyNotes)) {
-                    this.verifiedPolicies = this._smartMergeDict(this.verifiedPolicies, ann.verifiedPolicies || {});
-                    this.dismissedPolicies = this._smartMergeDict(this.dismissedPolicies, ann.dismissedPolicies || {});
-                    this.policyNotes = this._smartMergeDict(this.policyNotes, ann.policyNotes || {});
+                    this.verifiedPolicies = CglUtil._smartMergeDict(this.verifiedPolicies, ann.verifiedPolicies || {});
+                    this.dismissedPolicies = CglUtil._smartMergeDict(this.dismissedPolicies, ann.dismissedPolicies || {});
+                    this.policyNotes = CglUtil._smartMergeDict(this.policyNotes, ann.policyNotes || {});
                 }
             } catch (e) {
                 console.warn('[CGL] IDB merge skipped:', e.message);
@@ -814,9 +787,9 @@ const ComplianceDashboard = {
             try {
                 const kvState = await this._loadFromKV('cgl_state');
                 if (kvState && (kvState.verifiedPolicies || kvState.dismissedPolicies || kvState.policyNotes)) {
-                    this.verifiedPolicies = this._smartMergeDict(this.verifiedPolicies, kvState.verifiedPolicies || {});
-                    this.dismissedPolicies = this._smartMergeDict(this.dismissedPolicies, kvState.dismissedPolicies || {});
-                    this.policyNotes = this._smartMergeDict(this.policyNotes, kvState.policyNotes || {});
+                    this.verifiedPolicies = CglUtil._smartMergeDict(this.verifiedPolicies, kvState.verifiedPolicies || {});
+                    this.dismissedPolicies = CglUtil._smartMergeDict(this.dismissedPolicies, kvState.dismissedPolicies || {});
+                    this.policyNotes = CglUtil._smartMergeDict(this.policyNotes, kvState.policyNotes || {});
                     console.log('[CGL] ☁️ KV merge complete');
                 }
             } catch (e) {
@@ -1940,25 +1913,10 @@ const ComplianceDashboard = {
 
     // --- Policy Notes ---
 
-    // Migrate old single-text note format to log array format
-    _migrateNote(noteData) {
-        if (!noteData) return null;
-        // Already migrated
-        if (noteData.log && Array.isArray(noteData.log)) return noteData;
-        // Old format: { text, updatedAt }
-        if (noteData.text) {
-            return {
-                log: [{ text: noteData.text, at: noteData.updatedAt || new Date().toISOString() }],
-                renewedTo: noteData.renewedTo || null
-            };
-        }
-        return null;
-    },
-
     getNoteData(policyNumber) {
         const raw = this.policyNotes[policyNumber];
         if (!raw) return null;
-        const migrated = this._migrateNote(raw);
+        const migrated = CglUtil._migrateNote(raw);
         if (migrated && migrated !== raw) {
             this.policyNotes[policyNumber] = migrated;
         }
@@ -1971,65 +1929,16 @@ const ComplianceDashboard = {
         return data.log[data.log.length - 1].text;
     },
 
-    formatNoteTime(isoStr) {
-        if (!isoStr) return '';
-        const d = new Date(isoStr);
-        const now = new Date();
-        const diffMs = now - d;
-        const diffMin = Math.floor(diffMs / 60000);
-        if (diffMin < 1) return 'just now';
-        if (diffMin < 60) return diffMin + 'm ago';
-        const diffHr = Math.floor(diffMin / 60);
-        if (diffHr < 24) return diffHr + 'h ago';
-        const diffDay = Math.floor(diffHr / 24);
-        if (diffDay < 7) return diffDay + 'd ago';
-        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    },
-
-    _noteIcon(text) {
-        if (!text) return '💬';
-        const t = text.toLowerCase();
-        if (t === 'notified insured') return '📞';
-        if (t === 'emailed insured') return '📧';
-        if (t === 'left voicemail') return '📱';
-        if (t === 'renewal term confirmed') return '✅';
-        if (t === 'state website updated') return '🏛️';
-        if (t.startsWith('auto-cleared')) return '🔄';
-        if (t.startsWith('renewed')) return '🔄';
-        if (text.startsWith('💤')) return '';
-        return '💬';
-    },
-
-    _noteLabel(text) {
-        if (!text) return 'Note';
-        const t = text.toLowerCase();
-        if (t === 'notified insured') return 'Notified Insured';
-        if (t === 'emailed insured') return 'Emailed Insured';
-        if (t === 'left voicemail') return 'Left Voicemail';
-        if (t === 'renewal term confirmed') return 'Renewal Confirmed';
-        if (t === 'state website updated') return 'State Updated';
-        if (t.startsWith('auto-cleared')) return 'Auto-Cleared';
-        if (t.startsWith('renewed')) return 'Renewed';
-        return 'Note';
-    },
-
-    _noteIconHtml(text) {
-        const icon = this._noteIcon(text);
-        if (!icon) return '';
-        const label = this._noteLabel(text);
-        return `<span class="cgl-note-icon" title="${Utils.escapeAttr(label)}">${icon}</span> `;
-    },
-
     renderNoteLog(policyNumber) {
         const data = this.getNoteData(policyNumber);
         if (!data || !data.log || data.log.length === 0) return '';
         return data.log.slice().reverse().map((entry, revIdx) => {
             const origIdx = data.log.length - 1 - revIdx;
-            const iconHtml = this._noteIconHtml(entry.text);
+            const iconHtml = CglUtil._noteIconHtml(entry.text);
             return `
             <div class="cgl-note-entry">
                 <span class="cgl-note-entry-text">${iconHtml}${Utils.escapeHTML(entry.text)}</span>
-                <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
+                <span class="cgl-note-entry-time">${CglUtil.formatNoteTime(entry.at)}</span>
                 <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${escJsAttr(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
             </div>
         `;
@@ -2334,7 +2243,7 @@ const ComplianceDashboard = {
         const typesToShow = allTypes.filter(t => presentTypes.has(t));
         container.innerHTML = typesToShow.map(type => {
             const isNotifying = this.notifyTypes.includes(type);
-            const label = this._typeLabel(type);
+            const label = CglUtil._typeLabel(type);
             return `<label class="cgl-notify-type-label${isNotifying ? '' : ' cgl-notify-muted'}">
                 <input type="checkbox" ${isNotifying ? 'checked' : ''}
                     onchange="ComplianceDashboard.toggleNotifyType('${type}')">
@@ -2354,7 +2263,7 @@ const ComplianceDashboard = {
 
         container.innerHTML = typesToShow.map(type => {
             const isHidden = this.hiddenTypes.includes(type);
-            const label = this._typeLabel(type);
+            const label = CglUtil._typeLabel(type);
             // Count only non-hidden/dismissed policies to match stat card total
             const count = this.policies.filter(p => (p.policyType || 'cgl') === type && !this.isHidden(p.policyNumber)).length;
             return `<button class="cgl-type-toggle cgl-type-badge ${type} ${isHidden ? 'cgl-type-hidden' : ''}" onclick="ComplianceDashboard.toggleType('${type}')" title="${isHidden ? 'Show' : 'Hide'} ${label} policies (${count})">${label} <span class="cgl-type-count">${count}</span></button>`;
@@ -2497,7 +2406,7 @@ const ComplianceDashboard = {
             const isDismissed = !!this.dismissedPolicies[rawPolicyNumber];
             const isSnoozed = this._isSnoozeActive(rawPolicyNumber);
             const isHidden = isVerified || isDismissed || isSnoozed;
-            const statusLabel = this.getStatusLabel(policy.daysUntilExpiration);
+            const statusLabel = CglUtil.getStatusLabel(policy.daysUntilExpiration);
             const expDate = new Date(policy.expirationDate).toLocaleDateString();
             const effDate = new Date(policy.effectiveDate).toLocaleDateString();
             const incDate = policy.inceptionDate ? new Date(policy.inceptionDate).toLocaleDateString() : null;
@@ -2506,10 +2415,10 @@ const ComplianceDashboard = {
             const hasNote = noteData && noteData.log && noteData.log.length > 0;
             const noteCount = hasNote ? noteData.log.length : 0;
             const latestNote = hasNote ? noteData.log[noteData.log.length - 1].text : '';
-            const noteIcon = this._noteIcon(latestNote);
+            const noteIcon = CglUtil._noteIcon(latestNote);
             const notePrefix = noteCount > 1 ? noteCount + ' notes · ' : '';
             const noteText = Utils.escapeHTML(notePrefix + (noteIcon ? noteIcon + ' ' : '') + latestNote);
-            const noteIcons = hasNote ? [...new Set(noteData.log.map(e => this._noteIcon(e.text)).filter(Boolean))].join(' ') : '';
+            const noteIcons = hasNote ? [...new Set(noteData.log.map(e => CglUtil._noteIcon(e.text)).filter(Boolean))].join(' ') : '';
             const renewedTo = noteData && noteData.renewedTo ? noteData.renewedTo : null;
             const isStateUpdated = !!(noteData && noteData.stateUpdated);
             const isHawksoftUpdated = !!(noteData && noteData.hawksoftUpdated);
@@ -2557,12 +2466,12 @@ const ComplianceDashboard = {
                         </span>`}
                     </td>
                     <td>
-                        <span class="cgl-type-badge ${policy.policyType || 'cgl'}">${ComplianceDashboard._typeLabel(policy.policyType || 'cgl')}</span>
+                        <span class="cgl-type-badge ${policy.policyType || 'cgl'}">${CglUtil._typeLabel(policy.policyType || 'cgl')}</span>
                     </td>
                     <td>
-                        <div style="font-weight: 600;">${this.clientLink(policy)}</div>
+                        <div style="font-weight: 600;">${CglUtil.clientLink(policy)}</div>
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
-                        ${this._isLICCBApplicableType(policy) ? `<div class="cgl-li-ccb-badges">${this.renderLICCBBadges(policy)}</div>` : ''}
+                        ${CglUtil._isLICCBApplicableType(policy) ? `<div class="cgl-li-ccb-badges">${this.renderLICCBBadges(policy)}</div>` : ''}
                         ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pnAttr}">✅ ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pnAttr}" style="display:none"></span>`}
                         ${hasNote && !isAnyUpdateDone ? `<div class="cgl-note-preview" id="note-preview-${pnAttr}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pnAttr}" style="display:none"></div>`}
                         ${noteIcons && !isAnyUpdateDone ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
@@ -2710,19 +2619,13 @@ const ComplianceDashboard = {
 
     // --- WA L&I / OR CCB Reporting ---
 
-    // Policy types that may require state contractor licensing reports
-    _isLICCBApplicableType(policy) {
-        const t = policy.policyType || 'cgl';
-        return t === 'cgl' || t === 'pkg' || t === 'bop' || t === 'commercial';
-    },
-
     getClientCompliance(clientNumber) {
         if (!clientNumber) return null;
         return this.clientCompliance[clientNumber] || null;
     },
 
     needsLIReport(policy) {
-        if (!this._isLICCBApplicableType(policy)) return false;
+        if (!CglUtil._isLICCBApplicableType(policy)) return false;
         const c = this.getClientCompliance(policy.clientNumber);
         if (!c || !c.classification) return false;
         if (c.classification !== 'wa-contractor' && c.classification !== 'wa-or-contractor') return false;
@@ -2730,37 +2633,11 @@ const ComplianceDashboard = {
     },
 
     needsCCBReport(policy) {
-        if (!this._isLICCBApplicableType(policy)) return false;
+        if (!CglUtil._isLICCBApplicableType(policy)) return false;
         const c = this.getClientCompliance(policy.clientNumber);
         if (!c || !c.classification) return false;
         if (c.classification !== 'or-contractor' && c.classification !== 'wa-or-contractor') return false;
         return c.orReportedForExp !== policy.expirationDate;
-    },
-
-    _summarizeLILookup(result) {
-        if (!result) return null;
-        if (result.contractor) {
-            const c = result.contractor;
-            return { license: c.licenseNumber || '', status: c.status || '', businessName: c.businessName || '' };
-        }
-        if (result.multipleResults && Array.isArray(result.results) && result.results.length) {
-            const r = result.results[0];
-            return { license: r.licenseNumber || '', status: r.status || '', businessName: r.businessName || '', multiple: true, count: result.count };
-        }
-        return null;
-    },
-
-    _summarizeCCBLookup(result) {
-        if (!result) return null;
-        if (result.contractor) {
-            const c = result.contractor;
-            return { number: c.ccbNumber || c.licenseNumber || '', status: c.status || '', businessName: c.businessName || '' };
-        }
-        if (result.multipleResults && Array.isArray(result.results) && result.results.length) {
-            const r = result.results[0];
-            return { number: r.licenseNumber || '', status: r.status || '', businessName: r.businessName || '', multiple: true, count: result.count };
-        }
-        return null;
     },
 
     // Auto-verify a single client against WA L&I and OR CCB.
@@ -2835,40 +2712,18 @@ const ComplianceDashboard = {
         // results so Firestore doesn't reject the cglState push with an
         // 'invalid-argument' error. The summarizers can return undefined for
         // missing fields (license expiration, etc.) and those bubble up here.
-        this.clientCompliance[clientNumber] = this._scrubUndefined({
+        this.clientCompliance[clientNumber] = CglUtil._scrubUndefined({
             ...(existing || {}),
             classification,
             classificationSource: 'auto',
             verifiedAt: new Date().toISOString(),
-            waLicense: waFound ? this._summarizeLILookup(waResult) : null,
-            orLicense: orFound ? this._summarizeCCBLookup(orResult) : null
+            waLicense: waFound ? CglUtil._summarizeLILookup(waResult) : null,
+            orLicense: orFound ? CglUtil._summarizeCCBLookup(orResult) : null
         });
         this.saveState();
         // Re-render so badges appear (filterPolicies re-runs with current search/filter)
         this.filterPolicies();
         this.updateStats();
-    },
-
-    /**
-     * Recursively replace `undefined` with `null` in an object/array tree
-     * AND drop entries whose key is an empty string. Firestore rejects both
-     * `undefined` values AND empty field names with an `invalid-argument`
-     * error, and an empty-string key reproduced from a malformed onclick
-     * interpolation that called `dismissPolicy('')`. Returns a new object —
-     * does not mutate.
-     */
-    _scrubUndefined(obj) {
-        if (obj === undefined) return null;
-        if (obj === null || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) return obj.map(v => this._scrubUndefined(v));
-        const out = {};
-        for (const k of Object.keys(obj)) {
-            const v = obj[k];
-            if (v === undefined) continue;
-            if (k === '') continue; // Firestore rejects empty field names
-            out[k] = this._scrubUndefined(v);
-        }
-        return out;
     },
 
     // Throttled batch verification — kicks off after policies load.
@@ -2890,7 +2745,7 @@ const ComplianceDashboard = {
         const seen = new Map();
         const RETRY_AFTER_MS = 24 * 60 * 60 * 1000;
         for (const p of this.policies) {
-            if (!this._isLICCBApplicableType(p)) continue;
+            if (!CglUtil._isLICCBApplicableType(p)) continue;
             const cn = p.clientNumber;
             if (!cn || seen.has(cn)) continue;
             const existing = this.clientCompliance[cn];
@@ -3007,7 +2862,7 @@ const ComplianceDashboard = {
 
     // Render WA L&I / OR CCB badges for the Client cell
     renderLICCBBadges(policy) {
-        if (!this._isLICCBApplicableType(policy)) return '';
+        if (!CglUtil._isLICCBApplicableType(policy)) return '';
         const c = this.getClientCompliance(policy.clientNumber);
         const cn = escJsAttr(policy.clientNumber || '');
         const exp = policy.expirationDate || '';
@@ -3039,7 +2894,7 @@ const ComplianceDashboard = {
 
     // Render the classification override controls (used inside the note editor row)
     renderClassificationOverride(policy) {
-        if (!this._isLICCBApplicableType(policy)) return '';
+        if (!CglUtil._isLICCBApplicableType(policy)) return '';
         const c = this.getClientCompliance(policy.clientNumber) || {};
         const cn = escJsAttr(policy.clientNumber || '');
         const cls = c.classification || 'unverified';
@@ -3060,41 +2915,6 @@ const ComplianceDashboard = {
     },
 
     // --- Helpers ---
-
-    getStatusLabel(daysUntilExpiration) {
-        if (daysUntilExpiration < 0) return `Expired ${Math.abs(daysUntilExpiration)} days ago`;
-        if (daysUntilExpiration === 0) return 'Expired today';
-        if (daysUntilExpiration === 1) return 'Expires tomorrow';
-        return `${daysUntilExpiration} days`;
-    },
-
-    // Build a clickable HawkSoft link for a client name
-    // Desktop: hs:// protocol → HawkSoft desktop app
-    // Mobile:  Agent Portal web URL
-    clientLink(policy) {
-        const name = Utils.escapeHTML(policy.clientName);
-        const hsId = policy.hawksoftId || policy.clientNumber;
-        if (!hsId) return `<span style="font-weight:600;">${name}</span>`;
-
-        const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent);
-        const href = isMobile
-            ? `https://agents.hawksoft.app/client/${encodeURIComponent(hsId)}`
-            : `hs://${encodeURIComponent(hsId)}`;
-        const title = isMobile ? 'Open in HawkSoft Agent Portal' : 'Open in HawkSoft';
-        return `<a href="${href}" class="cgl-client-link" title="${title}" target="_blank" rel="noopener">${name}</a>`;
-    },
-
-    _typeLabel(type) {
-        const labels = {
-            cgl: 'CGL', bond: 'Bond', auto: 'Auto', wc: 'WC',
-            pkg: 'Pkg', umbrella: 'Umbrella', im: 'Inland Marine',
-            property: 'Property', epli: 'EPLI', do: 'D&O',
-            eo: 'E&O', cyber: 'Cyber', crime: 'Crime',
-            liquor: 'Liquor', garage: 'Garage', pollution: 'Pollution',
-            bop: 'BOP', commercial: 'Comm'
-        };
-        return labels[type] || type.toUpperCase();
-    },
 
     // --- Print Mode ---
 
@@ -3315,8 +3135,8 @@ const ComplianceDashboard = {
 
         // --- Render each policy ---
         for (const policy of printPolicies) {
-            const statusText = this.getStatusLabel(policy.daysUntilExpiration);
-            const typeText = ComplianceDashboard._typeLabel(policy.policyType || 'cgl');
+            const statusText = CglUtil.getStatusLabel(policy.daysUntilExpiration);
+            const typeText = CglUtil._typeLabel(policy.policyType || 'cgl');
             const clientName = policy.clientName || policy.businessName || '';
             const policyNum = policy.policyNumber || '';
             const expDate = new Date(policy.expirationDate).toLocaleDateString();

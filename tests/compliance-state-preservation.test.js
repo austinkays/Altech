@@ -52,6 +52,10 @@ function loadDashboard() {
     window.App = { toast: () => {} };
     window.AbortSignal = window.AbortSignal || { timeout: () => undefined };
 
+    // Pure helpers were extracted to cgl-utils.js (window.CglUtil); it must
+    // load before compliance-dashboard.js, same as in index.html.
+    window.eval(fs.readFileSync(path.join(ROOT, 'js/cgl-utils.js'), 'utf8'));
+
     // Run the dashboard source
     const src = fs.readFileSync(path.join(ROOT, 'js/compliance-dashboard.js'), 'utf8');
     window.eval(src);
@@ -244,31 +248,33 @@ describe('CGL Compliance — state preservation across PR #40 (L&I/CCB tracker)'
         });
     });
 
+    // _hasAnnotationData was extracted to cgl-utils.js (window.CglUtil) during
+    // the monolith decomposition — it is a pure predicate, tested at its home.
     test('_hasAnnotationData stays true when only legacy data exists (no clientCompliance)', () => {
-        const { CD } = loadDashboard();
+        const { window } = loadDashboard();
         const legacyOnly = {
             verifiedPolicies: { 'POL-A': { updatedAt: 'x' } },
             dismissedPolicies: {},
             policyNotes: {}
             // No clientCompliance
         };
-        expect(CD._hasAnnotationData(legacyOnly)).toBe(true);
+        expect(window.CglUtil._hasAnnotationData(legacyOnly)).toBe(true);
     });
 
     test('_hasAnnotationData returns true when only clientCompliance has data', () => {
-        const { CD } = loadDashboard();
+        const { window } = loadDashboard();
         const compliancyOnly = {
             verifiedPolicies: {},
             dismissedPolicies: {},
             policyNotes: {},
             clientCompliance: { 'CLIENT-X': { classification: 'wa-contractor' } }
         };
-        expect(CD._hasAnnotationData(compliancyOnly)).toBe(true);
+        expect(window.CglUtil._hasAnnotationData(compliancyOnly)).toBe(true);
     });
 
     test('_hasAnnotationData false when ALL dictionaries are empty', () => {
-        const { CD } = loadDashboard();
-        expect(CD._hasAnnotationData({
+        const { window } = loadDashboard();
+        expect(window.CglUtil._hasAnnotationData({
             verifiedPolicies: {}, dismissedPolicies: {}, policyNotes: {}, clientCompliance: {}
         })).toBe(false);
     });
