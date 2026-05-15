@@ -114,8 +114,27 @@ window.SupabaseSync = (() => {
     // legacy ciphertext is pushed as-is so we never block a sync on crypto
     // capability detection. The decrypt-then-rewrap costs one round-trip
     // per doc per debounced push (3 s default) — negligible.
+    //
+    // _knownPlaintextRowIds remembers rowIds whose payload was classified
+    // as plaintext-non-JSON on a prior sweep (decrypt returned null with
+    // the v2 vault unlocked → input wasn't ciphertext AND wasn't valid
+    // JSON either; the only example in DOC_LOCAL_KEYS is `glossary`
+    // (AGENCY_GLOSSARY), which is free-form textarea content).
+    //
+    // On subsequent sweeps we skip the decrypt + JSON.parse work entirely
+    // for those rowIds — the per-sweep cost was 1 atob throw + 1 JSON.parse
+    // throw + 1 console.debug line per known-plaintext row, every 3 s
+    // under active editing. The helper-level cache in crypto-helper.js
+    // covers any other call sites that hit decrypt() with the same input
+    // repeatedly; this call-site cache is the cheap-on-rowId pre-filter
+    // the issue asked for.
+    const _knownPlaintextRowIds = new Set();
+
     async function _maybeWrapForRow(payload, identity) {
         if (!identity) return payload;
+        if (identity.rowId && _knownPlaintextRowIds.has(String(identity.rowId))) {
+            return payload;
+        }
         // CryptoHelper is a top-level const in js/crypto-helper.js — accessible
         // by name in browser script-tag globals AND on globalThis (set by the
         // helper's bottom-of-file publish line). Match the existing pattern
@@ -126,7 +145,15 @@ window.SupabaseSync = (() => {
         }
         try {
             const plaintext = await ch.decrypt(payload);
-            if (plaintext == null) return payload;
+            if (plaintext == null) {
+                // Vault is unlocked AND the payload was neither ciphertext
+                // we can decrypt nor valid JSON — it's raw plaintext text.
+                // Skip the dance next time the sweep handles this row.
+                if (identity.rowId) {
+                    _knownPlaintextRowIds.add(String(identity.rowId));
+                }
+                return payload;
+            }
             return await ch.encryptForRow(plaintext, identity);
         } catch (e) {
             console.warn('[SupabaseSync] AAD wrap skipped for', identity.rowId, '—', (e && e.message) || e);
