@@ -1929,22 +1929,6 @@ const ComplianceDashboard = {
         return data.log[data.log.length - 1].text;
     },
 
-    renderNoteLog(policyNumber) {
-        const data = this.getNoteData(policyNumber);
-        if (!data || !data.log || data.log.length === 0) return '';
-        return data.log.slice().reverse().map((entry, revIdx) => {
-            const origIdx = data.log.length - 1 - revIdx;
-            const iconHtml = CglUtil._noteIconHtml(entry.text);
-            return `
-            <div class="cgl-note-entry">
-                <span class="cgl-note-entry-text">${iconHtml}${Utils.escapeHTML(entry.text)}</span>
-                <span class="cgl-note-entry-time">${CglUtil.formatNoteTime(entry.at)}</span>
-                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${escJsAttr(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
-            </div>
-        `;
-        }).join('');
-    },
-
     toggleNote(policyNumber) {
         const row = document.getElementById('note-row-' + policyNumber);
         if (row) {
@@ -1954,7 +1938,7 @@ const ComplianceDashboard = {
                 this._openNoteRows.add(policyNumber);
                 // Refresh note log
                 const logEl = row.querySelector('.cgl-note-log');
-                if (logEl) logEl.innerHTML = this.renderNoteLog(policyNumber);
+                if (logEl) logEl.innerHTML = CglRenderers.noteLog(policyNumber, this.getNoteData(policyNumber));
                 const input = row.querySelector('textarea');
                 if (input) { input.value = ''; input.focus(); }
             } else {
@@ -1985,7 +1969,7 @@ const ComplianceDashboard = {
         const noteRow = document.getElementById('note-row-' + policyNumber);
         if (noteRow && noteRow.style.display !== 'none') {
             const logEl = noteRow.querySelector('.cgl-note-log');
-            if (logEl) logEl.innerHTML = this.renderNoteLog(policyNumber);
+            if (logEl) logEl.innerHTML = CglRenderers.noteLog(policyNumber, this.getNoteData(policyNumber));
         }
     },
 
@@ -2180,7 +2164,7 @@ const ComplianceDashboard = {
         const noteRow = document.getElementById('note-row-' + policyNumber);
         if (noteRow && noteRow.style.display !== 'none') {
             const logEl = noteRow.querySelector('.cgl-note-log');
-            if (logEl) logEl.innerHTML = this.renderNoteLog(policyNumber);
+            if (logEl) logEl.innerHTML = CglRenderers.noteLog(policyNumber, this.getNoteData(policyNumber));
         }
         // Update renewed badge
         const badgeEl = document.getElementById('renewed-badge-' + policyNumber);
@@ -2471,7 +2455,7 @@ const ComplianceDashboard = {
                     <td>
                         <div style="font-weight: 600;">${CglUtil.clientLink(policy)}</div>
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
-                        ${CglUtil._isLICCBApplicableType(policy) ? `<div class="cgl-li-ccb-badges">${this.renderLICCBBadges(policy)}</div>` : ''}
+                        ${CglUtil._isLICCBApplicableType(policy) ? `<div class="cgl-li-ccb-badges">${CglRenderers.liCcbBadges(policy, this.getClientCompliance(policy.clientNumber))}</div>` : ''}
                         ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pnAttr}">✅ ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pnAttr}" style="display:none"></span>`}
                         ${hasNote && !isAnyUpdateDone ? `<div class="cgl-note-preview" id="note-preview-${pnAttr}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pnAttr}" style="display:none"></div>`}
                         ${noteIcons && !isAnyUpdateDone ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
@@ -2505,7 +2489,7 @@ const ComplianceDashboard = {
                 </tr>
                 <tr class="cgl-note-row" id="note-row-${pnAttr}" style="display:none;">
                     <td colspan="${colSpan}">
-                        ${this.renderClassificationOverride(policy)}
+                        ${CglRenderers.classificationOverride(policy, this.getClientCompliance(policy.clientNumber))}
                         <div class="cgl-quick-notes">
                             <div class="cgl-quick-notes-row">
                                 <button class="cgl-quick-note-btn" onclick="ComplianceDashboard.addQuickNote('${pn}','Notified insured')">📞 Notified Insured</button>
@@ -2522,7 +2506,7 @@ const ComplianceDashboard = {
                             </div>
                         </div>
                         <textarea class="cgl-note-input" rows="1" placeholder="Add a note…" onblur="ComplianceDashboard.saveNote('${pn}')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"></textarea>
-                        <div class="cgl-note-log">${this.renderNoteLog(rawPolicyNumber)}</div>
+                        <div class="cgl-note-log">${CglRenderers.noteLog(rawPolicyNumber, this.getNoteData(rawPolicyNumber))}</div>
                     </td>
                 </tr>
             `;
@@ -2556,7 +2540,7 @@ const ComplianceDashboard = {
                 if (noteRow) {
                     noteRow.style.display = 'table-row';
                     const logEl = noteRow.querySelector('.cgl-note-log');
-                    if (logEl) logEl.innerHTML = this.renderNoteLog(pn);
+                    if (logEl) logEl.innerHTML = CglRenderers.noteLog(pn, this.getNoteData(pn));
                 }
             }
         }
@@ -2858,60 +2842,6 @@ const ComplianceDashboard = {
             this.clientCompliance[clientNumber].verifiedAt = null;
         }
         this.verifyClient(clientNumber, name);
-    },
-
-    // Render WA L&I / OR CCB badges for the Client cell
-    renderLICCBBadges(policy) {
-        if (!CglUtil._isLICCBApplicableType(policy)) return '';
-        const c = this.getClientCompliance(policy.clientNumber);
-        const cn = escJsAttr(policy.clientNumber || '');
-        const exp = policy.expirationDate || '';
-        if (!c || !c.classification || c.classification === 'unverified') {
-            return `<span class="cgl-li-badge unverified" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Verify against WA L&amp;I and OR CCB">❓ Verify</span>`;
-        }
-        if (c.classification === 'exempt') return '';
-        const html = [];
-        if (c.classification === 'wa-contractor' || c.classification === 'wa-or-contractor') {
-            const reported = c.waReportedForExp && c.waReportedForExp === exp;
-            if (reported) {
-                const date = c.waReportedAt ? new Date(c.waReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                html.push(`<span class="cgl-li-badge reported" onclick="ComplianceDashboard.clearReportedWA('${cn}')" title="Reported to WA L&amp;I${date ? ' on ' + date : ''}. Click to clear.">✅ WA L&amp;I${date ? ' · ' + date : ''}</span>`);
-            } else {
-                html.push(`<span class="cgl-li-badge needs-report" onclick="ComplianceDashboard.markReportedToWA('${cn}', '${escJsAttr(exp)}')" title="Mark as reported to lni.wa.gov for current expiration">🛠️ WA L&amp;I</span>`);
-            }
-        }
-        if (c.classification === 'or-contractor' || c.classification === 'wa-or-contractor') {
-            const reported = c.orReportedForExp && c.orReportedForExp === exp;
-            if (reported) {
-                const date = c.orReportedAt ? new Date(c.orReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-                html.push(`<span class="cgl-ccb-badge reported" onclick="ComplianceDashboard.clearReportedOR('${cn}')" title="Reported to OR CCB${date ? ' on ' + date : ''}. Click to clear.">✅ OR CCB${date ? ' · ' + date : ''}</span>`);
-            } else {
-                html.push(`<span class="cgl-ccb-badge needs-report" onclick="ComplianceDashboard.markReportedToOR('${cn}', '${escJsAttr(exp)}')" title="Mark as reported to ccb.state.or.us for current expiration">🛠️ OR CCB</span>`);
-            }
-        }
-        return html.join(' ');
-    },
-
-    // Render the classification override controls (used inside the note editor row)
-    renderClassificationOverride(policy) {
-        if (!CglUtil._isLICCBApplicableType(policy)) return '';
-        const c = this.getClientCompliance(policy.clientNumber) || {};
-        const cn = escJsAttr(policy.clientNumber || '');
-        const cls = c.classification || 'unverified';
-        const src = c.classificationSource || 'auto';
-        const opt = (val, label) => `<button class="cgl-class-btn ${cls === val ? 'active' : ''}" onclick="ComplianceDashboard.setClientClassification('${cn}', '${val}')">${label}</button>`;
-        const sourceLabel = src === 'manual' ? 'manual override' : (cls === 'unverified' ? 'unverified' : 'auto-detected');
-        return `
-            <div class="cgl-classification-row">
-                <span class="cgl-classification-label" title="Determines whether this client appears in the WA L&amp;I / OR CCB reporting queue">🏷️ L&amp;I/CCB:</span>
-                ${opt('wa-contractor', 'WA L&amp;I')}
-                ${opt('or-contractor', 'OR CCB')}
-                ${opt('wa-or-contractor', 'Both')}
-                ${opt('exempt', 'Exempt')}
-                <button class="cgl-class-reverify" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Re-run automatic verification against L&amp;I and CCB registries">🔄 Re-verify</button>
-                <span class="cgl-classification-source">${sourceLabel}</span>
-            </div>
-        `;
     },
 
     // --- Helpers ---
