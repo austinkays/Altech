@@ -13,7 +13,7 @@
 // would 404 and break the atomic cache.addAll() install.
 // Bumped to v16 (2026-04-28) to invalidate cached PWA icons after the
 // mountain-logo swap — old installs were still serving the yellow Tauri icon.
-const CACHE_VERSION = 'altech-v107';
+const CACHE_VERSION = 'altech-v108';
 const APP_SHELL = [
     '/',
     '/index.html',
@@ -113,6 +113,12 @@ const APP_SHELL = [
     // JS — plugin helpers (must load before their plugin)
     '/js/prospect-formatters.js',
     '/js/compliance-idb.js',
+    // cgl-utils + cgl-renderers MUST be precached alongside compliance-dashboard.js
+    // (which IS in APP_SHELL): the dashboard IIFE resolves `CglUtil`/`CglRenderers`
+    // at eval time, so a precached dashboard with un-precached deps throws and
+    // ComplianceDashboard never initializes (stuck on the static loader).
+    '/js/cgl-utils.js',
+    '/js/cgl-renderers.js',
     '/js/intake-assist-prompts.js',
     '/js/hawksoft-renderers.js',
     // JS — plugins
