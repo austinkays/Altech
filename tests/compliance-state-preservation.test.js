@@ -420,4 +420,27 @@ describe('CGL Compliance — state preservation across PR #40 (L&I/CCB tracker)'
         expect(CD.policies[0].policyNumber).toBe('REAL-123');
         expect(CD.policies[0]._syntheticPolicyNumber).toBeUndefined();
     });
+
+    // Regression: re-opening the dashboard must render the local cache
+    // immediately. The old _loadFromAnyCache Promise.allSettled'd all four
+    // sources, so a slow/hung KV network call blocked the (instant) local
+    // cache — the user sat on the spinner and had to hit Refresh. The fix
+    // returns on the first fast LOCAL hit; here KV never resolves yet the
+    // call still resolves from localStorage.
+    test('_loadFromAnyCache returns local cache without waiting on a hung KV', async () => {
+        const { CD, window } = loadDashboard();
+        const cache = {
+            cachedAt: Date.now(),
+            policies: [{ policyNumber: 'P1' }],
+            allPolicies: [{ policyNumber: 'P1' }, { policyNumber: 'P2' }],
+        };
+        window.localStorage.setItem('altech_cgl_cache', JSON.stringify(cache));
+        // Simulate a hung KV source — the pre-fix allSettled would await this
+        // forever and time the test out.
+        CD._loadFromKV = () => new Promise(() => {});
+        const result = await CD._loadFromAnyCache();
+        expect(result).toBeTruthy();
+        expect(result.policies).toHaveLength(1);
+        expect(result.allPolicies).toHaveLength(2);
+    });
 });

@@ -955,10 +955,23 @@ const ComplianceDashboard = {
             return null;
         })();
 
-        // Return the FIRST source that succeeds (race for speed)
+        // Return the FIRST source that succeeds, fastest-first. localStorage
+        // and IDB are LOCAL and effectively instant; disk (localhost only) and
+        // KV are network/slow. The old code Promise.allSettled'd all four —
+        // which waits for the SLOWEST (the KV network round-trip) before it
+        // can render, so every dashboard re-open stalled on the spinner even
+        // though the local cache was ready immediately. Await in priority
+        // order and return on the first valid hit; the promises were all
+        // kicked off in parallel above, so the slow ones still warm in the
+        // background and `_showCachedData` schedules a fresh API refresh.
         try {
-            const results = await Promise.allSettled([diskPromise, idbPromise, lsPromise, kvPromise]);
-            for (const r of results) {
+            const ls = await lsPromise;
+            if (ls) return ls;
+            const idb = await idbPromise;          // ≤3s (own timeout)
+            if (idb) return idb;
+            // No local cache — only now wait on the slow disk/KV sources.
+            const remote = await Promise.allSettled([diskPromise, kvPromise]);
+            for (const r of remote) {
                 if (r.status === 'fulfilled' && r.value) return r.value;
             }
         } catch (e) {
