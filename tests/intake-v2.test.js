@@ -218,6 +218,21 @@ describe('IntakeV2 — carrier bindability', () => {
         const status = w.IntakeV2Bindability.statusForItem('boats', boat);
         expect(status.level).toBe('block'); // brand-new boat → no carriers can quote
     });
+
+    test('applicant filled but no product line → every carrier blocked, not ready', () => {
+        const d = w.IntakeV2.data;
+        Object.assign(d.applicant, { firstName: 'A', lastName: 'B', dob: '1985-01-01', phone: '5551112222', maritalStatus: 'Married' });
+        Object.assign(d.address,   { street: '1 Main', city: 'X', state: 'WA', zip: '98101' });
+        // Deliberately do NOT add home/auto/boat/rv.
+
+        const b = w.IntakeV2Bindability.computeBindability({ data: d });
+        for (const c of ['progressive','foremost','travelers','safeco']) {
+            expect(b[c].ok).toBe(false);
+            expect(b[c].blocked).toBe(true);
+            // Synthetic missing entry surfaces in the popover / review block
+            expect(b[c].missing.some(m => m.path === '__products__')).toBe(true);
+        }
+    });
 });
 
 // ─── Operator sync ────────────────────────────────────────────────────────

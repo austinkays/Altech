@@ -76,11 +76,27 @@ function computeBindability(opts) {
     // lines. If that changes, narrow `productsForCarrier(carrier)`.
     const productsForCarrier = () => active;
 
+    // A carrier is never "ready to quote" without at least one product line
+    // selected. Pre-fix, an agent who filled out applicant + address (but
+    // never added a home/auto/boat/RV) would see every carrier flip to ✓ —
+    // a trust-breaking false-positive since there's literally nothing for
+    // the carrier to write. The synthetic missing entry below puts it back
+    // at the top of every carrier's missing list AND triggers the `blocked`
+    // flag so the topbar refuses to render the "near" amber state.
+    const noProductActive = !active.home && !active.auto && !active.boat && !active.rv;
+
     const out = {};
 
     for (const carrier of CARRIERS) {
         const missing = []; // { path, label, productKey, itemId? }
         const prods = productsForCarrier();
+
+        if (noProductActive) {
+            missing.push({
+                path: '__products__',
+                label: 'Add at least one home, auto, boat, or RV',
+            });
+        }
 
         // 1) Scalar (top-level) fields — applicant, address, etc.
         for (const f of fields.scalar) {
@@ -163,6 +179,12 @@ function computeBindability(opts) {
             label: CARRIER_LABELS[carrier],
             ok: missing.length === 0,
             missing,
+            // `blocked` is a hard stop: even if everything else is filled,
+            // no product line means no quote is possible. Topbar renderer
+            // uses this to skip the "1 field left" amber state — "1 field
+            // left" implies the agent can grab it on the same call, but
+            // "Add a product line" is structurally a separate decision.
+            blocked: noProductActive,
         };
     }
 

@@ -165,6 +165,12 @@ function _resolveMissingDomId(entry) {
     if (!fields) return null;
     const path = entry.path;
 
+    // Synthetic carrier-block paths from intake-v2-bindability.js — these
+    // aren't real form fields, but they DO want a meaningful jump target.
+    // `__products__` lives at the Properties section header so clicking
+    // "Add at least one product" scrolls the agent straight there.
+    if (path === '__products__') return 'iv2-properties';
+
     // Collection path?
     const hashIdx = path.indexOf('#');
     if (hashIdx === -1) {
@@ -311,7 +317,11 @@ function renderTopbarStatus() {
         if (!info) continue;
         const missingCount = info.missing ? info.missing.length : 0;
         const isOk   = !!info.ok;
-        const isNear = !isOk && missingCount > 0 && missingCount <= BINDABILITY_NEAR_THRESHOLD;
+        // `info.blocked` (no product line selected) is a structural gate —
+        // skip the "1 field left" amber state since the missing piece isn't
+        // a field the agent can grab on the same call, it's a decision the
+        // client needs to make about what to insure.
+        const isNear = !isOk && !info.blocked && missingCount > 0 && missingCount <= BINDABILITY_NEAR_THRESHOLD;
         const isMiss = !isOk && !isNear;
         carrierEl.classList.toggle('is-ok',   isOk);
         carrierEl.classList.toggle('is-near', isNear);

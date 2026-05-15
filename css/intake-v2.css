@@ -1060,6 +1060,55 @@ body.dark-mode .iv2-field input[type="date"]::-webkit-calendar-picker-indicator:
 .iv2-icon-btn:hover { color: var(--text); border-color: var(--apple-blue); }
 .iv2-icon-btn.is-danger:hover { color: #B33A3A; border-color: #B33A3A; }
 
+/* Synced applicant / co-applicant operator card. Skips the ~9 readonly
+ * fields that just duplicate the Quick Start applicant cluster and tucks
+ * the auto-specific fields (DL, MVR, history) into a disclosure that
+ * auto-expands once an auto / boat / RV exists. The visual hint to the
+ * agent: a compact one-line summary that doesn't compete with the
+ * "real" data cards below. */
+.iv2-card-synced {
+    /* Slightly softer border so the summary doesn't look like the start
+     * of another full-height card. */
+    background: transparent;
+}
+.iv2-synced-extra {
+    border-top: 1px dashed var(--border);
+    margin-top: 2px;
+    padding-top: 8px;
+}
+.iv2-synced-summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    user-select: none;
+}
+.iv2-synced-summary::-webkit-details-marker { display: none; }
+.iv2-synced-summary::before {
+    content: '▸';
+    font-size: 10px;
+    color: var(--text-secondary);
+    transition: transform 0.15s ease;
+    display: inline-block;
+}
+.iv2-synced-extra[open] > .iv2-synced-summary::before {
+    transform: rotate(90deg);
+}
+.iv2-synced-summary:hover {
+    background: var(--bg-input);
+    color: var(--apple-blue);
+}
+.iv2-synced-hint {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
 .iv2-add-btn {
     background: var(--apple-blue);
     color: #fff;
@@ -1246,8 +1295,36 @@ body.dark-mode .iv2-field input[type="date"]::-webkit-calendar-picker-indicator:
     vertical-align: middle;
 }
 
-/* ─── Responsive: collapse rails under 1100px ────────────────────────────── */
-@media (max-width: 1100px) {
+/* ─── Responsive: collapse rails ──────────────────────────────────────────
+ *
+ * Two-tier collapse so the main form column doesn't get squeezed to
+ * unusability on common 13"–15" laptop widths. At 1280px (the most-
+ * complained-about size) the app's own 256 px sidebar plus the v2 left
+ * rail (200 px) plus the talk-track rail (280 px) plus gutters ate
+ * roughly 800 px of horizontal space — leaving the field grid with
+ * less than half the viewport, where DOB / phone / email visibly
+ * truncated.
+ *
+ * - At ≤ 1500 px the right rail (talk track) hides first — it's the
+ *   widest and least essential side panel; the same talk-track prompts
+ *   are surfaced inline by intake-v2-talktrack.js when the agent
+ *   focuses a relevant field.
+ * - At ≤ 1280 px the left rail (jump anchors) hides too — those jump
+ *   anchors are duplicated by the J/K keyboard shortcuts and by the
+ *   sticky topbar's section indicators, so the navigation isn't lost.
+ *
+ * Both rails are `position: fixed` so the grid still reserves the
+ * cells — `display: none` is enough to free up the visual width
+ * without needing to rewrite `grid-template-columns` until the
+ * single-column fallback below.
+ */
+@media (max-width: 1500px) {
+    .iv2-workspace {
+        grid-template-columns: 200px 1fr 0;
+    }
+    .iv2-right-rail { display: none; }
+}
+@media (max-width: 1280px) {
     .iv2-workspace {
         grid-template-columns: 1fr;
         grid-template-areas: "top" "main";

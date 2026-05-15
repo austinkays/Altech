@@ -177,29 +177,16 @@ function onKey(e) {
     if (e.key === 'k' || e.key === 'K') { e.preventDefault(); relJump(-1); return; }
 }
 
-// Auto-show the shortcut help the first time a user opens the v2 workspace.
-// The shortcut surface (N add, J/K nav, Alt+L defer, Alt+1..6 jump) was
-// designed for speed but is hidden behind a small "?" icon in the topbar —
-// new agents kept asking "what are those `?` and `N` hints for?". The flag
-// is keyed in localStorage so we only nag once per device.
-const HELP_SHOWN_KEY = 'altech_iv2_help_shown_v1';
-function _maybeAutoShowHelp() {
-    try {
-        if (localStorage.getItem(HELP_SHOWN_KEY) === '1') return;
-        // Delay one tick so the v2 DOM has settled (the help overlay attaches
-        // to <body>, so it doesn't strictly need iv2 to be rendered, but
-        // showing it before the chrome paints feels jarring).
-        setTimeout(() => {
-            showHelp();
-            localStorage.setItem(HELP_SHOWN_KEY, '1');
-        }, 600);
-    } catch (_) { /* localStorage blocked — accept the help-every-load fallback */ }
-}
+// Help is passive: surfaced via the "?" icon in the topbar, the `?`
+// keyboard shortcut, and the command palette. Pre-fix, the modal
+// auto-opened on first visit alongside the onboarding wizard and the
+// access-code prompt — three blocking modals stacked back-to-back before
+// the agent could even see the intake form. The shortcut surface still
+// exists, it just no longer ambushes new users.
 
 window.IntakeV2.onBoot(function () {
     document.addEventListener('keydown', onKey);
     this._keyboard = { jumpSection, contextAdd, deferFocused, showHelp };
-    _maybeAutoShowHelp();
 });
 
 })();

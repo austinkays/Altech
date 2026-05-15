@@ -125,9 +125,48 @@ function renderField(item, collKey, f) {
     </div>`;
 }
 
+// Per-card open/closed state for the synced-extras `<details>` so the
+// agent's manual collapse/expand survives a re-render. Without this,
+// `requestRerender('operators')` (fired on any operator-link change)
+// would reset the details to whatever `_syncedShouldDefaultOpen`
+// computes — annoying when the agent just closed it.
+const _syncedExpandState = new Map();
+
+function _isAutoSpecificField(f, isCoApplicant) {
+    // Anything not duplicated by the Quick Start applicant / co-applicant
+    // cluster above. Header rows (no `path`) stay so the "Underwriting
+    // flags" / "Discounts & MVR" subheadings still appear when expanded.
+    if (!f.path) return true;
+    if (SYNCED_FIELD_PATHS.has(f.path)) return false;
+    if (isCoApplicant && f.path === 'relationship') return false;
+    return true;
+}
+
+function _hasAnyAutoSpecificValue(op, fields) {
+    for (const f of fields) {
+        if (!_isAutoSpecificField(f, op.isCoApplicant)) continue;
+        if (!f.path) continue;
+        const v = window.IntakeV2._getByPath(op, f.path);
+        if (v == null || v === '' || v === false) continue;
+        if (Array.isArray(v) && v.length === 0) continue;
+        return true;
+    }
+    return false;
+}
+
+function _syncedShouldDefaultOpen(op, fields) {
+    if (_hasAnyAutoSpecificValue(op, fields)) return true;
+    // Once the household has any auto / boat / RV, the agent will need
+    // DL / MVR / history details — auto-expand so the next click goes
+    // straight to a field instead of a disclosure triangle.
+    const d = window.IntakeV2.data || {};
+    return (d.autos && d.autos.length > 0)
+        || (d.boats && d.boats.length > 0)
+        || (d.rvs   && d.rvs.length   > 0);
+}
+
 function renderOperatorCard(op) {
     const fields = window.IntakeV2Fields.collections.operators.fields;
-    const fieldsHTML = fields.map(f => renderField(op, 'operators', f)).join('');
     const isLocked = op.isPrimaryApplicant || op.isCoApplicant;
     const lockNote = op.isPrimaryApplicant ? '<span class="iv2-section-count" title="Synced with applicant block above">Primary Applicant — synced</span>'
                   : op.isCoApplicant ? '<span class="iv2-section-count" title="Synced with co-applicant block above">Co-Applicant — synced</span>'
@@ -142,17 +181,42 @@ function renderOperatorCard(op) {
         ? `<button type="button" class="iv2-icon-btn" disabled title="Synced — remove the applicant or co-applicant block instead">Remove</button>`
         : `<button type="button" class="iv2-icon-btn is-danger" data-remove-op="${escAttr(op.id)}">Remove</button>`;
 
+    const headerHTML = `
+        <div class="iv2-card-header">
+            <span class="iv2-card-status is-${status.level}" title="${status.level === 'ok' ? 'Ready for all carriers' : status.level === 'warn' ? 'Quotable but missing some carrier requirements' : 'Blocking info missing'}"></span>
+            <span class="iv2-card-title">${esc(operatorName(op))} ${op.dob ? `<span style="font-size:11px; color:var(--text-secondary)">· age ${ageOf(op.dob)}</span>` : ''}</span>
+            ${lockNote}
+            <span class="iv2-card-actions">
+                <button type="button" class="iv2-icon-btn" data-phonetic-op="${escAttr(op.id)}" title="Spell name on a call">🔤</button>
+                ${removeBtn}
+            </span>
+        </div>`;
+
+    // Synced applicant / co-applicant cards used to render every operator
+    // field (~22 of them) — most as readonly duplicates of the Quick
+    // Start applicant block above. The compact view hides the duplicates
+    // and tucks the auto-specific fields (DL, MVR, history flags) into a
+    // collapsible details that auto-expands once an auto/boat/RV exists.
+    if (isLocked) {
+        const autoFields = fields.filter(f => _isAutoSpecificField(f, op.isCoApplicant));
+        const autoFieldsHTML = autoFields.map(f => renderField(op, 'operators', f)).join('');
+        const explicit = _syncedExpandState.get(op.id);
+        const isOpen = explicit !== undefined ? explicit : _syncedShouldDefaultOpen(op, fields);
+        return `
+            <div class="iv2-card iv2-card-synced" data-card-of="operators" data-item-id="${escAttr(op.id)}">
+                ${headerHTML}
+                <details class="iv2-synced-extra" data-synced-op="${escAttr(op.id)}"${isOpen ? ' open' : ''}>
+                    <summary class="iv2-synced-summary">License, MVR &amp; history <span class="iv2-synced-hint">— only needed when adding an auto, boat, or RV</span></summary>
+                    <div class="iv2-field-grid" style="margin-top:10px;">${autoFieldsHTML}</div>
+                </details>
+                <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px;">${linksHTML}</div>
+            </div>`;
+    }
+
+    const fieldsHTML = fields.map(f => renderField(op, 'operators', f)).join('');
     return `
         <div class="iv2-card" data-card-of="operators" data-item-id="${escAttr(op.id)}">
-            <div class="iv2-card-header">
-                <span class="iv2-card-status is-${status.level}" title="${status.level === 'ok' ? 'Ready for all carriers' : status.level === 'warn' ? 'Quotable but missing some carrier requirements' : 'Blocking info missing'}"></span>
-                <span class="iv2-card-title">${esc(operatorName(op))} ${op.dob ? `<span style="font-size:11px; color:var(--text-secondary)">· age ${ageOf(op.dob)}</span>` : ''}</span>
-                ${lockNote}
-                <span class="iv2-card-actions">
-                    <button type="button" class="iv2-icon-btn" data-phonetic-op="${escAttr(op.id)}" title="Spell name on a call">🔤</button>
-                    ${removeBtn}
-                </span>
-            </div>
+            ${headerHTML}
             <div class="iv2-field-grid">${fieldsHTML}</div>
             <div style="margin-top:8px; display:flex; flex-wrap:wrap; gap:4px;">${linksHTML}</div>
         </div>`;
@@ -202,6 +266,14 @@ function render() {
         if (!op) return;
         window.PhoneticSpeller.open(operatorName(op));
     }));
+    // Remember each synced card's expand state so re-renders (triggered
+    // by operator-link changes) don't snap the panel back to whatever
+    // the heuristic computed at boot.
+    root.querySelectorAll('[data-synced-op]').forEach(det => {
+        det.addEventListener('toggle', () => {
+            _syncedExpandState.set(det.getAttribute('data-synced-op'), det.open);
+        });
+    });
 
     // Re-render defer badges after replacing innerHTML
     if (window.IntakeV2._defer) window.IntakeV2._defer.render();
