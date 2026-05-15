@@ -21,6 +21,12 @@
 
     const KEY = (window.STORAGE_KEYS && window.STORAGE_KEYS.ACTIVITY_LOG) || 'altech_activity_log';
     const MAX_ENTRIES = 100;
+    // Bursty callers (e.g. ComplianceDashboard.saveState fires from ~20 sites
+    // on a bulk verify/dismiss) would otherwise flood the 100-slot buffer with
+    // identical rows and evict every meaningful event. Consecutive identical
+    // entries within this window collapse into one row with a running count,
+    // mirroring the App.toast dedupe.
+    const COALESCE_WINDOW_MS = 5 * 60_000;
 
     let _entries = _loadFromStorage();
     const _subscribers = new Set();
@@ -55,17 +61,37 @@
      * @param {string} opts.message     Short human-readable summary
      * @param {boolean} [opts.ok=true]  Did it succeed?
      * @param {string} [opts.detail]    Extra info — error text, file name, etc.
+     *
+     * Consecutive identical events (same type+area+message+ok) within
+     * COALESCE_WINDOW_MS collapse into the existing head entry: its `count`
+     * increments and its timestamp moves forward, instead of pushing a
+     * duplicate row.
      */
     function add(opts) {
         if (!opts || !opts.message) return;
-        const entry = {
-            ts: Date.now(),
-            type: opts.type || 'save',
-            area: opts.area || '',
-            message: String(opts.message).slice(0, 200),
-            ok: opts.ok === false ? false : true,
-            detail: opts.detail ? String(opts.detail).slice(0, 500) : '',
-        };
+        const now = Date.now();
+        const type = opts.type || 'save';
+        const area = opts.area || '';
+        const message = String(opts.message).slice(0, 200);
+        const ok = opts.ok === false ? false : true;
+        const detail = opts.detail ? String(opts.detail).slice(0, 500) : '';
+
+        const head = _entries[0];
+        if (head
+            && head.type === type
+            && head.area === area
+            && head.message === message
+            && head.ok === ok
+            && (now - head.ts) < COALESCE_WINDOW_MS) {
+            head.count = (head.count || 1) + 1;
+            head.ts = now;
+            if (detail) head.detail = detail;
+            _persist();
+            _subscribers.forEach(fn => { try { fn(head); } catch (e) { /* swallow */ } });
+            return;
+        }
+
+        const entry = { ts: now, type, area, message, ok, detail, count: 1 };
         _entries.unshift(entry);
         if (_entries.length > MAX_ENTRIES) _entries.length = MAX_ENTRIES;
         _persist();
@@ -173,13 +199,16 @@
         list.innerHTML = _entries.map(e => {
             const icon = _typeIcon(e.type, e.ok);
             const time = _esc(_formatTime(e.ts));
+            const count = (e.count > 1)
+                ? ` <span style="opacity:0.6; font-variant-numeric:tabular-nums;">×${Number(e.count)}</span>`
+                : '';
             const area = e.area ? `<span style="opacity:0.6;">·  ${_esc(e.area)}</span>` : '';
             const detail = e.detail ? `<div style="opacity:0.7; font-size:12px; margin-top:2px;">${_esc(e.detail)}</div>` : '';
             const tone = e.ok ? '' : 'background: rgba(255,59,48,0.06);';
             return `
                 <div style="padding:10px 16px; border-bottom:1px solid var(--border, #eee); ${tone}">
                     <div style="display:flex; align-items:baseline; justify-content:space-between; gap:8px;">
-                        <div style="flex:1;"><span style="margin-right:6px;">${icon}</span>${_esc(e.message)} ${area}</div>
+                        <div style="flex:1;"><span style="margin-right:6px;">${icon}</span>${_esc(e.message)}${count} ${area}</div>
                         <span style="opacity:0.6; font-size:11px; white-space:nowrap;">${time}</span>
                     </div>
                     ${detail}
