@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
 | **CSS** | 51 files in `css/` (~26,400 lines total) |
-| **JS** | 106 modules in `js/` (~63,800 lines total) |
+| **JS** | 107 modules in `js/` (~63,900 lines total) |
 | **Plugins** | 19 HTML templates in `plugins/` (~6,785 lines total, + `tools/broadform.html`) |
 | **APIs** | 13 routable serverless functions + ~22 `_`-prefixed helpers in `api/` (~8,600 lines total) |
 | **Auth** | **Supabase Auth** (email/password + MFA, Supabase JS v2) — Firebase fully removed in the Phase D cleanup, May 2026 |
