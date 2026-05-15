@@ -69,10 +69,87 @@ window.Reminders = (() => {
                 _state.categories = parsed.categories || [...DEFAULT_CATEGORIES];
                 _state.lastAlertShown = parsed.lastAlertShown || 0;
                 // gracePeriodEnabled removed — tasks always go overdue at midnight PST
+                _reconcileFromLedger();
             }
         } catch (e) {
             console.error('[Reminders] Load error:', e);
         }
+    }
+
+    // ── Completion ledger (local-only, never synced) ──
+    //
+    // SupabaseSync.restoreFromCloud() blind-overwrites the reminders
+    // localStorage blob with the cloud copy *before* Reminders.init() runs.
+    // A completion made locally but not yet pushed (3 s debounced push + tab
+    // close, offline, or a stale push from another device) is lost. Recurring
+    // tasks self-heal — _autoAdvanceRecurring rolls their dueDate forward — but
+    // a 'once' task has no such healing, so a lost completion shows "Past due"
+    // forever. This ledger mirrors each task's completion list per device and
+    // is NOT in DOC_LOCAL_KEYS, so the cloud restore can't clobber it; _load()
+    // re-applies it on top of the (possibly stale) synced blob.
+
+    function _ledgerLoad() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.REMINDERS_COMPLETIONS);
+            const obj = raw ? JSON.parse(raw) : {};
+            return (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj : {};
+        } catch (e) {
+            console.warn('[Reminders] ledger load failed:', e && e.message);
+            return {};
+        }
+    }
+
+    function _ledgerSave(led) {
+        try {
+            localStorage.setItem(STORAGE_KEYS.REMINDERS_COMPLETIONS, JSON.stringify(led));
+        } catch (e) {
+            console.warn('[Reminders] ledger save failed:', e && e.message);
+        }
+    }
+
+    /** Record this device's authoritative completion list for a task. */
+    function _ledgerRecord(task) {
+        if (!task || !task.id) return;
+        const led = _ledgerLoad();
+        led[task.id] = Array.isArray(task.completions) ? task.completions.slice() : [];
+        _ledgerSave(led);
+    }
+
+    /** Drop a deleted task from the ledger so it can't be resurrected. */
+    function _ledgerForget(id) {
+        const led = _ledgerLoad();
+        if (Object.prototype.hasOwnProperty.call(led, id)) {
+            delete led[id];
+            _ledgerSave(led);
+        }
+    }
+
+    /**
+     * Re-apply this device's own completion record on top of the just-loaded
+     * (possibly stale) synced blob. The ledger is authoritative for any task
+     * this device has acted on, so we *replace* — not union — the task's
+     * completions: replace keeps both a completion AND a later uncomplete
+     * durable against a stale cloud overwrite. A completion made on a
+     * different device still arrives via the synced blob for tasks this
+     * device has never touched (no ledger entry → blob wins).
+     */
+    function _reconcileFromLedger() {
+        const led = _ledgerLoad();
+        let changed = false;
+        for (const task of _state.tasks) {
+            if (!task || !task.id) continue;
+            if (!Array.isArray(task.completions)) task.completions = [];
+            if (!Object.prototype.hasOwnProperty.call(led, task.id)) continue;
+            const ledList = Array.isArray(led[task.id]) ? led[task.id].filter(Boolean) : [];
+            const cur = task.completions.filter(Boolean);
+            if (cur.length !== ledList.length || cur.some((v, i) => v !== ledList[i])) {
+                task.completions = ledList.slice();
+                changed = true;
+            }
+        }
+        // Persist the healed state so the recovered completion re-propagates
+        // to the cloud on the next push.
+        if (changed) _save();
     }
 
     /**
@@ -569,12 +646,14 @@ window.Reminders = (() => {
 
     function deleteTask(id) {
         _state.tasks = _state.tasks.filter(t => t.id !== id);
+        _ledgerForget(id);
         _save();
     }
 
     function completeTask(id) {
         const task = _state.tasks.find(t => t.id === id);
         if (!task) return;
+        if (!Array.isArray(task.completions)) task.completions = [];
         task.completions.push(new Date().toISOString());
         // Clear any active snooze
         delete task.snooze;
@@ -582,15 +661,18 @@ window.Reminders = (() => {
         if (task.frequency !== 'once') {
             task.dueDate = _getNextDueDate(task);
         }
+        _ledgerRecord(task);
         _save();
     }
 
     function uncompleteTask(id) {
         const task = _state.tasks.find(t => t.id === id);
         if (!task) return;
+        if (!Array.isArray(task.completions)) task.completions = [];
         if (task.completions.length) {
             task.completions.pop();
         }
+        _ledgerRecord(task);
         _save();
     }
 
@@ -714,6 +796,7 @@ window.Reminders = (() => {
             task.dueDate = _pendingUndo.preCompleteDueDate;
         }
         _pendingUndo = null;
+        _ledgerRecord(task);
         _save();
         render();
         if (typeof App !== 'undefined' && App.toast) {

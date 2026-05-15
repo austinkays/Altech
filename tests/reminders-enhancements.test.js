@@ -194,6 +194,117 @@ describe("'once' reminders never reset", () => {
     });
 });
 
+// ── completion ledger — survives a stale cloud clobber ───────────────────
+//
+// SupabaseSync.restoreFromCloud() blind-overwrites the reminders blob with
+// the cloud copy before Reminders.init() runs. A 'once' task completed
+// locally but not yet pushed (3 s debounce + tab close / offline / stale
+// push from another device) must NOT resurrect as "Past due" the next day.
+
+describe("'once' completion survives restoreFromCloud() overwrite", () => {
+    // Stand the module up against plain global stubs (this suite runs in the
+    // Node test env — no jsdom). Mirrors what app-boot wires at runtime; App /
+    // Sync / Auth / ActivityLog are intentionally absent (every call site is
+    // feature-detected) so init() exercises the load+reconcile path cleanly.
+    function loadReminders() {
+        const store = {};
+        global.window = {};
+        global.STORAGE_KEYS = {
+            REMINDERS: 'altech_reminders',
+            REMINDERS_DIGEST_SHOWN: 'altech_reminders_digest_shown',
+            REMINDERS_COMPLETIONS: 'altech_reminders_completions',
+        };
+        global.Utils = { escapeHTML: s => s };
+        global.localStorage = {
+            getItem: k => (k in store ? store[k] : null),
+            setItem: (k, v) => { store[k] = String(v); },
+            removeItem: k => { delete store[k]; },
+            clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+        };
+        global.document = {
+            getElementById: () => null,
+            querySelectorAll: () => [],
+            querySelector: () => null,
+        };
+        // eslint-disable-next-line no-eval
+        (0, eval)(SRC);
+        return { R: global.window.Reminders, store };
+    }
+
+    const onceTask = (completions = []) => ({
+        id: 't1', title: 'Send signed app', frequency: 'once',
+        dueDate: '2026-05-08', category: 'Admin', priority: 'normal',
+        completions, createdAt: '2026-05-08T00:00:00.000Z',
+    });
+
+    test('completed once-task stays completed after a stale-blob restore', () => {
+        const { R, store } = loadReminders();
+        R.state = { tasks: [onceTask()], categories: ['Admin'], lastAlertShown: 0 };
+        expect(R.getCounts().overdue).toBe(1);
+
+        R.toggle('t1'); // complete
+        expect(R.getCounts()).toMatchObject({ overdue: 0, completed: 1 });
+        // Ledger captured the completion under its own (never-synced) key.
+        const led = JSON.parse(store['altech_reminders_completions']);
+        expect(Array.isArray(led.t1) && led.t1.length).toBe(1);
+
+        // restoreFromCloud() clobbers the synced blob with a stale copy that
+        // never received the completion, then auth.js re-inits Reminders.
+        store['altech_reminders'] = JSON.stringify({
+            tasks: [onceTask()], categories: ['Admin'], lastAlertShown: 0,
+        });
+        R.init();
+
+        expect(R.getCounts()).toMatchObject({ overdue: 0, completed: 1 });
+        expect(R.getUpcomingTasks(10)).toHaveLength(0);
+    });
+
+    test('never-completed once-task is still Past due (no false heal)', () => {
+        const { R } = loadReminders();
+        R.state = { tasks: [onceTask()], categories: ['Admin'], lastAlertShown: 0 };
+        R.init();
+        expect(R.getCounts().overdue).toBe(1);
+    });
+
+    test('an uncomplete is honored even if the cloud copy is still completed', () => {
+        const { R, store } = loadReminders();
+        R.state = { tasks: [onceTask()], categories: ['Admin'], lastAlertShown: 0 };
+        R.toggle('t1'); // complete
+        R.toggle('t1'); // uncomplete
+        // Stale cloud still has the old completion.
+        store['altech_reminders'] = JSON.stringify({
+            tasks: [onceTask(['2026-05-08T18:00:00.000Z'])],
+            categories: ['Admin'], lastAlertShown: 0,
+        });
+        R.init();
+        expect(R.getCounts().overdue).toBe(1);
+    });
+});
+
+// ── source-level invariants for the ledger ───────────────────────────────
+
+describe('completion ledger — wiring invariants', () => {
+    test('ledger key is local-only (NOT in supabase-sync DOC_LOCAL_KEYS)', () => {
+        const sync = readSrc('js/supabase-sync.js');
+        const block = sync.slice(sync.indexOf('DOC_LOCAL_KEYS'), sync.indexOf('DOC_LOCAL_KEYS') + 900);
+        expect(block).not.toMatch(/REMINDERS_COMPLETIONS/);
+    });
+
+    test('_load() reconciles from the ledger', () => {
+        const block = SRC.slice(SRC.indexOf('function _load'));
+        expect(block.slice(0, 600)).toMatch(/_reconcileFromLedger\(\)/);
+    });
+
+    test('completeTask / uncompleteTask / deleteTask touch the ledger', () => {
+        expect(SRC.slice(SRC.indexOf('function completeTask'), SRC.indexOf('function completeTask') + 500))
+            .toMatch(/_ledgerRecord\(task\)/);
+        expect(SRC.slice(SRC.indexOf('function uncompleteTask'), SRC.indexOf('function uncompleteTask') + 400))
+            .toMatch(/_ledgerRecord\(task\)/);
+        expect(SRC.slice(SRC.indexOf('function deleteTask'), SRC.indexOf('function deleteTask') + 200))
+            .toMatch(/_ledgerForget\(id\)/);
+    });
+});
+
 // ── modal HTML wiring ────────────────────────────────────────────────────
 
 describe('reminders.html — new inputs', () => {
