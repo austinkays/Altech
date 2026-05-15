@@ -208,11 +208,24 @@ describe('compliance-dashboard guards', () => {
         expect(src).toContain('Utils.escapeAttr(js)');
         // The broken legacy escape must be gone (it produced `\\'` not `\'`).
         expect(src).not.toContain('replace(/\'/g, "\\\\\\\\\'");');
-        // Master pn binding routes through escJsAttr.
-        expect(src).toContain('const pn = escJsAttr(policy.policyNumber)');
+        // Master pn binding routes through escJsAttr, while attribute ids
+        // keep the raw policy number encoded as an HTML attribute.
+        expect(src).toContain('const pn = escJsAttr(rawPolicyNumber)');
+        expect(src).toContain('const pnAttr = Utils.escapeAttr(rawPolicyNumber)');
         // The two live-update sites use escJsAttr.
         expect(src).toContain("searchForPolicy('${escJsAttr(data.renewedTo)}')");
         expect(src).toContain("clearRenewed('${escJsAttr(policyNumber)}')");
+    });
+
+    test('needs-state-update filter only returns renewal rows that truly need action', () => {
+        expect(src).toContain("(filterStatus === 'needs-state-update' && this._needsStateUpdate(policy.policyNumber) && !this.isHidden(policy.policyNumber))");
+        expect(src).not.toContain("(filterStatus === 'needs-state-update' && !this.getNoteData(policy.policyNumber)?.stateUpdated");
+    });
+
+    test('snoozed policies are treated as hidden rows when Show Hidden is enabled', () => {
+        expect(src).toContain('const isSnoozed = this._isSnoozeActive(rawPolicyNumber)');
+        expect(src).toContain('const isHidden = isVerified || isDismissed || isSnoozed');
+        expect(src).toContain('ComplianceDashboard.unsnoozePolicy');
     });
 
     test('_safeLSWrite helper is defined and used at user-state sites', () => {

@@ -469,6 +469,11 @@ describe('getCommercialPolicyType', () => {
     expect(fns.getCommercialPolicyType({ type: 'Cyber', status: 'active' })).toBe('cyber');
   });
 
+  test('returns "crime" for crime coverage, not inland marine', () => {
+    expect(fns.getCommercialPolicyType({ type: 'Crime', status: 'active' })).toBe('crime');
+    expect(fns.getCommercialPolicyType({ title: 'Employee Dishonesty / Crime', status: 'active' })).toBe('crime');
+  });
+
   test('returns "im" for inland marine', () => {
     expect(fns.getCommercialPolicyType({ type: 'Inland Marine', status: 'active' })).toBe('im');
   });

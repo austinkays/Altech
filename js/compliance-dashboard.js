@@ -2030,7 +2030,7 @@ const ComplianceDashboard = {
             <div class="cgl-note-entry">
                 <span class="cgl-note-entry-text">${iconHtml}${Utils.escapeHTML(entry.text)}</span>
                 <span class="cgl-note-entry-time">${this.formatNoteTime(entry.at)}</span>
-                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${Utils.escapeHTML(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
+                <button class="cgl-note-delete-btn" onclick="ComplianceDashboard.deleteNoteEntry('${escJsAttr(policyNumber)}',${origIdx})" title="Delete this note">&times;</button>
             </div>
         `;
         }).join('');
@@ -2210,7 +2210,8 @@ const ComplianceDashboard = {
     },
 
     saveNote(policyNumber) {
-        const input = document.querySelector(`#note-row-${policyNumber} textarea`);
+        const noteRow = document.getElementById('note-row-' + policyNumber);
+        const input = noteRow ? noteRow.querySelector('textarea') : null;
         if (!input) return;
         const text = input.value.trim();
         if (!text) return; // Don't save empty — user can just close
@@ -2236,7 +2237,8 @@ const ComplianceDashboard = {
         const isBond = policy && /bond/i.test(policy.policyType || '');
 
         // Update note icon
-        const btn = document.querySelector(`[data-note-for="${policyNumber}"]`);
+        const btn = Array.from(document.querySelectorAll('[data-note-for]'))
+            .find(el => el.dataset.noteFor === String(policyNumber));
         if (btn) {
             btn.classList.toggle('has-note', hasNote);
             btn.title = hasNote ? 'Note: ' + latestText : 'Add note';
@@ -2381,9 +2383,9 @@ const ComplianceDashboard = {
             if (!this.showHidden && isHidden) return false;
 
             const matchesSearch =
-                policy.clientName.toLowerCase().includes(searchTerm) ||
-                policy.policyNumber.toLowerCase().includes(searchTerm) ||
-                policy.carrier.toLowerCase().includes(searchTerm);
+                String(policy.clientName || '').toLowerCase().includes(searchTerm) ||
+                String(policy.policyNumber || '').toLowerCase().includes(searchTerm) ||
+                String(policy.carrier || '').toLowerCase().includes(searchTerm);
 
             const matchesStatus =
                 filterStatus === 'all' ||
@@ -2403,7 +2405,7 @@ const ComplianceDashboard = {
                 (filterStatus === 'renewed' && this.getNoteData(policy.policyNumber)?.renewedTo) ||
                 (filterStatus === 'has-notes' && this.getNoteData(policy.policyNumber)?.log?.length > 0) ||
                 (filterStatus === 'state-updated' && this.getNoteData(policy.policyNumber)?.stateUpdated) ||
-                (filterStatus === 'needs-state-update' && !this.getNoteData(policy.policyNumber)?.stateUpdated && !this.isHidden(policy.policyNumber)) ||
+                (filterStatus === 'needs-state-update' && this._needsStateUpdate(policy.policyNumber) && !this.isHidden(policy.policyNumber)) ||
                 (filterStatus === 'needs-li-ccb' && (this.needsLIReport(policy) || this.needsCCBReport(policy)) && !this.isHidden(policy.policyNumber));
 
             return matchesSearch && matchesStatus;
@@ -2459,7 +2461,7 @@ const ComplianceDashboard = {
         const hiddenEl = document.getElementById('cglHiddenCount');
         if (hiddenEl) hiddenEl.textContent = hiddenCount;
 
-        const visibleTotal = this.policies.filter(p => !this.isHidden(p.policyNumber)).length;
+        const visibleTotal = this.policies.filter(p => !this.isHidden(p.policyNumber) && !this.hiddenTypes.includes(p.policyType || 'cgl')).length;
         const filteredEl = document.getElementById('cglFilteredCount');
         if (filteredEl) filteredEl.textContent = policiesToRender.length;
         const totalEl = document.getElementById('cglTotalCount');
@@ -2490,15 +2492,17 @@ const ComplianceDashboard = {
         const remaining = totalToRender - paginated.length;
 
         tbody.innerHTML = paginated.map(policy => {
-            const isVerified = !!this.verifiedPolicies[policy.policyNumber];
-            const isDismissed = !!this.dismissedPolicies[policy.policyNumber];
-            const isHidden = isVerified || isDismissed;
+            const rawPolicyNumber = String(policy.policyNumber || '');
+            const isVerified = !!this.verifiedPolicies[rawPolicyNumber];
+            const isDismissed = !!this.dismissedPolicies[rawPolicyNumber];
+            const isSnoozed = this._isSnoozeActive(rawPolicyNumber);
+            const isHidden = isVerified || isDismissed || isSnoozed;
             const statusLabel = this.getStatusLabel(policy.daysUntilExpiration);
             const expDate = new Date(policy.expirationDate).toLocaleDateString();
             const effDate = new Date(policy.effectiveDate).toLocaleDateString();
             const incDate = policy.inceptionDate ? new Date(policy.inceptionDate).toLocaleDateString() : null;
 
-            const noteData = this.getNoteData(policy.policyNumber);
+            const noteData = this.getNoteData(rawPolicyNumber);
             const hasNote = noteData && noteData.log && noteData.log.length > 0;
             const noteCount = hasNote ? noteData.log.length : 0;
             const latestNote = hasNote ? noteData.log[noteData.log.length - 1].text : '';
@@ -2511,20 +2515,19 @@ const ComplianceDashboard = {
             const isHawksoftUpdated = !!(noteData && noteData.hawksoftUpdated);
             const isAnyUpdateDone = isStateUpdated || isHawksoftUpdated;
             const needsStateUpdate = !!(noteData && noteData.needsStateUpdate && !isStateUpdated && !isHawksoftUpdated);
-            const pType = (policy.policyType || 'cgl');
 
             const rowClass = isHidden ? 'hidden-row' : (needsStateUpdate ? 'cgl-needs-state-row' : (isAnyUpdateDone ? 'cgl-state-updated-row' : ''));
-            const pn = escJsAttr(policy.policyNumber);
+            const pn = escJsAttr(rawPolicyNumber);
+            const pnAttr = Utils.escapeAttr(rawPolicyNumber);
 
             const verifiedTitle = isVerified
-                ? 'Verified on ' + new Date(this.verifiedPolicies[policy.policyNumber].updatedAt).toLocaleDateString()
+                ? 'Verified on ' + new Date(this.verifiedPolicies[rawPolicyNumber].updatedAt).toLocaleDateString()
                 : 'Done — state updated, hide policy';
 
-            const isSnoozed = this._isSnoozeActive(policy.policyNumber);
             let actionHtml = '';
             if (isHidden && this.showHidden) {
                 if (isSnoozed) {
-                    const until = new Date(this.snoozedPolicies[policy.policyNumber].snoozedUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const until = new Date(this.snoozedPolicies[rawPolicyNumber].snoozedUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     actionHtml = `<span class="cgl-snoozed-badge">💤 Until ${until}</span><button class="cgl-restore-btn" onclick="ComplianceDashboard.unsnoozePolicy('${pn}')">Wake</button>`;
                 } else {
                     const fn = isDismissed ? 'undismissPolicy' : 'unverifyPolicy';
@@ -2534,12 +2537,12 @@ const ComplianceDashboard = {
                 actionHtml = `<button class="cgl-snooze-btn" onclick="ComplianceDashboard.snoozePolicy('${pn}')" title="Hide until tomorrow">💤</button><button class="cgl-dismiss-btn" onclick="ComplianceDashboard.dismissPolicy('${pn}')">Dismiss</button>`;
             }
 
-            const isSelected = this._printMode && this._selectedForPrint.has(policy.policyNumber);
+            const isSelected = this._printMode && this._selectedForPrint.has(rawPolicyNumber);
             const printRowClass = isSelected ? ' cgl-print-selected' : '';
 
             return `
                 <tr class="${rowClass}${printRowClass}">
-                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${Utils.escapeHTML(policy.policyNumber)}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
+                    ${this._printMode ? `<td style="text-align:center;"><input type="checkbox" class="cgl-print-checkbox" data-pn="${pnAttr}" ${isSelected ? 'checked' : ''} onchange="ComplianceDashboard.togglePrintSelect('${pn}')"></td>` : ''}
                     <td>
                         <label class="cgl-toggle" title="${verifiedTitle}">
                             <input type="checkbox" ${isVerified ? 'checked' : ''} onchange="ComplianceDashboard.togglePolicyVerified('${pn}')">
@@ -2560,18 +2563,18 @@ const ComplianceDashboard = {
                         <div style="font-weight: 600;">${this.clientLink(policy)}</div>
                         ${policy.email ? `<div style="font-size: 12px; color: var(--text-secondary);">${Utils.escapeHTML(policy.email)}</div>` : ''}
                         ${this._isLICCBApplicableType(policy) ? `<div class="cgl-li-ccb-badges">${this.renderLICCBBadges(policy)}</div>` : ''}
-                        ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pn}">✅ ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pn}" style="display:none"></span>`}
-                        ${hasNote && !isAnyUpdateDone ? `<div class="cgl-note-preview" id="note-preview-${pn}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pn}" style="display:none"></div>`}
+                        ${isAnyUpdateDone ? `<span class="cgl-state-badge" id="state-badge-${pnAttr}">✅ ${isHawksoftUpdated ? 'HawkSoft Updated' : 'State Updated'}</span>` : `<span class="cgl-state-badge" id="state-badge-${pnAttr}" style="display:none"></span>`}
+                        ${hasNote && !isAnyUpdateDone ? `<div class="cgl-note-preview" id="note-preview-${pnAttr}">${renewedTo ? 'Renewed → ' + Utils.escapeHTML(renewedTo) : noteText}</div>` : `<div class="cgl-note-preview" id="note-preview-${pnAttr}" style="display:none"></div>`}
                         ${noteIcons && !isAnyUpdateDone ? `<div class="cgl-note-icons">${noteIcons}</div>` : ''}
                     </td>
                     <td style="font-family: monospace; font-size: 13px;">
-                        <div>${Utils.escapeHTML(policy.policyNumber)}</div>
+                        <div>${Utils.escapeHTML(rawPolicyNumber)}</div>
                         ${renewedTo
-                            ? `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
+                            ? `<span class="cgl-renewed-badge" id="renewed-badge-${pnAttr}" style="display:inline-flex;align-items:center;gap:4px;margin-top:2px;">
                                 <span onclick="ComplianceDashboard.searchForPolicy('${escJsAttr(renewedTo)}')" style="cursor:pointer;" title="Click to find renewed policy">→ ${Utils.escapeHTML(renewedTo)}</span>
                                 <span onclick="ComplianceDashboard.clearRenewed('${pn}')" style="cursor:pointer;opacity:0.6;font-size:10px;" title="Clear renewal link">✕</span>
                                </span>`
-                            : `<span class="cgl-renewed-badge" id="renewed-badge-${pn}" style="display:none"></span>`}
+                            : `<span class="cgl-renewed-badge" id="renewed-badge-${pnAttr}" style="display:none"></span>`}
                     </td>
                     <td>
                         <div>${Utils.escapeHTML(policy.carrier)}</div>
@@ -2586,12 +2589,12 @@ const ComplianceDashboard = {
                     </td>
                     <td>
                         <div style="display:flex;align-items:center;gap:4px;">
-                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pn}" onclick="ComplianceDashboard.toggleNote('${pn}')" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">📝${noteCount > 0 ? `<span class="cgl-note-count">${noteCount}</span>` : ''}</button>
+                            <button class="cgl-note-btn ${hasNote ? 'has-note' : ''}" data-note-for="${pnAttr}" onclick="ComplianceDashboard.toggleNote('${pn}')" title="${hasNote ? 'Note: ' + noteText : 'Add note'}">📝${noteCount > 0 ? `<span class="cgl-note-count">${noteCount}</span>` : ''}</button>
                             ${actionHtml}
                         </div>
                     </td>
                 </tr>
-                <tr class="cgl-note-row" id="note-row-${pn}" style="display:none;">
+                <tr class="cgl-note-row" id="note-row-${pnAttr}" style="display:none;">
                     <td colspan="${colSpan}">
                         ${this.renderClassificationOverride(policy)}
                         <div class="cgl-quick-notes">
@@ -2610,7 +2613,7 @@ const ComplianceDashboard = {
                             </div>
                         </div>
                         <textarea class="cgl-note-input" rows="1" placeholder="Add a note…" onblur="ComplianceDashboard.saveNote('${pn}')" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.blur();}"></textarea>
-                        <div class="cgl-note-log">${this.renderNoteLog(pn)}</div>
+                        <div class="cgl-note-log">${this.renderNoteLog(rawPolicyNumber)}</div>
                     </td>
                 </tr>
             `;
@@ -3006,7 +3009,7 @@ const ComplianceDashboard = {
     renderLICCBBadges(policy) {
         if (!this._isLICCBApplicableType(policy)) return '';
         const c = this.getClientCompliance(policy.clientNumber);
-        const cn = String(policy.clientNumber || '').replace(/'/g, "\\'");
+        const cn = escJsAttr(policy.clientNumber || '');
         const exp = policy.expirationDate || '';
         if (!c || !c.classification || c.classification === 'unverified') {
             return `<span class="cgl-li-badge unverified" onclick="ComplianceDashboard.reverifyClient('${cn}')" title="Verify against WA L&amp;I and OR CCB">❓ Verify</span>`;
@@ -3019,7 +3022,7 @@ const ComplianceDashboard = {
                 const date = c.waReportedAt ? new Date(c.waReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
                 html.push(`<span class="cgl-li-badge reported" onclick="ComplianceDashboard.clearReportedWA('${cn}')" title="Reported to WA L&amp;I${date ? ' on ' + date : ''}. Click to clear.">✅ WA L&amp;I${date ? ' · ' + date : ''}</span>`);
             } else {
-                html.push(`<span class="cgl-li-badge needs-report" onclick="ComplianceDashboard.markReportedToWA('${cn}', '${Utils.escapeAttr(exp)}')" title="Mark as reported to lni.wa.gov for current expiration">🛠️ WA L&amp;I</span>`);
+                html.push(`<span class="cgl-li-badge needs-report" onclick="ComplianceDashboard.markReportedToWA('${cn}', '${escJsAttr(exp)}')" title="Mark as reported to lni.wa.gov for current expiration">🛠️ WA L&amp;I</span>`);
             }
         }
         if (c.classification === 'or-contractor' || c.classification === 'wa-or-contractor') {
@@ -3028,7 +3031,7 @@ const ComplianceDashboard = {
                 const date = c.orReportedAt ? new Date(c.orReportedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
                 html.push(`<span class="cgl-ccb-badge reported" onclick="ComplianceDashboard.clearReportedOR('${cn}')" title="Reported to OR CCB${date ? ' on ' + date : ''}. Click to clear.">✅ OR CCB${date ? ' · ' + date : ''}</span>`);
             } else {
-                html.push(`<span class="cgl-ccb-badge needs-report" onclick="ComplianceDashboard.markReportedToOR('${cn}', '${Utils.escapeAttr(exp)}')" title="Mark as reported to ccb.state.or.us for current expiration">🛠️ OR CCB</span>`);
+                html.push(`<span class="cgl-ccb-badge needs-report" onclick="ComplianceDashboard.markReportedToOR('${cn}', '${escJsAttr(exp)}')" title="Mark as reported to ccb.state.or.us for current expiration">🛠️ OR CCB</span>`);
             }
         }
         return html.join(' ');
@@ -3038,7 +3041,7 @@ const ComplianceDashboard = {
     renderClassificationOverride(policy) {
         if (!this._isLICCBApplicableType(policy)) return '';
         const c = this.getClientCompliance(policy.clientNumber) || {};
-        const cn = String(policy.clientNumber || '').replace(/'/g, "\\'");
+        const cn = escJsAttr(policy.clientNumber || '');
         const cls = c.classification || 'unverified';
         const src = c.classificationSource || 'auto';
         const opt = (val, label) => `<button class="cgl-class-btn ${cls === val ? 'active' : ''}" onclick="ComplianceDashboard.setClientClassification('${cn}', '${val}')">${label}</button>`;
