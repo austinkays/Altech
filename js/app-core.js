@@ -1445,26 +1445,30 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
                 detail: filename,
             });
         }
-        // Also save to disk (fire-and-forget)
-        fetch('/local/export-history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(entry)
-        }).catch(() => {});
+        // Also save to disk (fire-and-forget) — localhost dev only; production has no /local/ endpoint
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            fetch('/local/export-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(entry)
+            }).catch(() => {});
+        }
     },
 
     async loadExportHistory() {
         const container = document.getElementById('exportHistoryList');
         if (!container) return;
-        // Try disk first, fall back to localStorage
+        // Try disk first (localhost dev only), fall back to localStorage
         let entries = [];
-        try {
-            const res = await fetch('/local/export-history');
-            if (res.ok) {
-                const data = await res.json();
-                entries = data.entries || [];
-            }
-        } catch (e) {}
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            try {
+                const res = await fetch('/local/export-history');
+                if (res.ok) {
+                    const data = await res.json();
+                    entries = data.entries || [];
+                }
+            } catch (e) {}
+        }
         if (entries.length === 0) {
             entries = Utils.tryParseLS(STORAGE_KEYS.EXPORT_HISTORY, []);
         }
@@ -1506,7 +1510,9 @@ TCPA Consent: ${data.tcpaConsent ? 'Yes' : 'No'}`;
     clearExportHistory() {
         if (!confirm('Clear export history?')) return;
         localStorage.removeItem(STORAGE_KEYS.EXPORT_HISTORY);
-        fetch('/local/export-history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => {});
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            fetch('/local/export-history', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(() => {});
+        }
         this.loadExportHistory();
     },
 
