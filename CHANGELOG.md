@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **chore(audit-docs): per-file size budget — stop monolith regrowth at the PR that causes it** (May 15, 2026):
+  Decomposition passes don't stick: even after a split, single `js/` files creep back to multiple thousands of lines (`dashboard-widgets.js` grew +290 in one session; `compliance-dashboard.js` had drifted +253). [scripts/audit-docs.js](scripts/audit-docs.js) now enforces a **1,800-line budget per `js/` file**. Any *new* file over the budget fails `npm run audit-docs` (already mandated post-session). The six pre-existing monoliths (`compliance-dashboard.js`, `intake-assist.js`, `intake-v2-export-pdf.js`, `app-scan.js`, `prospect.js`, `app-core.js`) are grandfathered with **frozen, downward-only ceilings** (their then-size + a small maintenance margin) — they can shrink but not grow, and a ratchet comment instructs future maintainers to split rather than raise a ceiling. Failure output points at the `cgl-utils.js` / `hawksoft-renderers.js` extraction precedents. A `CLAUDE.md` "What NOT To Do" row documents the contract (never raise a ceiling to make the audit pass). No runtime/code change; tooling + docs only.
+
 ### Changed
 - **refactor(compliance): decompose the compliance-dashboard.js monolith — extract pure helpers to `js/cgl-utils.js`** (May 15, 2026):
   `js/compliance-dashboard.js` had grown back to a 3,435-line single IIFE. Following the established `hawksoft-export.js` → `hawksoft-renderers.js` "Phase 3 monolith decomposition" precedent, the 15 PURE helpers (no `this`, DOM, storage, or network — args + global `Utils` only) were lifted into a new standalone `window.CglUtil` module, loaded before `compliance-dashboard.js` in `index.html` (right after `compliance-idb.js`).

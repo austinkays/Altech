@@ -218,18 +218,63 @@ for (const [docName, docText] of [['AGENTS.md', agents], ['copilot-instructions.
     }
 }
 
+// ── 8. JS file size budget (prevents monolith regrowth) ─────────────────────
+//
+// The recurring problem: even after a decomposition pass, single files creep
+// back over a few thousand lines (dashboard-widgets.js grew +290 in one
+// session; compliance-dashboard.js drifted +253). Chasing that with periodic
+// archaeology is a losing game — catch it at the PR that introduces it.
+
+console.log('Checking js/ size budget...');
+
+const SIZE_BUDGET = 1800; // any NEW js/ file over this fails the audit
+
+// Files already over budget when the guard landed (May 2026). Each number is
+// a FROZEN CEILING, not a target — a grandfathered file may not grow past it
+// (a small margin above its then-size absorbs routine maintenance, not new
+// features). When you shrink one, LOWER its number here. Never raise a ceiling
+// or add a new entry to "make the audit pass" — split the file instead
+// (js/cgl-utils.js ← compliance-dashboard.js and
+// js/hawksoft-renderers.js ← hawksoft-export.js are the precedents). The goal
+// is for every entry to trend down and eventually drop off this list.
+const SIZE_GRANDFATHER = {
+    'compliance-dashboard.js': 3275,
+    'intake-assist.js':        3025,
+    'intake-v2-export-pdf.js': 2625,
+    'app-scan.js':             2500,
+    'prospect.js':             1975,
+    'app-core.js':             1925,
+};
+
+const oversize = [];
+for (const f of jsFiles) {
+    const ceiling = Object.prototype.hasOwnProperty.call(SIZE_GRANDFATHER, f.name)
+        ? SIZE_GRANDFATHER[f.name]
+        : SIZE_BUDGET;
+    if (f.lines > ceiling) {
+        oversize.push({
+            file: `js/${f.name}`,
+            lines: f.lines,
+            ceiling,
+            grandfathered: Object.prototype.hasOwnProperty.call(SIZE_GRANDFATHER, f.name),
+        });
+    }
+}
+
 // ── Report ───────────────────────────────────────────────────────────────────
 
 console.log('');
 
-if (drifts.length === 0) {
+if (drifts.length === 0 && oversize.length === 0) {
     console.log('✅ All documentation is up to date!\n');
     console.log(`   JS:      ${jsFiles.length} files, ${jsTotalActual.toLocaleString()} lines`);
     console.log(`   CSS:     ${cssFiles.length} files, ${cssTotalActual.toLocaleString()} lines`);
     console.log(`   Plugins: ${pluginFiles.length} files, ${pluginTotalActual.toLocaleString()} lines`);
     console.log(`   Tests:   ${testCount} suites\n`);
     process.exit(0);
-} else {
+}
+
+if (drifts.length > 0) {
     console.log(`⚠️  Found ${drifts.length} documentation drift(s):\n`);
     for (const d of drifts) {
         const delta = typeof d.delta === 'number' ? (d.delta > 0 ? `+${d.delta}` : d.delta) : d.delta;
@@ -239,5 +284,21 @@ if (drifts.length === 0) {
         console.log(`     Delta:      ${delta}\n`);
     }
     console.log('Fix these in AGENTS.md, .github/copilot-instructions.md, and/or QUICKREF.md.\n');
-    process.exit(1);
 }
+
+if (oversize.length > 0) {
+    console.log(`📏 ${oversize.length} js/ file(s) over the size budget:\n`);
+    for (const o of oversize) {
+        console.log(`  📏 ${o.file}`);
+        console.log(`     Lines:   ${o.lines.toLocaleString()}`);
+        console.log(`     Ceiling: ${o.ceiling.toLocaleString()}${o.grandfathered ? ' (grandfathered — must shrink, never grow)' : ` (budget ${SIZE_BUDGET})`}`);
+        console.log(`     Over by: +${o.lines - o.ceiling}\n`);
+    }
+    console.log('Split the offending module — extract a cohesive slice into a');
+    console.log('sibling (see js/cgl-utils.js ← compliance-dashboard.js and');
+    console.log('js/hawksoft-renderers.js ← hawksoft-export.js). Only adjust a');
+    console.log('SIZE_GRANDFATHER ceiling as a deliberate, commit-noted decision —');
+    console.log('and only DOWNWARD.\n');
+}
+
+process.exit(1);
