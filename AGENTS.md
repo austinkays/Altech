@@ -1,6 +1,6 @@
 # AGENTS.md — Altech Field Lead: AI Agent Onboarding Guide
 
-> **Last updated:** April 17, 2026
+> **Last updated:** May 15, 2026
 > **For:** AI coding agents working on this codebase
 > **Version:** Comprehensive — read this before making ANY changes
 >
@@ -16,17 +16,17 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 50 files in `css/` (~23,773 lines total) |
-| **JS** | 80 modules in `js/` (~49,370 lines total) |
-| **Plugins** | 18 HTML templates in `plugins/` (~6,612 lines total) |
-| **APIs** | 13 serverless functions + 3 helpers in `api/` (~8,592 lines total) |
-| **Auth** | Firebase Auth (email/password, compat SDK v10.12.0) |
-| **Database** | Firestore (`users/{uid}/sync/{docType}`, `users/{uid}/quotes/{id}`) |
-| **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) |
-| **Local server** | `server.js` (Node.js ESM, 680 lines) |
-| **Deploy** | Vercel (serverless functions + static) |
+| **CSS** | 51 files in `css/` (~26,400 lines total) |
+| **JS** | 106 modules in `js/` (~63,800 lines total) |
+| **Plugins** | 19 HTML templates in `plugins/` (~6,785 lines total, + `tools/broadform.html`) |
+| **APIs** | 13 routable serverless functions + ~22 `_`-prefixed helpers in `api/` (~8,600 lines total) |
+| **Auth** | **Supabase Auth** (email/password + MFA, Supabase JS v2) — Firebase fully removed in the Phase D cleanup, May 2026 |
+| **Database** | **Supabase Postgres** — `public.user_blobs` (KV), `public.user_quotes` (one row/draft), `public.user_crypto_meta` (vault meta); row-level security on every table |
+| **Encryption** | AES-256-GCM via Web Crypto API (`CryptoHelper`) + AAD row-binding envelopes (see §6.4/§6.5) |
+| **Local server** | `server.js` (Node.js ESM, ~680 lines) |
+| **Deploy** | Vercel Pro (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 62 suites, 2362+ tests |
+| **Tests** | Jest + JSDOM, 64 suites, ~2,430 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -35,10 +35,10 @@
 ### Quick Commands
 
 ```bash
-npm run dev           # Local dev server (server.js on port 3000)
-npm test              # All 62 suites, 2362+ tests
+npm run dev           # Local dev server (server.js on port 8000)
+npm test              # All 64 suites, ~2,430 tests
 npx jest --no-coverage  # Faster (skip coverage)
-npm run deploy:vercel   # Production deploy
+npm run audit-docs      # Check this doc for drift (run after every session)
 ```
 
 ### Key URLs
@@ -47,7 +47,7 @@ npm run deploy:vercel   # Production deploy
 |-------------|-----|
 | Production | `https://altech.agency` |
 | Vercel dashboard | Vercel project `altech-field-lead` |
-| Firebase console | Project `altech-app-5f3d0` |
+| Supabase dashboard | Supabase project (auth + Postgres + RLS) |
 
 ---
 
@@ -55,152 +55,75 @@ npm run deploy:vercel   # Production deploy
 
 ```
 /
-├── index.html                  # SPA shell (665 lines) — CSS links, DOM skeleton, script tags
-├── server.js                   # Local dev server (677 lines) — static + API proxy + local endpoints
+├── index.html                  # SPA shell (~742 lines) — CSS links, DOM skeleton, script tags (authoritative load order)
+├── server.js                   # Local dev server (~680 lines) — static + API proxy + local endpoints
 ├── vercel.json                 # Vercel config — function timeouts, rewrites, security headers, CSP
-├── package.json                # ESM, scripts, 3 deps (ioredis, pdf-lib, stripe), 4 devDeps
+├── package.json                # ESM, scripts, deps (ioredis, pdf-lib, stripe), devDeps
 ├── jest.config.cjs             # Test config — node env, tests/ dir, coverage from index.html + api/ + lib/
-├── firebase.json               # Firebase hosting config
-├── firestore.rules             # Security rules (99 lines) — owner-only, admin guards, size limits
-├── sw.js                       # Service worker
+├── db/migrations/              # Supabase SQL migrations (0003 agency sharing, 0004 KDF meta, 0005 RLS audit)
+├── sw.js                       # Service worker — CACHE_VERSION auto-bumped by .githooks/pre-commit
 │
-├── css/                        # 50 stylesheets (~23,773 lines)
-│   ├── variables.css           # :root CSS custom properties + body.dark-mode overrides (all theme tokens)
-│   ├── base.css                # Reset, body, typography, scrollbars
-│   ├── components-cards.css    # Cards, quote cards, driver/vehicle, export cards, map previews (split from components.css, 2026-04)
-│   ├── components-inputs.css   # Form input styles (split)
-│   ├── components-quote-library.css # Quote library search (split)
-│   ├── components-buttons.css  # Buttons + utility buttons + producer toggle (split)
-│   ├── components-forms.css    # Form enhancements, radio cards, validation, consent, Places autocomplete (split)
-│   ├── components-modals.css   # Data preview modal + dark-mode modal overrides (split)
-│   ├── components-toasts.css   # Toast notifications (split)
-│   ├── components-loading.css  # Standardized loading + skeleton placeholders (split)
-│   ├── components-misc.css     # Co-applicant, scan drop zone, debug UI, demo link, dark-mode badges (split)
-│   ├── components-acord.css    # ACORD 25 form styles + print + [data-tooltip] hover popovers (split)
-│   ├── components-pwa.css      # PWA update banner + install button (split)
-│   ├── layout.css              # Header, sidebar, plugin container, media queries
-│   ├── animations.css          # All @keyframes — never define @keyframes in plugin CSS
-│   ├── landing.css             # Landing / bento grid / tool-row styles
-│   ├── theme-professional.css  # Dark pro theme, body.theme-pro overrides (350 lines)
-│   ├── sidebar.css             # Desktop/tablet/mobile sidebar layouts + img logo (931 lines)
-│   ├── dashboard.css           # Bento grid dashboard widgets (1,244 lines)
-│   ├── call-logger.css         # HawkSoft Logger plugin + desktop two-column layout + 5-channel/8-activity quick-tap buttons + status bar + client autocomplete + policy selector + HawkSoft deep links + New Log button (934 lines)
-│   ├── compliance-main.css     # CGL dashboard core — table, badges, save indicator, fetch progress, notes panel (split from compliance.css, 2026-04)
-│   ├── compliance-print-dark.css # Print mode + CGL dark mode overrides + badges (split)
-│   ├── compliance-responsive.css # Desktop enhancements, mobile stat-card stacking, callouts, step cards (split)
-│   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (1,009 lines)
-│   ├── reminders.css           # Task reminders (1,169 lines)
-│   ├── intake-assist-chat.css  # Split layout, mobile tab bar, chat pane, message bubbles, suggestion chips, input row
-│   ├── intake-assist-sidebar.css # Sidebar header, collapsible data sections, map + vehicle cards
-│   ├── intake-assist-features.css # Responsive, legacy compat, document upload, copy, inline edit, hazard badges, market/trends cards
-│   ├── intake-assist-polish.css # Focus visible, reduced motion, drag-drop overlay, desktop scaling, scrollbar, dark-mode polish
-│   ├── ezlynx.css              # EZLynx export — standalone dark palette (590 lines)
-│   ├── vin-decoder.css         # VIN decoder (646 lines)
-│   ├── hawksoft.css            # HawkSoft export (555 lines)
-│   ├── quote-compare.css       # Quote comparison tool (556 lines)
-│   ├── onboarding.css          # First-run wizard (411 lines)
-│   ├── admin.css               # Admin panel (300 lines)
-│   ├── bug-report.css          # Bug reporter (227 lines)
-│   ├── quickref.css            # Quick reference — teal accent + editable number rows (677 lines)
-│   ├── security-info.css       # Security modal (217 lines)
-│   ├── accounting.css          # Accounting vault + export — tab bar, PIN gate, polished form/toolbar, card grid, dark mode, coin counter (778 lines)
-│   ├── email.css               # Email composer — purple accent + custom prompt styles (256 lines)
-│   ├── endorsement-parser.css  # Endorsement parser — paste view, cards, dark utilitarian styling (455 lines)
-│   ├── task-sheet.css           # Task Sheet — HawkSoft CSV task viewer, priority badges, overdue rows, print layout (981 lines)
-│   ├── returned-mail.css        # Returned Mail Tracker — deliverability badges, status badges, responsive form+table, print styles, full dark mode, Street View + satellite map images (799 lines)
-│   ├── paywall.css             # Paywall modal (131 lines)
-│   ├── blind-spot-brief.css    # Blind Spot Brief plugin (294 lines)
-│   ├── commercial-quoter.css   # Commercial Lines quoter — 7-step wizard, dark mode, responsive (743 lines)
-│   ├── dec-import.css          # Dec Page Importer plugin (354 lines)
-│   ├── deposit-sheet.css       # Deposit Sheet plugin (662 lines)
-│   └── aurora-theme.css        # Aurora northern-lights theme — variable overrides, html::before/::after animated layers, glassmorphism (138 lines)
+│  ⚠️ This tree is a high-level map only. The authoritative, module-by-module
+│  breakdown lives in CLAUDE.md (kept current); run `npm run audit-docs` for
+│  exact file/line counts. Firebase was fully removed in the Phase D cleanup
+│  (May 2026) — Supabase is the sole auth + sync backend.
 │
-├── js/                         # 80 modules (~49,370 lines)
-│   │
-│   │  ★ Core App (assembled via Object.assign into global `App`)
-│   ├── app-init.js             # State init, toolConfig[], workflows, stepTitles (6 entries: step-0,1,3,4,5,6 — step-2 removed as dead code)
-│   ├── app-ui-utils.js         # App.toast(), App.toggleDarkMode(), App.loadDarkMode(), App.formatDateDisplay(), App.copyToClipboard()
-│   ├── app-navigation.js       # App.updateUI(), App.navigateTo(), step progression, hash routing
-│   ├── app-core.js             # save/load, form field persistence, schema migration, encryption, clearExportHistory() — persistence-only (updateUI/navigateTo → app-navigation.js; toast/dark-mode → app-ui-utils.js)
-│   ├── app-scan.js             # Policy document scanning, OCR, Gemini AI (2,475 lines)
-│   ├── app-property.js         # Property analysis, maps, assessor data, Redfin integration, listing URL lookup (1,160 lines)
-│   ├── app-vehicles.js         # Vehicle/driver management, DL scanning, per-driver incidents (645 lines)
-│   ├── app-popups.js           # Vision processing, hazard detection, popups (861 lines)
-│   ├── app-export.js           # Export entry points + UI wiring (411 lines; per-format logic in app-export-{pdf,csv,cmsmtf,coverage-gap,carrier-fit}.js)
-│   ├── app-quotes.js           # Quote/draft management, client history auto-save, search + view-all (927 lines)
-│   ├── app-boot.js             # Boot sequence, error boundaries, keyboard shortcuts, beforeunload safety net, Places API idempotent loader (392 lines)
-│   │
-│   │  ★ Infrastructure
-│   ├── crypto-helper.js        # AES-256-GCM encrypt/decrypt, UUID generation
-│   ├── storage-keys.js         # window.STORAGE_KEYS — frozen map of all 53 localStorage key strings (single source of truth — never hardcode keys)
-│   ├── utils.js                # window.Utils: escapeHTML, escapeAttr, tryParseLS, debounce — never define these inline in plugins
-│   ├── fields.js               # window.FIELDS / window.FIELD_BY_ID — ~175 intake form field definitions with id/label/type/section
-│   ├── pdf-lib-loader.js       # window.PDFLibs.ensure('jspdf'|'jszip'|'pdfjs'|'pdflib'|[...]) — lazy-loads ~600 KB of PDF CDN libs on demand (58 lines)
-│   ├── firebase-config.js      # Firebase app init (fetches config from /api/config)
-│   ├── auth.js                 # Firebase auth (login/signup/reset/account), apiFetch()
-│   ├── cloud-sync.js           # Firestore sync (11 doc types incl. glossary + vault + quickRefNumbers, conflict resolution, 676 lines)
-│   ├── ai-provider.js          # Multi-provider AI abstraction (Google/OpenRouter/OpenAI/Anthropic)
-│   ├── dashboard-widgets.js    # Bento grid, sidebar render, mobile nav, breadcrumbs, edit SVG, auth-gated CGL widget, client search (1,439 lines)
-│   │
-│   │  ★ Plugin Modules (IIFE or const pattern, each on window.ModuleName)
-│   ├── coi.js                  # ACORD 25 COI PDF generator (789 lines)
-│   ├── compliance-dashboard.js # CGL compliance tracker, 6-layer persistence, print-to-PDF, renewal dedup, needsStateUpdate, snooze/sleep, emoji note icons (Windows-safe: 🏠🔰💤), note-count badge, two-step workflow (State Updated / HawkSoft Updated), CSS-class-based button colors (no inline styles), note icon tooltips via _noteIconHtml() (3,183 lines)
-│   ├── email-composer.js       # AI email polisher, encrypted drafts, dynamic persona + custom prompt override (497 lines)
-│   ├── endorsement-parser.js   # AI-powered endorsement email parser, extracts structured data from carrier change requests (805 lines)
-│   ├── ezlynx-tool.js          # EZLynx rater export, Chrome extension bridge (1,259 lines)
-│   ├── hawksoft-export.js       # HawkSoft .CMSMTF generator, full CRUD UI, lossless vehicle+driver rebuild, per-driver FSC incidents, Client Office field (1,630 lines)
-│   ├── intake-assist.js         # AI conversational intake, INTAKE_PHASES flow engine, qType-aware chips, maps, progress ring (3,001 lines)
-│   ├── policy-qa.js             # Policy document Q&A chat, carrier detection (1,005 lines)
-│   ├── prospect.js              # Commercial prospect investigation, risk scoring (1,952 lines)
-│   ├── quick-ref.js             # NATO phonetic + agent ID cards + editable quick dial numbers (758 lines)
-│   ├── quote-compare.js         # Quote comparison + AI recommendation (1,098 lines)
-│   ├── reminders.js             # Task reminders, PST timezone, snooze/defer, weekly summary, daily digest toast from /api/reminders-sweep cron (1,138 lines)
-│   ├── vin-decoder.js           # VIN decoder with NHTSA API (785 lines)
-│   ├── accounting-export.js     # Encrypted vault (AES-256-GCM, PIN, multi-account CRUD) + trust deposit calculator + coin counter (1,305 lines)
-│   ├── call-logger.js          # HawkSoft Logger — two-step preview/confirm, 5-channel quick-tap, 8 activity-type buttons with templates, + New Log reset, Agency Glossary, client→policy autocomplete, HawkSoft deep links, personal lines + prospect support, status bar + manual refresh, hawksoftPolicyId pipeline (1,233 lines)
-│   ├── task-sheet.js            # HawkSoft CSV task viewer — upload, parse, sort (overdue→priority→date), 9-col table, print-friendly layout (838 lines)
-│   ├── returned-mail.js         # Returned Mail Tracker — address validator (Google API), Street View + satellite imagery, log CRUD, HawkSoft copy output, CSV export (575 lines)
-│   ├── blind-spot-brief.js      # Blind Spot Brief — coverage gap analyzer (374 lines)
-│   ├── commercial-quoter.js     # Commercial Lines — 7-step intake wizard, 73 fields, PDF + CMSMTF export; bizName required-field validation; Places retry capped at 10; map image onerror handlers; filename sanitization (1,367 lines)
-│   ├── dec-import.js            # Dec Page Importer — PDF/image → form-fill pipeline (734 lines)
-│   ├── deposit-sheet.js         # Deposit Sheet — trust deposit calculator + CSV export (499 lines)
-│   │
-│   │  ★ Support Modules
-│   ├── onboarding.js            # 4-step first-run wizard, invite codes (413 lines)
-│   ├── paywall.js               # Stripe paywall (beta, disabled) (229 lines)
-│   ├── admin-panel.js           # User management admin panel (281 lines)
-│   ├── bug-report.js            # GitHub Issue bug reporter, hash-based page detection (269 lines)
-│   ├── data-backup.js           # Import/export all data + keyboard shortcuts (121 lines)
-│   └── hawksoft-integration.js  # HawkSoft REST API client (261 lines)
+├── css/                        # 51 stylesheets (~26,400 lines) — see CLAUDE.md "CSS Architecture"
+│   ├── variables.css           # :root tokens + body.dark-mode overrides ONLY (the only place theme vars live)
+│   ├── base.css / layout.css   # Reset/typography; app shell, sidebar, plugin container
+│   ├── components-*.css        # Split component families: cards, inputs, buttons, forms, modals,
+│   │                           #   toasts, loading, misc, acord ([data-tooltip] popovers live here),
+│   │                           #   pwa, quote-library. (css/components.css was deleted — never recreate it.)
+│   ├── animations.css          # All @keyframes — never define @keyframes in a plugin CSS file
+│   ├── compliance-*.css        # main / print-dark / responsive (split from compliance.css, 2026-04)
+│   ├── intake-assist-*.css     # chat / sidebar / features / polish
+│   ├── dashboard.css           # Bento grid + Today widget (~1,373 lines)
+│   ├── reminders.css           # Task reminders (~1,422 lines)
+│   ├── auth.css                # Auth modal + settings + Agency Glossary textarea (~1,057 lines)
+│   ├── intake-v2.css           # Intake v2 wizard (~1,913 lines)
+│   ├── vault.css / broadform.css  # Vault UI; Carrier Match (in-dev)
+│   └── (plugin-scoped CSS)     # call-logger, task-sheet, returned-mail, accounting, ezlynx,
+│                               #   vin-decoder, quickref, commercial-quoter, etc. — standalone
 │
-├── plugins/                    # 22 HTML templates (~6,778 lines, loaded dynamically)
-│   ├── quoting.html            # ★ Main intake wizard — 7 steps, Employment & Education inline in About You card, 2,091 lines
-│   ├── ezlynx.html             # EZLynx rater form — 80+ fields, 1,077 lines
-│   ├── coi.html                # ACORD 25 COI form (418 lines)
-│   ├── prospect.html           # Commercial investigation UI (333 lines)
-│   ├── accounting.html         # Accounting vault + export — tabbed layout, PIN screens, polished form/toolbar, account cards, coin counter (292 lines)
-│   ├── compliance.html         # CGL dashboard + print toolbar + two-step workflow help (no progress bar) (322 lines)
-│   ├── vin-decoder.html        # VIN decoder (141 lines)
-│   ├── reminders.html          # Task manager (144 lines)
-│   ├── intake-assist.html      # AI chat two-pane (152 lines)
-│   ├── quotecompare.html       # Quote comparison (117 lines)
-│   ├── email.html              # Email composer + custom AI persona section (125 lines)
-│   ├── endorsement.html        # Endorsement parser — paste area, parsed cards display (54 lines)
-│   ├── qna.html                # Policy Q&A chat (95 lines)
-│   ├── quickref.html           # Quick reference — ID cards, speller, editable numbers, phonetic grid (140 lines)
-│   ├── call-logger.html        # HawkSoft Logger + standard header + desktop two-column grid + 5 channel buttons + 8 activity buttons + status bar + client autocomplete + New Log button (160 lines)
-│   ├── task-sheet.html          # Task Sheet — drop zone, meta bar, table output, print/clear buttons (50 lines)
-│   ├── returned-mail.html       # Returned Mail Tracker — address validator, log form, table + actions (127 lines)
-│   ├── hawksoft.html           # HawkSoft export (21 lines — JS renders body)
-│   ├── blind-spot-brief.html    # Blind Spot Brief UI (32 lines)
-│   ├── commercial-quoter.html   # Commercial Lines wizard — 7 steps, 73 fields (696 lines)
-│   ├── dec-import.html          # Dec Page Importer UI (131 lines)
-│   └── deposit-sheet.html       # Deposit Sheet UI (108 lines)
+├── js/                         # 106 modules (~63,800 lines) — see CLAUDE.md "JS Module Architecture"
+│   │  ★ Core App — assembled via Object.assign into global `App` (app-init → … → app-boot LAST)
+│   │     app-init, app-ui-utils, app-navigation, app-validation, app-core, app-places,
+│   │     app-carriers, app-applicant, app-ai-settings, app-scan(+doc-intel),
+│   │     app-property(+maps/parcel/unified/rentcast), app-vehicles, app-popups(+history),
+│   │     app-export(+pdf/csv/cmsmtf/coverage-gap/carrier-fit/acord-xml/picker), app-quotes, app-boot
+│   │  ★ Globals (load before App): crypto-helper, crypto-aad, storage-keys, utils, fields,
+│   │     pdf-lib-loader
+│   │  ★ Shared services: ai-provider, activity-log, command-palette, dashboard-widgets,
+│   │     phonetic-speller
+│   │  ★ Backend / auth / sync (Supabase-only): supabase-config → supabase-sync →
+│   │     supabase-auth → auth-mfa-ui → auth.js (legacy Auth.* facade) → sync-facade
+│   │     (window.Sync / window.AuthFacade); vault-meta, vault-ui, secure-storage,
+│   │     biometric-unlock, idle-lock, data-backup, bug-report
+│   │  ★ Intake v2 family (~30 modules): intake-v2-core/init/fields/layout/coverage/
+│   │     operators/autos/rvs/boats/history/review/defer/keyboard/places/property(+maps)/
+│   │     rentcast/smart-fill/talktrack/bindability/formatters/export(+pdf/ezlynx/cmsmtf/map)
+│   │  ★ Plugin modules (one window.ModuleName each): compliance-dashboard (~3,436),
+│   │     intake-assist (~3,000), prospect, hawksoft-export(+renderers), reminders(+popover),
+│   │     commercial-quoter, accounting-export, call-logger, ezlynx-tool(+desktop),
+│   │     quote-compare, dec-import, endorsement-parser, vin-decoder, task-sheet,
+│   │     returned-mail, email-composer, quick-ref, onboarding, paywall, quoting-info-panels,
+│   │     compliance-idb, intake-assist-prompts, prospect-formatters
+│   │  (Deleted in Phase D: firebase-config, cloud-sync, migration-ui, migration-backup,
+│   │   coi, policy-qa, admin-panel, hawksoft-integration, blind-spot-brief, deposit-sheet.)
+│
+├── plugins/                    # 19 HTML fragments (~6,785 lines) + tools/broadform.html
+│   │  quoting (★ wizard ~2,546), ezlynx (~1,069), commercial-quoter (~695),
+│   │  compliance, prospect, accounting, intake-assist, intake-v2, call-logger,
+│   │  vin-decoder, reminders, quotecompare, email, endorsement, quickref,
+│   │  task-sheet, returned-mail, hawksoft (JS renders body), dec-import,
+│   │  tools/broadform (in-dev "Carrier Match")
+│   │  (coi.html, qna.html, blind-spot-brief.html, deposit-sheet.html deleted in Phase D.)
 │
 ├── api/                        # ~14 serverless endpoints + many `_`-prefixed helpers (~8,500 lines). Project is on Vercel Pro (April 2026) — ceiling is ~1000 functions, no longer a constraint.
 │   ├── _ai-router.js           # ★ Shared: multi-provider AI router (NOT an endpoint)
 │   ├── _apify-client.js        # ★ Shared: Apify web scraper client — Redfin Detail + Zillow Search actors (NOT an endpoint)
-│   ├── config.js               # Firebase config, API keys, phonetics, bug reports
+│   ├── config.js               # Public config (Supabase URL + anon key), API keys, phonetics, bug reports
+│   ├── admin-supabase.js       # Supabase admin (user management) — replaced the deleted Firebase admin.js
 │   ├── policy-scan.js          # OCR document extraction via Gemini (260 lines)
 │   ├── vision-processor.js     # Image/PDF analysis, DL scanning, aerial analysis (880 lines)
 │   ├── property-intelligence.js # Thin router (~77 lines) — dispatches ?mode=arcgis|satellite|zillow|listing-search|rentcast|firestation|rag-interpret|validate-address to _property-*.js helpers
@@ -228,7 +151,6 @@ npm run deploy:vercel   # Production deploy
 │   ├── _rag-interpreter.js     # County assessor data → insurance fields (helper, routed via property-intelligence)
 │   ├── kv-store.js             # Per-user Redis KV store
 │   ├── stripe.js               # Stripe checkout, portal, webhooks
-│   ├── admin.js                # User management (admin only)
 │   ├── anthropic-proxy.js      # CORS proxy for Anthropic API
 │   └── hawksoft-logger.js      # AI call note formatter + HawkSoft log push, CHANNEL_MAP (5 types with correct HawkSoft LogAction codes), two-step support, policy-level logging, initials post-processing, activityType voice guidance, Agency Glossary injection (291 lines)
 │
@@ -251,7 +173,7 @@ npm run deploy:vercel   # Production deploy
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
 │   ├── ezlynx-extension-fill.test.js  # §13–§15 route registry + positional fill engine
-│   └── *.test.js               # 24 test files, 1455+ tests
+│   └── *.test.js               # 64 suites, ~2,430 tests (Jest + JSDOM)
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
@@ -437,51 +359,38 @@ Plugins are lazy-loaded: `navigateTo(key)` fetches the plugin's `htmlFile` into 
 
 ### 4.3 Script Load Order (from index.html)
 
+**Authoritative source: `index.html` (grep `<script src=`).** CLAUDE.md "Script Load Order"
+mirrors it in full. The invariants that matter:
+
 ```
-CDN Libraries (defer):
-  firebase-app-compat.js
-  firebase-auth-compat.js
-  firebase-firestore-compat.js
-  jszip.min.js
-  jspdf.umd.min.js
-  pdf.min.js (+ inline worker config)
-  pdf-lib.min.js
+CDN: supabase-js  (jszip / jspdf / pdf.js / pdf-lib are LAZY-loaded via
+                    window.PDFLibs.ensure(...) — NOT eager <script> tags)
 
-Core App (order-dependent):
-  1. crypto-helper.js        ← CryptoHelper (used by many)
-  2. storage-keys.js         ← window.STORAGE_KEYS  ✟ must precede App
-  3. utils.js                ← window.Utils          ✟ must precede App
-  4. fields.js               ← window.FIELDS / window.FIELD_BY_ID
-  5. app-init.js             ← Creates window.App
-  6. app-ui-utils.js         ← App.toast(), App.toggleDarkMode()
-  7. app-navigation.js       ← App.updateUI(), App.navigateTo()
-  8. app-core.js             ← App.save(), App.load()
-  9. app-scan.js             ← App.processScan()
- 10. app-property.js         ← App.smartAutoFill()
- 11. app-vehicles.js         ← App.renderDrivers()
- 12. app-popups.js           ← App.processImage()
- 13. app-export.js           ← App.exportPDF(), App.exportCMSMTF()
- 14. app-quotes.js           ← App.saveAsQuote()
+Globals first (must precede App):
+  pdf-lib-loader, crypto-helper, storage-keys, utils, fields
 
-Standalone Modules (order-independent):
-  15. ai-provider.js         ← window.AIProvider
-  16. dashboard-widgets.js   ← window.DashboardWidgets
+App core (Object.assign order): app-init → app-ui-utils → app-navigation →
+  app-validation → app-core → app-places → app-carriers → app-applicant →
+  app-ai-settings → app-scan(+doc-intel) → app-property(+maps/parcel/
+  unified/rentcast) → app-vehicles → app-popups(+history) →
+  app-export(+pdf/csv/coverage-gap/carrier-fit/cmsmtf) → app-quotes
 
-Plugin Modules (order-independent among themselves):
-  17–37. coi, prospect, quick-ref, accounting-export, compliance-dashboard,
-         ezlynx-tool, quote-compare, intake-assist, email-composer, policy-qa,
-         reminders, hawksoft-export, vin-decoder, commercial-quoter, data-backup
+Shared services: ai-provider, activity-log, command-palette, dashboard-widgets
 
-Support Modules (load after plugins):
-  37. bug-report.js
-  38. firebase-config.js     ← Must precede auth.js
-  39. auth.js                ← Must precede cloud-sync.js
-  40. admin-panel.js
-  41. cloud-sync.js
-  42. paywall.js
-  43. onboarding.js
-  44. app-boot.js            ← ★ MUST BE LAST — runs boot()
+Plugin IIFEs (order-independent among themselves)
+
+Backend / auth / sync (ORDER MATTERS):
+  data-backup, bug-report,
+  supabase-config → supabase-sync → supabase-auth → auth-mfa-ui →
+  auth.js (Supabase-only Auth.* facade) → sync-facade (window.Sync /
+  window.AuthFacade), vault-meta, vault-ui, paywall, onboarding
+
+Last:
+  app-boot.js   ← ★ MUST BE LAST — runs App.boot()
 ```
+
+⚠️ Firebase compat SDKs and `firebase-config.js` / `cloud-sync.js` were
+**removed** (Phase D, May 2026). There is no Firebase `<script>` tag.
 
 ### 4.4 Cross-File Dependencies
 
@@ -492,11 +401,11 @@ Support Modules (load after plugins):
 | `App.data` | app-init.js | Every module that reads form data |
 | `App.drivers` / `App.vehicles` | app-init.js | vehicles, ezlynx, hawksoft, intake-assist, export |
 | `App._escapeAttr()` | app-export.js | app-quotes.js (guarded with fallback) |
-| `CloudSync.schedulePush()` | cloud-sync.js | quick-ref, reminders, compliance, prospect, onboarding |
-| `Auth.apiFetch()` | auth.js | Most plugins that call APIs |
-| `Auth.isSignedIn` | auth.js | cloud-sync, paywall, admin |
-| `CryptoHelper.encrypt/decrypt` | crypto-helper.js | app-core, app-quotes, app-vehicles, app-scan, cloud-sync, email-composer |
-| `AIProvider.ask/chat` | ai-provider.js | intake-assist, email-composer, policy-qa, quote-compare |
+| `window.Sync.schedulePush()` | sync-facade.js → supabase-sync.js | quick-ref, reminders, compliance, prospect, onboarding (call after any write to a synced key) |
+| `Auth.apiFetch()` | auth.js (Supabase-only facade) | Most plugins that call APIs |
+| `Auth.user` / `Auth.uid` / `Auth.whenSignedIn()` | auth.js | ~40 plugins; use `whenSignedIn(ms)` (not `ready()`) when you need a real signed-in user |
+| `CryptoHelper.encrypt/decrypt` | crypto-helper.js | app-core, app-quotes, app-vehicles, app-scan, supabase-sync, email-composer |
+| `AIProvider.ask/chat` | ai-provider.js | intake-assist, email-composer, quote-compare, coverage-gap |
 | `Utils.escapeHTML(str)` | utils.js | Any plugin rendering user/AI data into HTML |
 | `Utils.escapeAttr(str)` | utils.js | Any plugin building HTML attribute strings |
 | `Utils.tryParseLS(key, fallback)` | utils.js | Any plugin reading localStorage JSON |
@@ -586,9 +495,15 @@ Note: `app-core.js` line 1507 contains a `typeof this._escapeAttr === 'function'
 
 `App.save()` is debounced and protected with a `_saving` lock and `saveToken` sequence number. Any new code that saves must go through `App.save()` — never write to the storage key directly.
 
-### 5.6 Firebase Compat SDK
+### 5.6 Supabase JS v2 (Firebase fully removed)
 
-The app uses Firebase compat SDK (`firebase-app-compat.js`), NOT the modular SDK. All Firebase calls use the `firebase.` namespace pattern (e.g., `firebase.auth()`, `firebase.firestore()`), not `import { getAuth }` style.
+Firebase was deleted in the Phase D cleanup (May 2026). Supabase is the **sole**
+auth + sync backend. All backend calls go through `window.Supabase.client.auth.*`
+/ `.from(...)` (Supabase JS v2). Plugins must NOT call `SupabaseSync.*` /
+`SupabaseAuth.*` directly — route through the facades: `window.Sync.*`,
+`window.AuthFacade.*`, and the legacy `Auth.*` surface (`js/auth.js`). Any doc
+or code still referencing `firebase.*`, `CloudSync`, `firebase-config.js`, or
+`cloud-sync.js` is stale — those files are gone.
 
 ### 5.7 `alert()` Usage
 
@@ -751,34 +666,30 @@ The analysis uses the existing `property-intelligence.js` endpoint with `?mode=c
 
 ## 6. Security Rules & Authentication
 
-### 6.1 Firestore Rules
+### 6.1 Database Authorization — Supabase RLS
 
-```
-users/{userId}           → owner CRUD, admin can read + set isAdmin/isBlocked
-users/{userId}/sync/{docType} → owner CRUD (except subscription — read-only)
-users/{userId}/quotes/{quoteId} → owner CRUD, 1MB size limit
-/{everything-else}       → deny all
-```
-
-**Guard functions:** `isAuthenticated()`, `isOwner(userId)`, `hasOnlyAllowedFields(allowedFields)`, `isReasonableSize()` (< 1MB), `isPaidSubscriber(userId)`
-
-**Admin fields:** `isAdmin` and `isBlocked` on `users/{userId}` doc — can only be set by admins, never by the user themselves.
+Firestore is gone. Authorization is enforced by **Postgres row-level security**
+on every public table, gated on `auth.uid() = user_id`. See **§6.5 Supabase RLS
+Model** for the per-table policy matrix, the self-checking audit migration
+(`db/migrations/0005_rls_audit.sql`), and the live `scripts/verify-rls.mjs`
+cross-user probe. When you add a new public table you MUST add it to
+`expected_tables[]` in `0005` or the audit refuses to apply.
 
 ### 6.2 API Security
 
 All serverless functions use one of two middleware patterns:
 - **`securityMiddleware`** — Basic security checks (CORS, method validation, origin check)
-- **`requireAuth`** — Firebase token verification + UID extraction
+- **`requireAuth`** — Supabase JWT verification (validates the bearer access token, extracts the user id)
 
-API functions that require authentication: `config?type=keys`, `kv-store`, `stripe`, `admin`, `anthropic-proxy`, `prospect-lookup?type=ai-analysis`
+API functions that require authentication: `config?type=keys`, `kv-store`, `stripe`, `admin-supabase`, `anthropic-proxy`, `prospect-lookup?type=ai-analysis`
 
 API functions with security middleware only (no auth): `policy-scan`, `vision-processor`, `property-intelligence`, `compliance`, `historical-analyzer`
 
 ### 6.3 Content Security Policy
 
 Defined in `vercel.json` headers:
-- `script-src: 'self' 'unsafe-inline'` + Firebase, CDNjs, Google Maps
-- `connect-src: 'self'` + Google APIs, Firebase
+- `script-src: 'self' 'unsafe-inline'` + CDNjs, Google Maps, Supabase
+- `connect-src: 'self'` + Google APIs, Supabase (`*.supabase.co`)
 - `frame-ancestors: 'none'`
 - `form-action: 'self'`
 
@@ -790,7 +701,6 @@ Client-side AES-256-GCM encryption for sensitive localStorage data. **See §4.5*
 |---|---|---|---|
 | localStorage (v1, default) | AES-256-GCM | PBKDF2(deviceFingerprint, salt) | Device-bound; user can't lose access by forgetting a passphrase. |
 | localStorage (v2 active) | AES-256-GCM | Argon2id(passphrase) → KEK → unwraps MK; HKDF derives data key when `kdfTree='hkdf-v1'` | Per-user E2E. Server never sees MK. |
-| Firestore (Firebase backend) | TLS in transit + Google-managed at rest | n/a | Plaintext to Google; the migration moves users off this. |
 | Supabase `user_blobs` / `user_quotes` (legacy) | TLS + opaque ciphertext | App-side AES-GCM under v1 or v2 | Server holds opaque base64. |
 | Supabase `user_blobs` / `user_quotes` (Phase B+) | AAD-bound v=2 envelope | `encryptForRow(data, {table, rowId, userId})` | Auth tag binds row identity — server can't move ciphertexts between rows or users. |
 
@@ -812,14 +722,16 @@ All public tables holding user data have RLS enabled, with policies gating every
 
 **Live verification ([scripts/verify-rls.mjs](scripts/verify-rls.mjs))**: operator script that anon-connects to a live Supabase project and asserts cross-user reads return 0 rows / writes are rejected. Run manually with `SUPABASE_URL` + `SUPABASE_ANON_KEY` env vars; not in CI.
 
-### 6.6 Migration Safety Net
+### 6.6 Migration Safety Net (historical — complete)
 
-Phase 4 of the Firebase→Supabase rollout (Session 2 of [js/migration-ui.js](js/migration-ui.js), still pending) will be wrapped by:
+The Firebase→Supabase migration is **done**. Phase D (May 2026) removed Firebase
+entirely: `js/cloud-sync.js`, `js/migration-ui.js`, `js/migration-backup.js`,
+and the legacy `api/admin.js` were deleted. There is no migration pipeline,
+`MigrationBackup`, `MigrationUI`, or dry-run flag in the codebase anymore.
 
-- **`MigrationBackup.snapshot()`** ([js/migration-backup.js](js/migration-backup.js)) — captures every `altech_*` localStorage key (excluding `MIGRATION_*`/`SYNC_BACKEND`/`DEVICE_ID`/`SYNC_META_SUPABASE`) before the pipeline begins. `restore()` puts the device back exactly as it was on hard failure. 30-day TTL with auto-clean on next `load()`.
-- **`MIGRATION_DRY_RUN` flag** — when set, the pipeline copies + verifies but doesn't flip `SYNC_BACKEND`. Lets an admin verify Supabase decryption before committing the per-user switch. Read via `MigrationUI.isDryRun()`.
-
-Neither is wired into production code yet — the Session 1 stub in `migration-ui.js` doesn't touch user data. Session 2 must call `snapshot()` at the top of the pipeline, honor `isDryRun()` before the backend flip, and call `restore()` on hard failure. See [js/migration-ui.js:90-103](js/migration-ui.js#L90-L103) for the contract.
+`STORAGE_KEYS.SYNC_BACKEND` (`altech_sync_backend`) survives only as a **dead
+flag** — kept so a cleanup path can detect a user who once flipped it to
+`'firebase'` and clear it. Safe to ignore in new code; never write it.
 
 ---
 
@@ -864,13 +776,15 @@ Neither is wired into production code yet — the Session 1 stub in `migration-u
 | `altech_passphrase_salt` | Per-device cache of v2 passphrase salt | ❌ | ❌ | CryptoHelper |
 | `altech_e2e_crypto_v2` | Feature flag: `'1'` = v2 vault active | ❌ | ❌ | CryptoHelper |
 | `altech_vault_meta_local` | Vault meta (offline cache + local fallback for the Supabase router) | ❌ | ❌ | VaultMeta |
-| `altech_sync_meta` | Sync metadata | ❌ | ❌ | CloudSync |
-| `altech_sync_backend` | `'firebase'` (default) \| `'supabase'` | ❌ | ❌ | SyncFacade |
-| `altech_migration_enabled` | `'1'` = show migration modal (admin/dev only) | ❌ | ❌ | MigrationUI |
-| `altech_migration_state` | Resume-on-crash state for the Phase 4 pipeline | ❌ | ❌ | MigrationUI |
-| `altech_migration_dry_run` | `'1'` = Session 2 copies but doesn't flip backend | ❌ | ❌ | MigrationUI |
-| `altech_pre_migration_backup` | Snapshot before Session 2 runs; 30-day TTL | partial¹ | ❌ | MigrationBackup |
+| `altech_activity_log` | ActivityLog ring buffer (cap 100, coalesced) | ❌ | ❌ **local-only by design** | ActivityLog |
+| `altech_sync_backend` | Dead flag (Firebase removed) — never write; cleanup-only | ❌ | ❌ | — |
 | `gemini_api_key` | User's Gemini key | ❌ | ❌ | Multiple plugins |
+
+> **`storage-keys.js` is the single source of truth** (~62 frozen keys). This
+> table is a sample — never hardcode key strings; always use `STORAGE_KEYS.*`.
+> Never sync `*_SALT` / `*_RECOVERY` / `ACTIVITY_LOG`. The `altech_migration_*`
+> / `altech_pre_migration_backup` / `altech_sync_meta` keys were retired with
+> the Firebase removal.
 
 ¹ The backup record is JSON metadata wrapping verbatim copies of other localStorage values. Captured values that were already encrypted (e.g., `altech_v6`) stay encrypted; plaintext-stored values stay plaintext. The wrapper itself isn't re-encrypted.
 
@@ -901,29 +815,31 @@ The form data object (`App.data`) is a flat key-value map. Field keys match HTML
 }
 ```
 
-### 7.4 Cloud Sync Document Structure
+### 7.4 Cloud Sync Storage (Supabase)
 
-Firestore path: `users/{uid}/sync/{docType}`
+Backed by Postgres tables (not Firestore):
 
-Each sync doc contains: `{ data: <serialized>, updatedAt: Timestamp, deviceId: "string" }`
+- **`public.user_blobs`** — key-value, keyed by `(user_id, doc_key)`. One row per synced doc.
+- **`public.user_quotes`** — one row per draft, keyed by `id`.
+- **`public.user_crypto_meta`** — vault metadata (salt, wrapped MK, KDF params).
 
-Quotes use a subcollection: `users/{uid}/quotes/{quoteId}` with full quote data as fields.
+Ciphertext on the wire is an AAD-bound `{v:2, iv, ct}` envelope (`encryptForRow` / `decryptForRow`, see §6.4) — the server cannot move ciphertext between rows/users. RLS gates every row on `auth.uid() = user_id`.
 
 ### How to add a new synced data type
 
-Add one string to the `SYNC_DOCS` array near the top of `js/cloud-sync.js`:
+Add one entry to `DOC_LOCAL_KEYS` near the top of `js/supabase-sync.js`:
 
 ```javascript
-// js/cloud-sync.js ~line 27
-const SYNC_DOCS = [
-    'settings', 'currentForm', 'cglState', 'clientHistory',
-    'quickRefCards', 'quickRefNumbers', 'reminders', 'glossary',
-    'vaultData', 'vaultMeta',
-    'yourNewType',   // ← add here
-];
+// js/supabase-sync.js
+const DOC_LOCAL_KEYS = Object.freeze({
+    currentForm: STORAGE_KEYS.FORM,
+    cglState:    STORAGE_KEYS.CGL_STATE,
+    // …existing entries…
+    yourNewType: STORAGE_KEYS.YOUR_NEW_KEY,   // add here
+});
 ```
 
-That's it. Push and delete operations pick it up automatically — no other changes required. After writing to the synced localStorage key, call `CloudSync.schedulePush()` (debounced 3 s).
+That's it. Push and delete operations pick it up automatically — no other changes required. After writing to the synced localStorage key, call `window.Sync.schedulePush()` (debounced 3 s).
 
 ---
 
@@ -982,10 +898,10 @@ KEY RULES:
 2. Dark mode: Use `body.dark-mode .class` selector (not [data-theme="dark"])
 3. Field IDs are storage keys — NEVER rename an input id without a migration
 4. All form writes go through App.save() — never write to altech_v6 directly
-5. After localStorage writes on synced data, call CloudSync.schedulePush()
+5. After localStorage writes on synced data, call window.Sync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 11 files (incl. app-ui-utils.js, app-navigation.js) — app-boot.js loads LAST
-8. Test with: npm test (2362+ tests, 62 suites, all must pass)
+8. Test with: npm test (~2,430 tests, 64 suites, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, add an entry to CHANGELOG.md with what changed (files, test counts, date). Run: npm run audit-docs
@@ -1018,7 +934,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 62 suites, 2362+ tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 64 suites, ~2,430 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements
@@ -1026,7 +942,7 @@ KEY RULES:
 - [ ] **Three exports tested:** Export as PDF, CMSMTF, and XML (if applicable) — check all fields populate
 - [ ] **Mobile tested:** Resize to 375px width, check no horizontal overflow
 - [ ] **Encryption intact:** `App.save()` → check `altech_v6` in localStorage is encrypted JSON, not plaintext
-- [ ] **Cloud sync:** Sign in, make a change, verify `CloudSync.schedulePush()` fires (3s debounce)
+- [ ] **Cloud sync:** Sign in, make a change, verify `window.Sync.schedulePush()` fires (3s debounce)
 - [ ] **Field IDs unchanged:** No input `id` attributes were renamed without migration code
 - [ ] **No hardcoded API keys:** Search for API key strings — they should be in env vars only
 - [ ] **XSS check:** Any user/AI-generated content displayed in HTML uses `Utils.escapeHTML()` — never define inline in plugins
@@ -1040,12 +956,8 @@ KEY RULES:
 |----------|:--------:|---------|
 | `GOOGLE_API_KEY` | ✅ | Gemini AI (scanning, vision, analysis) |
 | `PLACES_API_KEY` or `GOOGLE_PLACES_API_KEY` | ✅ | Google Places/Maps |
-| `FIREBASE_API_KEY` | ✅ | Firebase client config |
-| `FIREBASE_AUTH_DOMAIN` | ✅ | Firebase auth |
-| `FIREBASE_PROJECT_ID` | ✅ | Firebase/Firestore |
-| `FIREBASE_STORAGE_BUCKET` | ✅ | Firebase storage |
-| `FIREBASE_MESSAGING_SENDER_ID` | ✅ | Firebase messaging |
-| `FIREBASE_APP_ID` | ✅ | Firebase app |
+| `SUPABASE_URL` | ✅ | Supabase project URL (served to client via `/api/config`) |
+| `SUPABASE_ANON_KEY` | ✅ | Supabase publishable/anon key (client auth + RLS-gated reads) |
 | `REDIS_URL` | ✅ | KV store + compliance cache |
 | `HAWKSOFT_CLIENT_ID` | ✅ | HawkSoft API |
 | `HAWKSOFT_CLIENT_SECRET` | ✅ | HawkSoft API |
@@ -1054,7 +966,7 @@ KEY RULES:
 | `STRIPE_PRICE_ID` | ⚠️ | Stripe billing (beta) |
 | `STRIPE_WEBHOOK_SECRET` | ⚠️ | Stripe webhooks (beta) |
 | `APP_URL` | ⚠️ | Stripe redirect URL |
-| `FIREBASE_SERVICE_ACCOUNT_KEY` | ⚠️ | Stripe webhook → Firestore |
+| `SUPABASE_SERVICE_ROLE_KEY` | ⚠️ | Server-side admin + Stripe webhook → Postgres (bypasses RLS — server only) |
 | `GITHUB_ISSUES_TOKEN` | ⚠️ | Bug report → GitHub Issues |
 | `GITHUB_REPO_OWNER` | ⚠️ | Bug report target repo |
 | `GITHUB_REPO_NAME` | ⚠️ | Bug report target repo |
