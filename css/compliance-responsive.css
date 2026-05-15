@@ -4,7 +4,7 @@
         padding: 24px 32px 100px;
     }
     .cgl-stats-grid {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         gap: 16px;
     }
     .cgl-stat-card {

@@ -27,7 +27,7 @@
 }
 .cgl-stats-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     gap: 14px;
     margin-bottom: 28px;
 }
@@ -1109,9 +1109,14 @@ body.dark-mode .cgl-note-delete-btn:hover { color: var(--danger); }
     border-radius: 8px;
     transition: all 0.2s ease;
     border: 1px solid transparent;
-    flex: 1 1 0;
+    /* Content-sized + allowed to shrink (NOT flex:1 1 0, which forced all
+       items onto one stretched row — the long "Needs L&I/CCB" desc then
+       overflowed the card on the right). flex-wrap on the grid now wraps
+       natural-width items inside the card; white-space:normal lets a long
+       item wrap instead of bleeding out. */
+    flex: 0 1 auto;
     min-width: 0;
-    white-space: nowrap;
+    white-space: normal;
 }
 .cgl-legend-item:hover {
     background: rgba(56,189,248,0.04);
