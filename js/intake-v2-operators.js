@@ -136,9 +136,16 @@ function _isAutoSpecificField(f, isCoApplicant) {
     // Anything not duplicated by the Quick Start applicant / co-applicant
     // cluster above. Header rows (no `path`) stay so the "Underwriting
     // flags" / "Discounts & MVR" subheadings still appear when expanded.
+    //
+    // `relationship` is excluded for BOTH primary and co-applicant: for
+    // the primary, syncApplicantOperators() seeds it to 'Self' at card
+    // creation, which the auto-expand heuristic was reading as user input
+    // and popping the disclosure open before any auto / boat / RV existed.
+    // For the co-applicant it's already mirrored from the Quick Start
+    // co-applicant block, so the same logic applies.
     if (!f.path) return true;
     if (SYNCED_FIELD_PATHS.has(f.path)) return false;
-    if (isCoApplicant && f.path === 'relationship') return false;
+    if (f.path === 'relationship') return false;
     return true;
 }
 

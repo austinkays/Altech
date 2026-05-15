@@ -1305,10 +1305,14 @@ body.dark-mode .iv2-field input[type="date"]::-webkit-calendar-picker-indicator:
  * less than half the viewport, where DOB / phone / email visibly
  * truncated.
  *
- * - At ≤ 1500 px the right rail (talk track) hides first — it's the
+ * - At ≤ 1700 px the right rail (talk track) hides first — it's the
  *   widest and least essential side panel; the same talk-track prompts
  *   are surfaced inline by intake-v2-talktrack.js when the agent
- *   focuses a relevant field.
+ *   focuses a relevant field. The 1700 px threshold (raised from 1500
+ *   after the audit) catches the common 1536 px effective width
+ *   (1920×1080 at 125% scale) and 1680 px laptop screens — at 1500 px
+ *   the talk track returned right above the breakpoint and DOB / state
+ *   / ZIP started truncating again.
  * - At ≤ 1280 px the left rail (jump anchors) hides too — those jump
  *   anchors are duplicated by the J/K keyboard shortcuts and by the
  *   sticky topbar's section indicators, so the navigation isn't lost.
@@ -1318,7 +1322,7 @@ body.dark-mode .iv2-field input[type="date"]::-webkit-calendar-picker-indicator:
  * without needing to rewrite `grid-template-columns` until the
  * single-column fallback below.
  */
-@media (max-width: 1500px) {
+@media (max-width: 1700px) {
     .iv2-workspace {
         grid-template-columns: 200px 1fr 0;
     }
