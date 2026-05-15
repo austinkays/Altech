@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # node server.js — port 8000 (override with PORT env)
-npm test                  # ~64 suites, ~2430 tests (Jest + JSDOM)
+npm test                  # ~66 suites, ~2480 tests (Jest + JSDOM)
 npx jest --no-coverage    # faster
 ```
 
@@ -314,7 +314,7 @@ Test all three workflows when changing step logic or conditions.
 ## Testing
 
 ```bash
-npm test                          # ~64 suites, ~2430 tests under tests/ (Jest + JSDOM)
+npm test                          # ~66 suites, ~2480 tests under tests/ (Jest + JSDOM)
 npx jest --no-coverage            # faster
 npx jest tests/app.test.js        # single suite
 npm run test:ext                  # chrome-extension-v2 suite (separate jest config)
