@@ -1442,9 +1442,52 @@ window.DashboardWidgets = (() => {
             .slice(0, TODAY_SECTION_LIMIT);
     }
 
+    // Routine successful saves are the noisiest event type (CGL state saves
+    // alone fire from ~20 call sites). Cap how many fill the Recent column so
+    // exports / syncs / AI / errors aren't crowded out of the 5 slots.
+    const TODAY_MAX_ROUTINE_SAVE_ROWS = 1;
+
     function _collectTodayActivity() {
         if (typeof ActivityLog === 'undefined' || typeof ActivityLog.list !== 'function') return [];
-        return ActivityLog.list().slice(0, TODAY_SECTION_LIMIT);
+        const all = ActivityLog.list(); // newest-first, already coalesced upstream
+        if (all.length === 0) return [];
+
+        const LIMIT = TODAY_SECTION_LIMIT;
+        const picked = [];
+        const seen = new Set();
+
+        // 1. Pin the most recent failure so an error never gets buried under
+        //    a wall of successful saves.
+        const latestFail = all.find(e => e && e.ok === false) || null;
+        if (latestFail) { picked.push(latestFail); seen.add(latestFail); }
+
+        // 2. Fill newest-first, capping routine successful saves.
+        let saveRows = 0;
+        for (const e of all) {
+            if (picked.length >= LIMIT) break;
+            if (!e || seen.has(e)) continue;
+            if (e.type === 'save' && e.ok !== false) {
+                if (saveRows >= TODAY_MAX_ROUTINE_SAVE_ROWS) continue;
+                saveRows++;
+            }
+            picked.push(e);
+            seen.add(e);
+        }
+
+        // 3. Backfill any leftover slots so the list is never artificially
+        //    short when saves are genuinely all there is.
+        if (picked.length < LIMIT) {
+            for (const e of all) {
+                if (picked.length >= LIMIT) break;
+                if (!e || seen.has(e)) continue;
+                picked.push(e);
+                seen.add(e);
+            }
+        }
+
+        // Failure stays pinned on top for attention; the rest newest-first.
+        const rest = picked.filter(e => e !== latestFail).sort((a, b) => b.ts - a.ts);
+        return (latestFail ? [latestFail, ...rest] : rest).slice(0, LIMIT);
     }
 
     function renderTodayWidget() {
@@ -1484,9 +1527,13 @@ window.DashboardWidgets = (() => {
             : activity.map(e => {
                 const icon = ({ save: '💾', sync: '☁️', export: '📤', import: '📥', ai: '🤖', error: '⚠️' })[e.type] || '•';
                 const failClass = e.ok ? '' : ' today-activity-fail';
+                const count = (e.count > 1)
+                    ? `<span class="today-activity-count">×${Number(e.count)}</span>`
+                    : '';
                 return `<li class="today-activity${failClass}">
                     <span class="today-activity-icon">${icon}</span>
                     <span class="today-item-title">${_todayEsc(e.message)}</span>
+                    ${count}
                     <span class="today-item-meta">${_todayRelativeTime(e.ts)}</span>
                 </li>`;
             }).join('');

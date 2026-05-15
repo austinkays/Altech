@@ -8,7 +8,7 @@ Vanilla HTML/CSS/JS SPA. No build step, no framework. Vercel deploy (push `main`
 
 ```bash
 npm run dev               # node server.js — port 8000 (override with PORT env)
-npm test                  # ~62 suites, ~2362 tests (Jest + JSDOM)
+npm test                  # ~64 suites, ~2430 tests (Jest + JSDOM)
 npx jest --no-coverage    # faster
 ```
 
@@ -24,7 +24,7 @@ npx jest --no-coverage    # faster
 | `window.STORAGE_KEYS` | `js/storage-keys.js` | Frozen map of ~62 localStorage keys |
 | `window.Utils` | `js/utils.js` | `escapeHTML`, `escapeAttr`, `tryParseLS`, `debounce` |
 | `window.FIELDS` / `window.FIELD_BY_ID` | `js/fields.js` | ~160 intake form field definitions with id/label/type/section |
-| `window.ActivityLog` | `js/activity-log.js` | Local-only ring buffer (cap 100) of save/sync/export/AI/error events. API: `add({type,area,message,ok,detail})`, `list()`, `lastStatus()`, `subscribe(fn)`, `openPanel()`, `clear()`. Header status pill flips red on `ok:false`. **Never synced.** |
+| `window.ActivityLog` | `js/activity-log.js` | Local-only ring buffer (cap 100) of save/sync/export/AI/error events. API: `add({type,area,message,ok,detail})`, `list()`, `lastStatus()`, `subscribe(fn)`, `openPanel()`, `clear()`. **Coalesces** consecutive identical events (same `type`+`area`+`message`+`ok`) within a 5-min window into one entry with a running `count` (entries carry `count`, default 1) — mirrors the `App.toast` dedupe, keeps bursty callers (e.g. `ComplianceDashboard.saveState`) from evicting meaningful events. Header status pill flips red on `ok:false`. **Never synced.** |
 | `window.CommandPalette` | `js/command-palette.js` | Cmd/Ctrl+K palette. API: `open()`, `close()`, `toggle()`, `register({id,label,hint,icon,run})`. Built-ins: New quote, Add reminder, Phonetic speller, Today view, Open activity log, Toggle dark mode, Go to dashboard, Export files. Auto-includes every `App.toolConfig` tool + last ~30 clients from `CLIENT_HISTORY`. |
 | `window.PhoneticSpeller` | `js/phonetic-speller.js` | APCO alphabet popup. `open(seed?)` — pre-fills with any text (name, email, VIN). Globally accessible via Cmd+K. |
 
@@ -314,7 +314,7 @@ Test all three workflows when changing step logic or conditions.
 ## Testing
 
 ```bash
-npm test                          # ~62 suites, ~2362 tests under tests/ (Jest + JSDOM)
+npm test                          # ~64 suites, ~2430 tests under tests/ (Jest + JSDOM)
 npx jest --no-coverage            # faster
 npx jest tests/app.test.js        # single suite
 npm run test:ext                  # chrome-extension-v2 suite (separate jest config)
@@ -447,9 +447,9 @@ The analysis uses the existing `property-intelligence.js` endpoint with `?mode=c
 |---|---|---|
 | **Toast queue** | `js/app-ui-utils.js` `App.toast()` | Toasts queue + dedupe (collapses identical consecutive messages) instead of clobbering each other. Errors default to 3500 ms (vs 2500 ms). `App.toast(msg, { type, duration, dedupe }, useHtml)` signature; legacy `toast(msg, duration, useHtml)` still works. |
 | **AI error decoder** | `js/ai-provider.js` `_decodeApiError()` | Every AI HTTP error (Gemini/Anthropic/OpenAI/OpenRouter, ask + chat paths) maps `401/403/404/408/413/429/500/502/503/504` to a fix-pointing message. Unknown statuses fall back to upstream message. |
-| **ActivityLog** | `js/activity-log.js` | See Global Singletons. Hooked into `App.save`, `App.logExport`, `SupabaseSync._pushAllBlobs`, `Reminders._save`, `ComplianceDashboard.saveState`, `App._parkCiphertextForRecovery`. |
+| **ActivityLog** | `js/activity-log.js` | See Global Singletons (coalesces consecutive duplicates → `count`). Hooked into `App.save`, `App.logExport`, `SupabaseSync._pushAllBlobs`, `Reminders._save`, `ComplianceDashboard.saveState`, `App._parkCiphertextForRecovery`. |
 | **Header status pill** | `js/dashboard-widgets.js` `_renderSyncStatusButton()` | "Activity ●" pill in the header. Green = last event ok, red = last error, gray = no activity. Click opens `ActivityLog.openPanel()`. |
-| **Today widget** | `js/dashboard-widgets.js` `renderTodayWidget()` | Bento-grid card at the top with three sections: overdue/due-today reminders, policies expiring in the next 14 days, last 5 ActivityLog events. Each section "View all →" links to the source plugin. Live-updates on `ActivityLog.subscribe`. |
+| **Today widget** | `js/dashboard-widgets.js` `renderTodayWidget()` | Bento-grid card at the top with three sections: overdue/due-today reminders, policies expiring in the next 14 days, and **Recent** activity. Recent is not a raw `slice(0,5)`: `_collectTodayActivity()` pins the most recent **failure** on top, caps routine successful `save` rows at one (`TODAY_MAX_ROUTINE_SAVE_ROWS`) so exports/syncs/AI/errors stay visible, then backfills; coalesced rows show a `×N` badge (`.today-activity-count`). Each section "View all →" links to the source plugin. Live-updates on `ActivityLog.subscribe`. |
 | **Page reload on auth change** | `js/auth.js` `_scheduleAuthReload(reason)` | After a real sign-in / sign-out (`.login`, `.logout`, `.signup` if a session was created, or ambient SDK events like multi-tab sign-out and session expiry), the page reloads after a 600 ms delay so locked-vault data disappears and freshly restored cloud blobs appear without a manual F5. Three guards: `_authReloadScheduled` (idempotent), `_suppressAuthReload` (one-shot for MFA enrollment), `_hadSignedInUser` (gates ambient sign-out detection so cold-load-no-session can't self-reload). |
 | **Forced sign-in gate** | `js/app-boot.js` `_authGate` block + [Auth gate section below](#auth-gate--reload-flow) | Cold-load races `Auth.whenSignedIn(2000)` against a 2 s budget. If no user resolves, `body.auth-gated` pins the existing `#authModal` as a forced sign-in screen and boot early-returns — `renderLandingTools`, `Onboarding.init`, `VaultUI.maybePromptUnlockOnLoad`, `Reminders.init`, `DashboardWidgets.init`, the hash router are all skipped. |
 
@@ -466,7 +466,7 @@ if (window.ActivityLog) {
 }
 ```
 
-Types: `save | sync | export | import | ai | error`. Always feature-detect — ActivityLog isn't loaded in some test paths.
+Types: `save | sync | export | import | ai | error`. Always feature-detect — ActivityLog isn't loaded in some test paths. You don't need to debounce the call site: consecutive identical entries auto-coalesce into one row with a `count` (5-min window), so a hook firing in a tight loop won't flood the buffer.
 
 ---
 

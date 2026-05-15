@@ -199,6 +199,64 @@ describe('Today widget — render', () => {
         dom.window.close();
     });
 
+    test('Recent pins the latest failure even when buried under newer events', () => {
+        const now = Date.now();
+        const dom = bootstrap({
+            activity: [
+                { ts: now - 1000, type: 'save',   message: 'CGL state saved', ok: true, count: 30 },
+                { ts: now - 2000, type: 'save',   message: 'Form saved',       ok: true },
+                { ts: now - 3000, type: 'sync',   message: 'Synced 3 docs',    ok: true },
+                { ts: now - 4000, type: 'export', message: 'PDF exported',      ok: true },
+                { ts: now - 5000, type: 'ai',     message: 'AI summary',        ok: true },
+                { ts: now - 9000, type: 'error',  message: 'CGL save failed',   ok: false },
+            ],
+        });
+        dom.window.DashboardWidgets.renderTodayWidget();
+        const html = dom.window.document.getElementById('widgetToday').innerHTML;
+        // Buried failure is surfaced and flagged.
+        expect(html).toContain('CGL save failed');
+        expect(html).toContain('today-activity-fail');
+        // It is pinned above the newer successful rows.
+        expect(html.indexOf('CGL save failed')).toBeLessThan(html.indexOf('Synced 3 docs'));
+        // Routine saves are capped to one, so meaningful events stay visible.
+        expect(html).not.toContain('Form saved');
+        expect(html).toContain('Synced 3 docs');
+        expect(html).toContain('PDF exported');
+        dom.window.close();
+    });
+
+    test('Recent caps routine saves so a buried sync stays visible', () => {
+        const now = Date.now();
+        const dom = bootstrap({
+            activity: [
+                { ts: now - 1000, type: 'save', message: 'Save A', ok: true },
+                { ts: now - 2000, type: 'save', message: 'Save B', ok: true },
+                { ts: now - 3000, type: 'save', message: 'Save C', ok: true },
+                { ts: now - 4000, type: 'save', message: 'Save D', ok: true },
+                { ts: now - 5000, type: 'save', message: 'Save E', ok: true },
+                { ts: now - 6000, type: 'sync', message: 'Synced 7 docs', ok: true },
+            ],
+        });
+        dom.window.DashboardWidgets.renderTodayWidget();
+        const html = dom.window.document.getElementById('widgetToday').innerHTML;
+        // Old slice(0,5) behaviour would have dropped the sync entirely.
+        expect(html).toContain('Synced 7 docs');
+        dom.window.close();
+    });
+
+    test('Recent renders a ×N count badge for coalesced entries', () => {
+        const dom = bootstrap({
+            activity: [
+                { ts: Date.now(), type: 'save', message: 'CGL state saved', ok: true, count: 31 },
+            ],
+        });
+        dom.window.DashboardWidgets.renderTodayWidget();
+        const html = dom.window.document.getElementById('widgetToday').innerHTML;
+        expect(html).toContain('today-activity-count');
+        expect(html).toContain('×31');
+        dom.window.close();
+    });
+
     test('feature-detects missing Reminders/Compliance/ActivityLog without throwing', () => {
         const dom = bootstrap({}); // all undefined
         expect(() => dom.window.DashboardWidgets.renderTodayWidget()).not.toThrow();

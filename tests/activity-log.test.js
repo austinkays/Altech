@@ -147,6 +147,73 @@ describe('ActivityLog', () => {
         dom.window.close();
     });
 
+    test('fresh entries carry count:1', () => {
+        const dom = bootstrapLog();
+        const { ActivityLog } = dom.window;
+        ActivityLog.add({ type: 'save', message: 'solo' });
+        expect(ActivityLog.list()[0].count).toBe(1);
+        dom.window.close();
+    });
+
+    test('coalesces consecutive identical entries into one row with a count', () => {
+        const dom = bootstrapLog();
+        const { ActivityLog } = dom.window;
+        for (let i = 0; i < 30; i++) {
+            ActivityLog.add({ type: 'save', area: 'cgl', message: 'CGL state saved' });
+        }
+        const list = ActivityLog.list();
+        expect(list).toHaveLength(1);
+        expect(list[0].count).toBe(30);
+        expect(list[0].message).toBe('CGL state saved');
+        dom.window.close();
+    });
+
+    test('does not coalesce when type/area/message/ok differ', () => {
+        const dom = bootstrapLog();
+        const { ActivityLog } = dom.window;
+        ActivityLog.add({ type: 'save', area: 'cgl', message: 'CGL state saved' });
+        ActivityLog.add({ type: 'save', area: 'cgl', message: 'CGL state saved' }); // coalesces
+        ActivityLog.add({ type: 'sync', area: 'cgl', message: 'CGL state saved' }); // different type
+        ActivityLog.add({ type: 'save', area: 'reminders', message: 'CGL state saved' }); // different area
+        ActivityLog.add({ type: 'save', area: 'reminders', message: 'Saved', ok: false }); // different ok
+        const list = ActivityLog.list();
+        expect(list).toHaveLength(4);
+        expect(list[3].count).toBe(2); // the two identical 'save/cgl' entries merged
+        dom.window.close();
+    });
+
+    test('coalescing refreshes ts + detail and notifies subscribers each time', () => {
+        const dom = bootstrapLog();
+        const { ActivityLog } = dom.window;
+        const seen = [];
+        ActivityLog.subscribe(e => seen.push(e && e.count));
+        ActivityLog.add({ type: 'error', message: 'sync failed', ok: false, detail: 'first' });
+        ActivityLog.add({ type: 'error', message: 'sync failed', ok: false, detail: 'second' });
+        const head = ActivityLog.list()[0];
+        expect(head.count).toBe(2);
+        expect(head.detail).toBe('second');
+        // Subscriber fired on the original add AND the coalesced bump.
+        expect(seen).toEqual([1, 2]);
+        dom.window.close();
+    });
+
+    test('entries past the coalesce window start a fresh row', () => {
+        const dom = bootstrapLog();
+        const { ActivityLog } = dom.window;
+        let clock = 1_000_000;
+        dom.window.Date.now = () => clock;
+        ActivityLog.add({ type: 'save', message: 'tick' });
+        clock += 1000;                       // within 5-min window
+        ActivityLog.add({ type: 'save', message: 'tick' });
+        clock += 6 * 60_000;                 // beyond the window
+        ActivityLog.add({ type: 'save', message: 'tick' });
+        const list = ActivityLog.list();
+        expect(list).toHaveLength(2);
+        expect(list[0].count).toBe(1);       // fresh row after the gap
+        expect(list[1].count).toBe(2);       // the first burst
+        dom.window.close();
+    });
+
     test('openPanel/closePanel render and remove the slide-out', () => {
         const dom = bootstrapLog();
         const { ActivityLog } = dom.window;
