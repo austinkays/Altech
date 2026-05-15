@@ -223,4 +223,53 @@ describe('SupabaseSync — Phase B AAD wiring', () => {
         // Without a row id, AAD has nothing to bind to; ciphertext goes up as-is.
         expect(captureUpsert.ciphertext).toBe(localCt);
     });
+
+    test('raw-plaintext row (AGENCY_GLOSSARY-shaped) skips CryptoHelper.decrypt after the first sweep', async () => {
+        // glossary content: raw textarea text — not JSON, not base64.
+        const rawText = 'MoE = Mutual of Enumclaw\nNWPP = Northwest Personal Property';
+        localStorage.setItem('altech_agency_glossary', rawText);
+
+        // Spy on CryptoHelper.decrypt to count how often _maybeWrapForRow
+        // delegates to it for this row.
+        const origDecrypt = CryptoHelper.decrypt.bind(CryptoHelper);
+        const decryptSpy = jest.fn(origDecrypt);
+        CryptoHelper.decrypt = decryptSpy;
+        try {
+            // Capture every per-row push so we can isolate `glossary`.
+            const allUpserts = [];
+            globalThis.window.Supabase.client = {
+                auth: { getSession: async () => ({ data: { session: { user: { id: 'user-stub-uid' } } } }) },
+                from() {
+                    return {
+                        upsert(row) {
+                            allUpserts.push(row);
+                            return {
+                                select() { return { maybeSingle: async () => ({ data: row, error: null }) }; },
+                            };
+                        },
+                    };
+                },
+            };
+
+            // First sweep — _maybeWrapForRow calls decrypt() once on the
+            // glossary plaintext, gets null back, learns the rowId, pushes
+            // plaintext as-is.
+            await SupabaseSync.pushAllBlobs();
+            const firstSweepDecrypts = decryptSpy.mock.calls.filter(c => c[0] === rawText).length;
+            expect(firstSweepDecrypts).toBe(1);
+            // No envelope — plaintext passthrough.
+            const glossaryRow = allUpserts.find(r => r.doc_key === 'glossary');
+            expect(glossaryRow).toBeDefined();
+            expect(glossaryRow.ciphertext).toBe(rawText);
+
+            // Second sweep — _knownPlaintextRowIds remembers 'glossary',
+            // so decrypt() is NOT called again for that row.
+            decryptSpy.mockClear();
+            await SupabaseSync.pushAllBlobs();
+            const secondSweepDecrypts = decryptSpy.mock.calls.filter(c => c[0] === rawText).length;
+            expect(secondSweepDecrypts).toBe(0);
+        } finally {
+            CryptoHelper.decrypt = origDecrypt;
+        }
+    });
 });

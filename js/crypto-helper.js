@@ -64,6 +64,44 @@ const CryptoHelper = (() => {
     let _v1Key = null;
     let _v1Fingerprint = null;
 
+    // In-memory cache of input strings already classified by an earlier
+    // decrypt() call as "plaintext passthrough" — they failed atob (so they
+    // can't be AES-GCM ciphertext) AND failed JSON.parse (so they can't be
+    // plain-JSON either). The supabase-sync push sweep, the SecureStorage
+    // retry loop, and the dashboard auto-refresh all hand the same handful
+    // of plaintext localStorage values (e.g. AGENCY_GLOSSARY raw text) into
+    // decrypt() many times per minute; without this cache, each call burns
+    // a fresh atob() throw + a fresh `[CryptoHelper] decrypt skipped (not
+    // base64)` console.debug line. With it, the second call is O(1) and
+    // silent. Cap is bounded so a unique-per-call caller can't grow it
+    // unbounded.
+    const _PLAINTEXT_PASSTHROUGH_CAP = 64;
+    const _plaintextPassthroughCache = new Set();
+
+    function _rememberPlaintextPassthrough(input) {
+        if (typeof input !== 'string') return;
+        if (_plaintextPassthroughCache.has(input)) return;
+        if (_plaintextPassthroughCache.size >= _PLAINTEXT_PASSTHROUGH_CAP) {
+            const oldest = _plaintextPassthroughCache.values().next().value;
+            _plaintextPassthroughCache.delete(oldest);
+        }
+        _plaintextPassthroughCache.add(input);
+    }
+
+    // Verbose breadcrumb gate. The benign "decrypt skipped" paths fire
+    // multiple times per second under the sync sweep; default to silent
+    // and flip on with `localStorage.setItem('altech_debug', 'true')`.
+    // Reads STORAGE_KEYS.DEBUG = 'altech_debug' (same flag the production
+    // log-suppression block in app-init.js honors).
+    function _isVerboseCryptoLog() {
+        try {
+            if (typeof localStorage === 'undefined') return false;
+            const flag = _key('DEBUG');
+            if (!flag) return false;
+            return localStorage.getItem(flag) === 'true';
+        } catch (_) { return false; }
+    }
+
     // Cache MK bytes + derive data key for the active vault. Zeroes any
     // previously cached MK before storing the new one.
     async function _setV2MK(mkBytes, kdfTree) {
@@ -524,6 +562,17 @@ const CryptoHelper = (() => {
         },
 
         async decrypt(encryptedData) {
+            // Fast path: a prior call already classified this exact input as
+            // plaintext passthrough (atob failed, JSON.parse failed → null).
+            // Skip atob, skip WebCrypto, skip the debug breadcrumb. This is
+            // the entire reason the cache exists — the sync sweep + retry
+            // loops hand the same plaintext value back in many times per
+            // minute, and re-running the full failure path each time was
+            // drowning the console.
+            if (typeof encryptedData === 'string'
+                && _plaintextPassthroughCache.has(encryptedData)) {
+                return null;
+            }
             try {
                 const key = await _getActiveKey('decrypt');
                 const combined = _base64ToBytes(encryptedData);
@@ -565,13 +614,21 @@ const CryptoHelper = (() => {
                     const isWrongKey = firstErr && firstErr.name === 'OperationError';
                     if (!isNotBase64 && !isWrongKey) {
                         console.error('Decryption failed:', firstErr);
-                    } else {
-                        // Keep a verbose breadcrumb available without spamming
-                        // the default error level — agents can flip on debug
-                        // logging to surface this.
-                        if (typeof console.debug === 'function') {
+                    } else if (isNotBase64) {
+                        // Remember this exact input so the next call short-
+                        // circuits at the top of decrypt(). We deliberately do
+                        // NOT cache the wrong-key path — that input IS valid
+                        // base64, just under a key we don't have access to;
+                        // a future unlock could legitimately decrypt the same
+                        // bytes, and a cache entry would mask that.
+                        _rememberPlaintextPassthrough(encryptedData);
+                        if (_isVerboseCryptoLog() && typeof console.debug === 'function') {
                             console.debug('[CryptoHelper] decrypt skipped (not base64)');
                         }
+                    } else if (_isVerboseCryptoLog() && typeof console.debug === 'function') {
+                        // isWrongKey branch — same noise, gate behind the same
+                        // flag so a locked-vault boot probe doesn't spam.
+                        console.debug('[CryptoHelper] decrypt skipped (wrong key / locked vault)');
                     }
                     return null;
                 }
@@ -1081,7 +1138,12 @@ const CryptoHelper = (() => {
                 _clearV2MK();
                 _v1Key = null;
                 _v1Fingerprint = null;
+                _plaintextPassthroughCache.clear();
             },
+            // Inspection — lets tests assert that the passthrough cache is
+            // populated after a plaintext decrypt() attempt and reused on
+            // the next call.
+            plaintextPassthroughSize: () => _plaintextPassthroughCache.size,
             // Encoding helpers — exposed so tests can exercise them without
             // re-implementing.
             formatRecoveryKey: _formatRecoveryKey,

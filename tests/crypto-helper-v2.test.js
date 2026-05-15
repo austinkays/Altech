@@ -33,6 +33,7 @@ globalThis.window = globalThis;
 globalThis.STORAGE_KEYS = Object.freeze({
     E2E_CRYPTO_V2:   'altech_e2e_crypto_v2',
     ENCRYPTION_SALT: 'altech_encryption_salt',
+    DEBUG:           'altech_debug',
 });
 
 // Deterministic Argon2id mock — different params produce different output,
@@ -287,5 +288,79 @@ describe("CryptoHelper — session-survives-F5 (sessionStorage MK persistence)",
         const restored = await CryptoHelper.restoreSession();
         expect(restored).toBe(false);
         expect(CryptoHelper.isV2Unlocked()).toBe(false);
+    });
+});
+
+describe('CryptoHelper — plaintext passthrough cache (decrypt spam fix)', () => {
+    test('first decrypt of plaintext text returns null and caches the input', async () => {
+        const text = 'MoE = Mutual of Enumclaw\nNWPP = Northwest Personal Property';
+        expect(CryptoHelper._internals.plaintextPassthroughSize()).toBe(0);
+
+        const first = await CryptoHelper.decrypt(text);
+        expect(first).toBeNull();
+        expect(CryptoHelper._internals.plaintextPassthroughSize()).toBe(1);
+    });
+
+    test('repeat decrypt of the same plaintext hits the cache and stays at size 1', async () => {
+        const text = 'HO-3 = Homeowners 3';
+        await CryptoHelper.decrypt(text);
+        await CryptoHelper.decrypt(text);
+        await CryptoHelper.decrypt(text);
+        expect(CryptoHelper._internals.plaintextPassthroughSize()).toBe(1);
+    });
+
+    test('valid ciphertext is NOT cached as plaintext passthrough', async () => {
+        await CryptoHelper.createVault('cache-test-passphrase');
+        const ct = await CryptoHelper.encrypt({ ok: true });
+        await CryptoHelper.decrypt(ct);
+        // Cache only grows for inputs that failed atob; valid base64 never lands here.
+        expect(CryptoHelper._internals.plaintextPassthroughSize()).toBe(0);
+    });
+
+    test('reset() clears the plaintext cache', async () => {
+        await CryptoHelper.decrypt('not-base-64-=-content with spaces');
+        expect(CryptoHelper._internals.plaintextPassthroughSize()).toBe(1);
+        CryptoHelper._internals.reset();
+        expect(CryptoHelper._internals.plaintextPassthroughSize()).toBe(0);
+    });
+
+    test('debug log is silent by default and fires only when altech_debug=true', async () => {
+        const text = 'glossary entry — not ciphertext';
+        const debugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
+        try {
+            // Default: no flag set → silent.
+            await CryptoHelper.decrypt(text);
+            expect(debugSpy).not.toHaveBeenCalled();
+
+            // Flip the verbose flag → the breadcrumb fires (cache miss path
+            // since reset() clears the cache).
+            CryptoHelper._internals.reset();
+            _store.set('altech_debug', 'true');
+            await CryptoHelper.decrypt(text);
+            expect(debugSpy).toHaveBeenCalledWith(
+                expect.stringContaining('[CryptoHelper] decrypt skipped'),
+            );
+
+            // Same input again — fast path returns null without emitting another log.
+            debugSpy.mockClear();
+            await CryptoHelper.decrypt(text);
+            expect(debugSpy).not.toHaveBeenCalled();
+        } finally {
+            debugSpy.mockRestore();
+        }
+    });
+
+    test('wrong-key (OperationError) path is NOT cached and stays silent by default', async () => {
+        await CryptoHelper.createVault('cache-test-passphrase');
+        CryptoHelper.enableV2();
+        const ct = await CryptoHelper.encryptWithV2({ secret: 'x' });
+        CryptoHelper.lock();
+        // v2 enabled but locked → _getActiveKey returns the v1 device key,
+        // which won't match the v2 ciphertext → OperationError on AES-GCM.
+        const result = await CryptoHelper.decrypt(ct);
+        expect(result).toBeNull();
+        // Wrong-key inputs are deliberately NOT cached — a future unlock
+        // could legitimately decrypt the same bytes.
+        expect(CryptoHelper._internals.plaintextPassthroughSize()).toBe(0);
     });
 });
