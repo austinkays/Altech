@@ -430,6 +430,19 @@ body.dark-mode .widget-card:hover {
 .widget-today .today-dot-policy { background: var(--apple-blue); }
 .widget-today .today-activity-icon { font-size: 14px; flex-shrink: 0; }
 .widget-today .today-activity-fail .today-item-title { color: #FF3B30; }
+.widget-today .today-row { cursor: pointer; }
+.widget-today .today-row:hover .today-item-title { color: var(--apple-blue); }
+.widget-today .today-src-tag {
+    flex-shrink: 0;
+    padding: 1px 6px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: var(--bg-input);
+}
 .widget-today .today-activity-count {
     flex-shrink: 0;
     padding: 0 6px;

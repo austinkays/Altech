@@ -1381,8 +1381,6 @@ window.DashboardWidgets = (() => {
     // Data sources are feature-detected at render time so a missing module
     // collapses to a "—" placeholder rather than throwing.
 
-    const TODAY_EXPIRING_WINDOW_DAYS = 14;
-    const TODAY_SECTION_LIMIT = 5;
 
     function _todayMidnight() {
         const d = new Date();
@@ -1416,127 +1414,159 @@ window.DashboardWidgets = (() => {
         return Math.round(diff / 86_400_000) + 'd';
     }
 
-    function _collectTodayReminders() {
-        if (typeof Reminders === 'undefined' || typeof Reminders.getUpcomingTasks !== 'function') return [];
-        // Pull a generous slice and filter to the two urgent buckets.
-        return Reminders.getUpcomingTasks(50)
-            .filter(t => t.status === 'overdue' || t.status === 'due-today')
-            .slice(0, TODAY_SECTION_LIMIT);
+    // The bento grid already has dedicated Reminders + CGL Compliance + Clients
+    // cards, so the old Today layout (which re-listed reminders & expiring
+    // policies) just mirrored its neighbours. Today is now a cross-domain
+    // *triage* surface: ONE ranked "Next" stream (the single most urgent items
+    // across reminders / expirations / failures, deduped) + "Unfinished" —
+    // stalled in-progress quotes that have no other home and are exactly what
+    // slips through the cracks.
+
+    const TODAY_NEXT_LIMIT = 5;
+    const TODAY_UNFINISHED_LIMIT = 4;
+    const TODAY_EXPIRING_SOON_DAYS = 7;   // tighter than a full list — this is a digest
+    const TODAY_STALE_DAYS = 2;           // a draft idle this long is "left hanging"
+
+    function _todayLS(key, fallback) {
+        if (window.Utils && typeof Utils.tryParseLS === 'function') return Utils.tryParseLS(key, fallback);
+        try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; } catch { return fallback; }
     }
 
-    function _collectTodayExpiring() {
-        if (typeof ComplianceDashboard === 'undefined' || !Array.isArray(ComplianceDashboard.policies)) return [];
-        const today = _todayMidnight();
-        const horizon = new Date(today);
-        horizon.setDate(horizon.getDate() + TODAY_EXPIRING_WINDOW_DAYS);
-        return ComplianceDashboard.policies
-            .filter(p => {
-                if (!p || !p.expirationDate) return false;
-                const exp = new Date(p.expirationDate);
-                if (!Number.isFinite(exp.getTime())) return false;
-                if (typeof ComplianceDashboard.isHidden === 'function'
-                        && ComplianceDashboard.isHidden(p.policyNumber)) return false;
-                return exp <= horizon; // includes already-expired ones (negative days)
-            })
-            .sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate))
-            .slice(0, TODAY_SECTION_LIMIT);
+    function _draftName(q) {
+        if (!q) return 'Untitled quote';
+        if (q.title) return String(q.title);
+        const d = q.data || {};
+        const person = `${d.firstName || ''} ${d.lastName || ''}`.trim();
+        return person || d.bizName || d.businessName || 'Untitled quote';
     }
 
-    // Routine successful saves are the noisiest event type (CGL state saves
-    // alone fire from ~20 call sites). Cap how many fill the Recent column so
-    // exports / syncs / AI / errors aren't crowded out of the 5 slots.
-    const TODAY_MAX_ROUTINE_SAVE_ROWS = 1;
+    // ── "Next" — ranked, deduped action stream across every domain ──
+    function _collectNextActions() {
+        const out = [];
 
-    function _collectTodayActivity() {
-        if (typeof ActivityLog === 'undefined' || typeof ActivityLog.list !== 'function') return [];
-        const all = ActivityLog.list(); // newest-first, already coalesced upstream
-        if (all.length === 0) return [];
-
-        const LIMIT = TODAY_SECTION_LIMIT;
-        const picked = [];
-        const seen = new Set();
-
-        // 1. Pin the most recent failure so an error never gets buried under
-        //    a wall of successful saves.
-        const latestFail = all.find(e => e && e.ok === false) || null;
-        if (latestFail) { picked.push(latestFail); seen.add(latestFail); }
-
-        // 2. Fill newest-first, capping routine successful saves.
-        let saveRows = 0;
-        for (const e of all) {
-            if (picked.length >= LIMIT) break;
-            if (!e || seen.has(e)) continue;
-            if (e.type === 'save' && e.ok !== false) {
-                if (saveRows >= TODAY_MAX_ROUTINE_SAVE_ROWS) continue;
-                saveRows++;
-            }
-            picked.push(e);
-            seen.add(e);
-        }
-
-        // 3. Backfill any leftover slots so the list is never artificially
-        //    short when saves are genuinely all there is.
-        if (picked.length < LIMIT) {
-            for (const e of all) {
-                if (picked.length >= LIMIT) break;
-                if (!e || seen.has(e)) continue;
-                picked.push(e);
-                seen.add(e);
+        // 1. Most recent failure that needs attention (pinned top).
+        if (typeof ActivityLog !== 'undefined' && typeof ActivityLog.list === 'function') {
+            const fail = ActivityLog.list().find(e => e && e.ok === false);
+            if (fail) {
+                const count = (fail.count > 1) ? ` <span class="today-activity-count">×${Number(fail.count)}</span>` : '';
+                out.push({
+                    icon: '⚠️', cls: ' today-activity-fail',
+                    title: _todayEsc(fail.message) + count,
+                    meta: _todayRelativeTime(fail.ts),
+                    nav: "window.ActivityLog && window.ActivityLog.openPanel();",
+                });
             }
         }
 
-        // Failure stays pinned on top for attention; the rest newest-first.
-        const rest = picked.filter(e => e !== latestFail).sort((a, b) => b.ts - a.ts);
-        return (latestFail ? [latestFail, ...rest] : rest).slice(0, LIMIT);
+        // Reminders split into the two urgent buckets (overdue ranks above
+        // expirations; due-today ranks below them).
+        let overdue = [], dueToday = [];
+        if (typeof Reminders !== 'undefined' && typeof Reminders.getUpcomingTasks === 'function') {
+            const tasks = Reminders.getUpcomingTasks(50) || [];
+            overdue = tasks.filter(t => t.status === 'overdue');
+            dueToday = tasks.filter(t => t.status === 'due-today');
+        }
+
+        // 2. Overdue reminders.
+        for (const t of overdue) {
+            out.push({
+                icon: '🔴', cls: '',
+                title: _todayEsc(t.title),
+                meta: _todayEsc(t.statusLabel || 'Overdue'),
+                nav: "App.navigateTo('reminders');",
+            });
+        }
+
+        // 3. Policies expiring within the next week (soonest first).
+        if (typeof ComplianceDashboard !== 'undefined' && Array.isArray(ComplianceDashboard.policies)) {
+            const horizon = new Date(_todayMidnight());
+            horizon.setDate(horizon.getDate() + TODAY_EXPIRING_SOON_DAYS);
+            ComplianceDashboard.policies
+                .filter(p => {
+                    if (!p || !p.expirationDate) return false;
+                    const exp = new Date(p.expirationDate);
+                    if (!Number.isFinite(exp.getTime())) return false;
+                    if (typeof ComplianceDashboard.isHidden === 'function'
+                            && ComplianceDashboard.isHidden(p.policyNumber)) return false;
+                    return exp <= horizon;
+                })
+                .sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate))
+                .forEach(p => {
+                    const who = (p.firstName || p.lastName)
+                        ? `${p.firstName || ''} ${p.lastName || ''}`.trim()
+                        : (p.name || p.policyNumber || 'Unknown');
+                    out.push({
+                        icon: '📆', cls: '',
+                        title: _todayEsc(who),
+                        meta: _todayEsc(_formatExpiringLabel(p)),
+                        nav: "App.navigateTo('compliance');",
+                    });
+                });
+        }
+
+        // 4. Due-today reminders.
+        for (const t of dueToday) {
+            out.push({
+                icon: '🟠', cls: '',
+                title: _todayEsc(t.title),
+                meta: _todayEsc(t.statusLabel || 'Due today'),
+                nav: "App.navigateTo('reminders');",
+            });
+        }
+
+        return out.slice(0, TODAY_NEXT_LIMIT);
+    }
+
+    // ── "Unfinished" — saved quote drafts left idle (no other widget shows
+    //    in-progress work; the Clients card only shows *completed* quotes) ──
+    function _collectUnfinished() {
+        if (!window.STORAGE_KEYS) return [];
+        const sources = [
+            { key: STORAGE_KEYS.QUOTES,            tag: 'PL',   nav: 'quoting' },
+            { key: STORAGE_KEYS.INTAKE_V2_QUOTES,  tag: 'V2',   nav: 'intakev2' },
+            { key: STORAGE_KEYS.COMMERCIAL_QUOTES, tag: 'Comm', nav: 'commercial' },
+        ];
+        const now = Date.now();
+        const rows = [];
+        for (const s of sources) {
+            if (!s.key) continue;
+            const list = _todayLS(s.key, []);
+            if (!Array.isArray(list)) continue;
+            for (const q of list) {
+                const t = q && q.updatedAt ? new Date(q.updatedAt).getTime() : NaN;
+                if (!Number.isFinite(t)) continue;
+                const idleDays = Math.floor((now - t) / 86400000);
+                if (idleDays < TODAY_STALE_DAYS) continue;
+                rows.push({ name: _draftName(q), idleDays, ts: t, tag: s.tag, nav: s.nav });
+            }
+        }
+        rows.sort((a, b) => a.ts - b.ts); // oldest (most stale) first
+        return rows.slice(0, TODAY_UNFINISHED_LIMIT);
     }
 
     function renderTodayWidget() {
         const container = document.getElementById('widgetToday');
         if (!container) return;
 
-        const reminders = _collectTodayReminders();
-        const expiring = _collectTodayExpiring();
-        const activity = _collectTodayActivity();
+        const next = _collectNextActions();
+        const unfinished = _collectUnfinished();
 
-        const remindersHtml = reminders.length === 0
-            ? `<li class="today-empty">No urgent reminders 🎉</li>`
-            : reminders.map(t => {
-                const dotClass = t.status === 'overdue' ? 'today-dot-overdue' : 'today-dot-due-today';
-                return `<li>
-                    <span class="today-dot ${dotClass}"></span>
-                    <span class="today-item-title">${_todayEsc(t.title)}</span>
-                    <span class="today-item-meta">${_todayEsc(t.statusLabel || t.status)}</span>
-                </li>`;
-            }).join('');
+        const nextHtml = next.length === 0
+            ? `<li class="today-empty">All clear — nothing urgent 🎉</li>`
+            : next.map(n => `<li class="today-row today-activity${n.cls}" onclick="${n.nav} return false;">
+                    <span class="today-activity-icon">${n.icon}</span>
+                    <span class="today-item-title">${n.title}</span>
+                    <span class="today-item-meta">${n.meta}</span>
+                </li>`).join('');
 
-        const expiringHtml = expiring.length === 0
-            ? `<li class="today-empty">No policies expiring in the next ${TODAY_EXPIRING_WINDOW_DAYS} days</li>`
-            : expiring.map(p => {
-                const clientName = (p.firstName || p.lastName)
-                    ? `${p.firstName || ''} ${p.lastName || ''}`.trim()
-                    : (p.name || p.policyNumber || 'Unknown');
-                return `<li>
-                    <span class="today-dot today-dot-policy"></span>
-                    <span class="today-item-title">${_todayEsc(clientName)}</span>
-                    <span class="today-item-meta">${_todayEsc(_formatExpiringLabel(p))}</span>
-                </li>`;
-            }).join('');
-
-        const activityHtml = activity.length === 0
-            ? `<li class="today-empty">No recent activity</li>`
-            : activity.map(e => {
-                const icon = ({ save: '💾', sync: '☁️', export: '📤', import: '📥', ai: '🤖', error: '⚠️' })[e.type] || '•';
-                const failClass = e.ok ? '' : ' today-activity-fail';
-                const count = (e.count > 1)
-                    ? `<span class="today-activity-count">×${Number(e.count)}</span>`
-                    : '';
-                return `<li class="today-activity${failClass}">
-                    <span class="today-activity-icon">${icon}</span>
-                    <span class="today-item-title">${_todayEsc(e.message)}</span>
-                    ${count}
-                    <span class="today-item-meta">${_todayRelativeTime(e.ts)}</span>
-                </li>`;
-            }).join('');
+        const unfinishedHtml = unfinished.length === 0
+            ? `<li class="today-empty">Nothing left hanging 🎉</li>`
+            : unfinished.map(u => `<li class="today-row today-activity" onclick="App.navigateTo('${u.nav}'); return false;">
+                    <span class="today-activity-icon">📝</span>
+                    <span class="today-item-title">${_todayEsc(u.name)}</span>
+                    <span class="today-src-tag">${_todayEsc(u.tag)}</span>
+                    <span class="today-item-meta">idle ${u.idleDays}d</span>
+                </li>`).join('');
 
         container.innerHTML = `
             <div class="today-widget-header">
@@ -1544,26 +1574,19 @@ window.DashboardWidgets = (() => {
                 <span class="today-sub">${_todayEsc(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }))}</span>
             </div>
             <div class="today-sections">
-                <section class="today-section today-section-reminders">
+                <section class="today-section today-section-next">
                     <div class="today-section-header">
-                        <span class="today-section-title">⚠️ Reminders</span>
-                        <a class="today-section-link" href="#" onclick="App.navigateTo('reminders'); return false;">View all →</a>
+                        <span class="today-section-title">⚡ Next</span>
+                        <a class="today-section-link" href="#" onclick="App.navigateTo('reminders'); return false;">Reminders →</a>
                     </div>
-                    <ul class="today-list">${remindersHtml}</ul>
+                    <ul class="today-list">${nextHtml}</ul>
                 </section>
-                <section class="today-section today-section-expiring">
+                <section class="today-section today-section-unfinished">
                     <div class="today-section-header">
-                        <span class="today-section-title">📆 Expiring</span>
-                        <a class="today-section-link" href="#" onclick="App.navigateTo('compliance'); return false;">View all →</a>
+                        <span class="today-section-title">🗂️ Unfinished</span>
+                        <a class="today-section-link" href="#" onclick="App.navigateTo('quoting'); return false;">Quotes →</a>
                     </div>
-                    <ul class="today-list">${expiringHtml}</ul>
-                </section>
-                <section class="today-section today-section-activity">
-                    <div class="today-section-header">
-                        <span class="today-section-title">📜 Recent</span>
-                        <a class="today-section-link" href="#" onclick="window.ActivityLog && window.ActivityLog.openPanel(); return false;">View all →</a>
-                    </div>
-                    <ul class="today-list">${activityHtml}</ul>
+                    <ul class="today-list">${unfinishedHtml}</ul>
                 </section>
             </div>
         `;
