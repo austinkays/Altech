@@ -568,13 +568,18 @@
                     const labelFontSize = cols >= 3 ? 6.5 : 7.5;
                     doc.setFontSize(labelFontSize); doc.setFont('helvetica', 'normal');
                     setColor('setTextColor', PALETTE.MID);
-                    doc.text(String(label).toUpperCase(), x + 2, y + 7);
+                    // Both label and value baselines at y+8 visually centers
+                    // the text in the 14pt fill band (center at y+6). The
+                    // earlier y+7 / y+6 offsets left single-line rows looking
+                    // top-heavy, especially on alternating gray rows. Sharing
+                    // a baseline keeps label + value reading as one line.
+                    doc.text(String(label).toUpperCase(), x + 2, y + 8);
 
                     const fit = cache[ci];
                     doc.setFontSize(fit.pt); doc.setFont('helvetica', 'bold');
                     setColor('setTextColor', PALETTE.INK);
                     fit.lines.forEach((line, li) => {
-                        doc.text(line, x + labelW, y + 6 + li * lineH);
+                        doc.text(line, x + labelW, y + 8 + li * lineH);
                     });
                 });
                 doc.setFont('helvetica', 'normal');
