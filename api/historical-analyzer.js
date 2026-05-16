@@ -1,5 +1,6 @@
 import { securityMiddleware } from '../lib/security.js';
 import { createRouter, extractJSON } from './_ai-router.js';
+import { isUpstreamTimeout, sendUpstreamTimeout } from './_fetch-timeout.js';
 
 /**
  * Phase 5: Historical Data & Comparative Analysis
@@ -121,6 +122,7 @@ Return JSON:
       dataSource: "phase5-historical-values"
     };
   } catch (error) {
+    if (isUpstreamTimeout(error)) throw error; // retryable — surface as 504, not a soft-fail
     console.error("Value history analysis error:", error.message);
     return {
       success: false,
@@ -220,6 +222,7 @@ Return JSON:
       dataSource: "phase5-insurance-history"
     };
   } catch (error) {
+    if (isUpstreamTimeout(error)) throw error; // retryable — surface as 504, not a soft-fail
     console.error("Insurance history error:", error.message);
     return {
       success: false,
@@ -322,6 +325,7 @@ Return JSON:
       dataSource: "phase5-market-comparison"
     };
   } catch (error) {
+    if (isUpstreamTimeout(error)) throw error; // retryable — surface as 504, not a soft-fail
     console.error("Market comparison error:", error.message);
     return {
       success: false,
@@ -394,6 +398,7 @@ Return JSON:
       dataSource: "phase5-timeline-report"
     };
   } catch (error) {
+    if (isUpstreamTimeout(error)) throw error; // retryable — surface as 504, not a soft-fail
     console.error("Timeline report error:", error.message);
     return {
       success: false,
@@ -474,6 +479,7 @@ async function handler(req, res) {
     res.status(200).json(result);
   } catch (error) {
     console.error('Historical analyzer error:', error);
+    if (isUpstreamTimeout(error)) return sendUpstreamTimeout(res, req.requestId);
     res.status(500).json({
       success: false,
       error: error.message

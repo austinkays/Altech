@@ -15,6 +15,8 @@
  *   const text = await ai.askVision(systemPrompt, images, { temperature: 0.2 });
  */
 
+import { fetchWithTimeout } from './_fetch-timeout.js';
+
 // ── Constants ────────────────────────────────────────────────────
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
@@ -162,7 +164,7 @@ async function callGoogle(apiKey, model, systemPrompt, userMessage, opts = {}) {
         body.tools = [{ google_search: {} }];
     }
 
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -204,7 +206,7 @@ async function callGoogleVision(apiKey, model, systemPrompt, images, textPrompt,
         body.systemInstruction = { role: 'system', parts: [{ text: systemPrompt }] };
     }
 
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
@@ -236,7 +238,7 @@ async function callOpenRouter(apiKey, model, systemPrompt, userMessage, opts = {
         body.response_format = { type: 'json_object' };
     }
 
-    const res = await fetch(OPENROUTER_URL, {
+    const res = await fetchWithTimeout(OPENROUTER_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -272,7 +274,7 @@ async function callOpenRouterVision(apiKey, model, systemPrompt, images, textPro
         max_tokens: opts.maxTokens ?? 4096
     };
 
-    const res = await fetch(OPENROUTER_URL, {
+    const res = await fetchWithTimeout(OPENROUTER_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -309,7 +311,7 @@ async function callOpenAI(apiKey, model, systemPrompt, userMessage, opts = {}) {
         body.response_format = { type: 'json_object' };
     }
 
-    const res = await fetch(OPENAI_URL, {
+    const res = await fetchWithTimeout(OPENAI_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -343,7 +345,7 @@ async function callOpenAIVision(apiKey, model, systemPrompt, images, textPrompt,
         max_tokens: opts.maxTokens ?? 4096
     };
 
-    const res = await fetch(OPENAI_URL, {
+    const res = await fetchWithTimeout(OPENAI_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -374,7 +376,7 @@ async function callAnthropic(apiKey, model, systemPrompt, userMessage, opts = {}
 
     if (systemPrompt) body.system = systemPrompt;
 
-    const res = await fetch(ANTHROPIC_URL, {
+    const res = await fetchWithTimeout(ANTHROPIC_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -409,7 +411,7 @@ async function callAnthropicVision(apiKey, model, systemPrompt, images, textProm
 
     if (systemPrompt) body.system = systemPrompt;
 
-    const res = await fetch(ANTHROPIC_URL, {
+    const res = await fetchWithTimeout(ANTHROPIC_URL, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
