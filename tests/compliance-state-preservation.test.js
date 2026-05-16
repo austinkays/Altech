@@ -443,4 +443,41 @@ describe('CGL Compliance — state preservation across PR #40 (L&I/CCB tracker)'
         expect(result.policies).toHaveLength(1);
         expect(result.allPolicies).toHaveLength(2);
     });
+
+    // Regression: verifyAllClients re-drains on every dashboard open and the
+    // old verifyClient saved per client → N IDB/localStorage/KV writes + N
+    // Supabase pushes per load (the "CGL state saved" Activity flood). The
+    // drain must now flush exactly ONE batched save, no matter how many
+    // clients it verifies.
+    test('client verification batches into a single saveState (not one per client)', async () => {
+        const { CD, window } = loadDashboard();
+        let saves = 0;
+        const origSave = CD.saveState.bind(CD);
+        CD.saveState = (...a) => { saves++; return origSave(...a); };
+        CD._verifyMinIntervalMs = 0; // don't real-time-throttle the test
+
+        // 3 L&I/CCB-applicable clients, none previously verified.
+        CD.policies = [
+            { policyType: 'cgl', clientNumber: 'C1', clientName: 'Alpha LLC', policyNumber: 'P1' },
+            { policyType: 'cgl', clientNumber: 'C2', clientName: 'Beta LLC',  policyNumber: 'P2' },
+            { policyType: 'bop', clientNumber: 'C3', clientName: 'Gamma LLC', policyNumber: 'P3' },
+        ];
+        CD.clientCompliance = {};
+        // Every L&I / OR-CCB lookup returns a usable "found" result.
+        CD._loadFromKV = () => Promise.resolve(null);
+        window.Auth.apiFetch = () => Promise.resolve({
+            ok: true, status: 200, json: async () => ({ available: true, success: true }),
+        });
+
+        CD.verifyAllClients();
+        // Drain is async (sequential, setTimeout-spaced); wait until it ends.
+        const start = Date.now();
+        while (CD._verifyQueue !== null && Date.now() - start < 4000) {
+            await new Promise(r => setTimeout(r, 5));
+        }
+
+        expect(CD._verifyQueue).toBeNull();                 // drained
+        expect(Object.keys(CD.clientCompliance)).toHaveLength(3); // all verified
+        expect(saves).toBe(1);                              // ONE batched save
+    });
 });

@@ -2745,8 +2745,13 @@ const ComplianceDashboard = {
             waLicense: waFound ? CglUtil._summarizeLILookup(waResult) : null,
             orLicense: orFound ? CglUtil._summarizeCCBLookup(orResult) : null
         });
-        this.saveState();
-        // Re-render so badges appear (filterPolicies re-runs with current search/filter)
+        // Do NOT saveState() per client — verifyAllClients re-drains on every
+        // dashboard open, so a per-client save meant N IDB/localStorage/KV
+        // writes + N Supabase pushes per load (the "CGL state saved" Activity
+        // flood). Mark dirty; _drainVerifyQueue flushes ONE save when the whole
+        // queue finishes. Badges still re-render per client for responsiveness
+        // (filterPolicies/updateStats don't persist anything).
+        this._verifyDirty = true;
         this.filterPolicies();
         this.updateStats();
     },
@@ -2754,6 +2759,9 @@ const ComplianceDashboard = {
     // Throttled batch verification — kicks off after policies load.
     _verifyQueue: null,
     _verifyRunning: 0,
+    // Set by verifyClient when a verification wrote a record; _drainVerifyQueue
+    // flushes ONE saveState when the queue empties (instead of N per-client).
+    _verifyDirty: false,
     // Lowered from 3 → 1 (sequential). Socrata's per-app-token quota is
     // tighter than the previous assumption — 3 concurrent burns through
     // the budget in seconds with a busy dashboard.
@@ -2811,6 +2819,17 @@ const ComplianceDashboard = {
                 // saturate the Socrata quota even when the queue is large.
                 setTimeout(() => this._drainVerifyQueue(), this._verifyMinIntervalMs);
             });
+        }
+
+        // Queue fully drained (nothing left, nothing in flight) — flush ONE
+        // batched save for everything this run verified, instead of the old
+        // per-client saveState() that flooded the Activity log + Supabase.
+        if (this._verifyQueue && this._verifyQueue.length === 0 && this._verifyRunning === 0) {
+            this._verifyQueue = null;
+            if (this._verifyDirty) {
+                this._verifyDirty = false;
+                this.saveState();
+            }
         }
     },
 
