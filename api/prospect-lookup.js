@@ -15,6 +15,7 @@
  */
 
 import { securityMiddleware } from '../lib/security.js';
+import { isUpstreamTimeout, sendUpstreamTimeout } from './_fetch-timeout.js';
 import { handleLILookup } from './_prospect-li.js';
 import { handleORCCBLookup } from './_prospect-or-ccb.js';
 import { handleSOSLookup } from './_prospect-sos.js';
@@ -57,6 +58,7 @@ async function handler(req, res) {
     res.status(200).json(result);
   } catch (error) {
     console.error('[Prospect Lookup] Error:', error);
+    if (isUpstreamTimeout(error)) return sendUpstreamTimeout(res, req.requestId);
     res.status(500).json({
       success: false,
       error: error.message,

@@ -14,6 +14,7 @@
  */
 
 import { securityMiddleware, requireAuth } from '../lib/security.js';
+import { fetchWithTimeout, isUpstreamTimeout, sendUpstreamTimeout } from './_fetch-timeout.js';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
@@ -60,7 +61,7 @@ async function handler(req, res) {
         };
         if (betaHeaders.length) headers['anthropic-beta'] = betaHeaders.join(',');
 
-        const response = await fetch(ANTHROPIC_API_URL, {
+        const response = await fetchWithTimeout(ANTHROPIC_API_URL, {
             method: 'POST',
             headers,
             body: JSON.stringify(body)
@@ -77,6 +78,7 @@ async function handler(req, res) {
         return res.status(200).json(data);
     } catch (err) {
         console.error('[anthropic-proxy] Error:', err.message || 'Unknown error');
+        if (isUpstreamTimeout(err)) return sendUpstreamTimeout(res, req.requestId);
         return res.status(500).json({ error: { message: err.message || 'Internal server error' } });
     }
 }

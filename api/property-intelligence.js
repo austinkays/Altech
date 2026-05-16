@@ -16,6 +16,7 @@
  */
 
 import { securityMiddleware } from '../lib/security.js';
+import { isUpstreamTimeout, sendUpstreamTimeout } from './_fetch-timeout.js';
 import { ragHandler } from './_rag-interpreter.js';
 import { handleArcgis } from './_property-arcgis.js';
 import { handleSatellite } from './_property-satellite.js';
@@ -67,6 +68,7 @@ async function handler(req, res) {
     }
   } catch (error) {
     console.error(`[PropertyIntelligence] ${mode} error:`, error);
+    if (isUpstreamTimeout(error)) return sendUpstreamTimeout(res, req.requestId);
     return res.status(500).json({
       error: 'Internal server error',
       details: error.message

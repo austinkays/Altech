@@ -17,6 +17,7 @@
 
 import { securityMiddleware } from '../lib/security.js';
 import { createRouter, extractJSON } from './_ai-router.js';
+import { fetchWithTimeout, isUpstreamTimeout, sendUpstreamTimeout } from './_fetch-timeout.js';
 
 const GEMINI_API_KEY = (process.env.GOOGLE_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_API_KEY || '').trim();
 const GEMINI_MODEL = 'gemini-2.5-flash';
@@ -45,7 +46,7 @@ async function callGeminiVision(prompt, imageData, config = {}) {
         }
     };
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    const response = await fetchWithTimeout(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestBody)
@@ -548,7 +549,7 @@ Use empty string for any field not found. Be precise — do not guess values.`;
           parts.push({ inlineData: { mimeType: file.mimeType || 'application/octet-stream', data: file.data } });
         }
       }
-      const geminiRes = await fetch(geminiUrl, {
+      const geminiRes = await fetchWithTimeout(geminiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -575,6 +576,7 @@ Use empty string for any field not found. Be precise — do not guess values.`;
       documents: parsed.documents || []
     };
   } catch (error) {
+    if (isUpstreamTimeout(error)) throw error; // retryable — surface as 504, not a soft-fail
     console.error('Document intel error:', error.message);
     return { success: false, summary: 'AI extraction failed.', documents: [] };
   }
@@ -644,6 +646,7 @@ async function handler(req, res) {
     res.status(200).json(result);
   } catch (error) {
     console.error('Vision processor error:', error);
+    if (isUpstreamTimeout(error)) return sendUpstreamTimeout(res, req.requestId);
     res.status(500).json({
       success: false,
       error: error.message
