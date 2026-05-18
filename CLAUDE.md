@@ -113,7 +113,7 @@ Plugin IIFEs (in load order):
   commercial-quoter.js
 
 Backend / auth / sync (order matters):
-  data-backup.js, bug-report.js,
+  data-backup.js,
   supabase-config.js → supabase-sync.js → supabase-auth.js → auth-mfa-ui.js
     → auth.js (Supabase-only `Auth.*` facade) → sync-facade.js (`window.Sync` / `window.AuthFacade`),
   vault-meta.js, vault-ui.js,

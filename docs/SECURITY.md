@@ -83,24 +83,10 @@ Code: [lib/security.js](../lib/security.js).
 
 ## 4. Bug-report data exfiltration prevention
 
-In-app bug reports are posted to a public GitHub Issues repository. To
-prevent accidental NPI leakage:
-
-1. **Client-side scrub** runs before the report leaves the browser.
-   Patterns redacted to `[REDACTED-…]`:
-   - SSN (hyphenated or space-separated 9 digits)
-   - US phone numbers (most formats)
-   - Email addresses
-   - Credit card numbers (13-19 digit runs)
-   - VIN numbers (17 alphanumeric chars per VIN spec)
-   - Dates of birth (M/D/YYYY)
-2. **Server-side scrub** runs again as defense-in-depth in
-   [api/config.js](../api/config.js) before the GitHub Issue is
-   created.
-3. **UI warning** in the bug report modal explicitly tells users
-   not to include client names, addresses, or screenshots showing PII.
-
-Code: [js/bug-report.js](../js/bug-report.js), [api/config.js](../api/config.js).
+**Removed (May 2026):** the in-app bug reporter was deleted. The app no
+longer sends any user-entered data to GitHub (or any third party) for
+issue reporting; there is no bug-report egress path to scrub. (Section
+number retained so later cross-references stay valid.)
 
 ---
 
@@ -130,7 +116,6 @@ Code: [js/bug-report.js](../js/bug-report.js), [api/config.js](../api/config.js)
 | Google (Gemini AI, Places, Static Maps) | AI assistance + autocomplete | Address strings, structured prompts. **No SSN, DOB, phone.** | Google Cloud DPA |
 | Anthropic (Claude API) | AI assistance (alternate) | Same as Gemini | Anthropic DPA |
 | Rentcast | Property data lookup | Address strings | Rentcast TOS |
-| GitHub | Bug-report destination | Scrubbed bug-report text only | GitHub DPA |
 | Stripe | Subscription billing | Payment method tokens (never raw cards) | Stripe DPA |
 
 **Firebase.** As of May 2026 (Phase D rollout), the Firebase backend is
@@ -148,7 +133,6 @@ deleted in the next release once no user has explicitly opted back.
 | Failed auth | Same |
 | Local save / sync / export / AI call | Local ring buffer ([js/activity-log.js](../js/activity-log.js)) — visible to the user via the "Activity" pill in the app header |
 | Sync conflicts | Surfaced via in-app dialog + activity log |
-| Bug reports | GitHub Issues |
 | Migration events (Phase 4 Firebase → Supabase) | Local activity log + Supabase `audit_log` table |
 
 ---
@@ -182,7 +166,6 @@ The current single-user-per-agency model simplifies the incident response:
 | All NPI is encrypted at rest in IndexedDB | DevTools → Application → IndexedDB → `altech_cgl` → `cache` / `annotations` → values should be `{ __sec: 'v1', ct: '<base64>' }`. |
 | Server cannot decrypt | In Supabase Dashboard, open the `public.user_blobs` table. The `ciphertext` column is the v=2 envelope `{v, iv, ct}` JSON or legacy base64 — neither readable without the user's master key. |
 | RLS is on every public table | Run [scripts/verify-rls.mjs](../scripts/verify-rls.mjs) against the live project. It anon-connects, tries cross-user reads/writes, and reports any successes (should be zero). |
-| Bug reports scrub PII | Open [tests/bug-report-scrub.test.js](../tests/bug-report-scrub.test.js) — 12 tests pin down the regex patterns and call-sites. |
 | Idle-lock works | [tests/idle-lock.test.js](../tests/idle-lock.test.js) — 9 tests cover the timer + activity reset + configurable timeout. |
 | Encryption at rest works | [tests/secure-storage.test.js](../tests/secure-storage.test.js) — 9 tests cover the migration, proxy, and round-trip. |
 

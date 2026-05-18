@@ -16,8 +16,8 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 52 files in `css/` (~26,641 lines total) |
-| **JS** | 109 modules in `js/` (~64,360 lines total) |
+| **CSS** | 51 files in `css/` (~26,392 lines total) |
+| **JS** | 108 modules in `js/` (~64,092 lines total) |
 | **Plugins** | 19 HTML templates in `plugins/` (~6,785 lines total, + `tools/broadform.html`) |
 | **APIs** | 13 routable serverless functions + ~22 `_`-prefixed helpers in `api/` (~8,600 lines total) |
 | **Auth** | **Supabase Auth** (email/password + MFA, Supabase JS v2) — Firebase fully removed in the Phase D cleanup, May 2026 |
@@ -26,7 +26,7 @@
 | **Local server** | `server.js` (Node.js ESM, ~680 lines) |
 | **Deploy** | Vercel Pro (serverless functions + static) |
 | **Desktop** | Tauri v2 (optional, `src-tauri/`) |
-| **Tests** | Jest + JSDOM, 67 suites, ~2,480 tests |
+| **Tests** | Jest + JSDOM, 66 suites, ~2,480 tests |
 | **Package** | ESM (`"type": "module"` in package.json) |
 | **Author** | Austin Kays |
 | **License** | MIT |
@@ -36,7 +36,7 @@
 
 ```bash
 npm run dev           # Local dev server (server.js on port 8000)
-npm test              # All 67 suites, ~2,480 tests
+npm test              # All 66 suites, ~2,480 tests
 npx jest --no-coverage  # Faster (skip coverage)
 npm run audit-docs      # Check this doc for drift (run after every session)
 ```
@@ -68,7 +68,7 @@ npm run audit-docs      # Check this doc for drift (run after every session)
 │  exact file/line counts. Firebase was fully removed in the Phase D cleanup
 │  (May 2026) — Supabase is the sole auth + sync backend.
 │
-├── css/                        # 52 stylesheets (~26,641 lines) — see CLAUDE.md "CSS Architecture"
+├── css/                        # 51 stylesheets (~26,392 lines) — see CLAUDE.md "CSS Architecture"
 │   ├── variables.css           # :root tokens + body.dark-mode overrides ONLY (the only place theme vars live)
 │   ├── base.css / layout.css   # Reset/typography; app shell, sidebar, plugin container
 │   ├── components-*.css        # Split component families: cards, inputs, buttons, forms, modals,
@@ -98,7 +98,7 @@ npm run audit-docs      # Check this doc for drift (run after every session)
 │   │  ★ Backend / auth / sync (Supabase-only): supabase-config → supabase-sync →
 │   │     supabase-auth → auth-mfa-ui → auth.js (legacy Auth.* facade) → sync-facade
 │   │     (window.Sync / window.AuthFacade); vault-meta, vault-ui, secure-storage,
-│   │     biometric-unlock, idle-lock, data-backup, bug-report
+│   │     biometric-unlock, idle-lock, data-backup
 │   │  ★ Intake v2 family (~30 modules): intake-v2-core/init/fields/layout/coverage/
 │   │     operators/autos/rvs/boats/history/review/defer/keyboard/places/property(+maps)/
 │   │     rentcast/smart-fill/talktrack/bindability/formatters/export(+pdf/ezlynx/cmsmtf/map)
@@ -173,7 +173,7 @@ npm run audit-docs      # Check this doc for drift (run after every session)
 ├── tests/                      # Jest test suites
 │   ├── setup.js                # Test env setup (mock fetch, suppress crypto errors)
 │   ├── ezlynx-extension-fill.test.js  # §13–§15 route registry + positional fill engine
-│   └── *.test.js               # 67 suites, ~2,480 tests (Jest + JSDOM)
+│   └── *.test.js               # 66 suites, ~2,480 tests (Jest + JSDOM)
 │
 ├── lib/                        # Shared server-side utilities
 ├── scripts/                    # Build/utility scripts
@@ -384,7 +384,7 @@ Shared services: ai-provider, activity-log, command-palette, dashboard-widgets
 Plugin IIFEs (order-independent among themselves)
 
 Backend / auth / sync (ORDER MATTERS):
-  data-backup, bug-report,
+  data-backup,
   supabase-config → supabase-sync → supabase-auth → auth-mfa-ui →
   auth.js (Supabase-only Auth.* facade) → sync-facade (window.Sync /
   window.AuthFacade), vault-meta, vault-ui, paywall, onboarding
@@ -905,7 +905,7 @@ KEY RULES:
 5. After localStorage writes on synced data, call window.Sync.schedulePush()
 6. JS modules use IIFE pattern: window.Module = (() => { return { init, ... }; })()
 7. App is built via Object.assign(App, {...}) across 11 files (incl. app-ui-utils.js, app-navigation.js) — app-boot.js loads LAST
-8. Test with: npm test (~2,480 tests, 67 suites, all must pass)
+8. Test with: npm test (~2,480 tests, 66 suites, all must pass)
 9. No build step — edit files, reload browser
 10. For dark mode backgrounds, prefer solid colors (#1C1C1E) over low-opacity rgba
 11. AFTER completing all work, add an entry to CHANGELOG.md with what changed (files, test counts, date). Run: npm run audit-docs
@@ -938,7 +938,7 @@ KEY RULES:
 
 ### Before Every Deploy
 
-- [ ] **All tests pass:** `npm test` → 67 suites, ~2,480 tests, 0 failures
+- [ ] **All tests pass:** `npm test` → 66 suites, ~2,480 tests, 0 failures
 - [ ] **No lint/build errors:** `get_errors()` returns clean
 - [ ] **CSS variables are valid:** No `--card`, `--surface`, `--accent`, `--muted`, `--text-primary`, `--input-bg`, `--border-color`
 - [ ] **Dark mode tested:** Toggle dark mode, check new/modified UI elements

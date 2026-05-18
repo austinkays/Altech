@@ -162,8 +162,7 @@ priorCarrier, priorYears, priorLapse
 10. ai-provider.js          ← window.AIProvider
 11. dashboard-widgets.js    ← window.DashboardWidgets
 12–25. Plugin modules       ← (order independent among themselves)
-26. bug-report.js
-27. firebase-config.js      ← Must precede auth.js
+26. firebase-config.js      ← Must precede auth.js
 28. auth.js                 ← Must precede cloud-sync.js
 29. admin-panel.js
 30. cloud-sync.js           ← Must follow auth.js
@@ -260,7 +259,7 @@ priorCarrier, priorYears, priorLapse
 
 ```bash
 npm run dev              # Local server (port 3000)
-npm test                 # All 67 suites, ~2,480 tests
+npm test                 # All 66 suites, ~2,480 tests
 npx jest --no-coverage   # Faster
 npx jest tests/app.test.js  # Single suite
 npm run deploy:vercel    # Production deploy
