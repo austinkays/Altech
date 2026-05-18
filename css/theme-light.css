@@ -1,0 +1,107 @@
+/* ═══════════════════════════════════════════════════════
+   Light Theme — clean whites + Apple blue
+   Activated by body.theme-light (forces dark mode OFF —
+   the inverse of Aurora). The base :root light palette is
+   warm cream; this overrides it with a cool, crisp
+   white/blue look that matches agency desktop software.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Override design-system variables for the Light palette ── */
+body.theme-light {
+    --apple-blue: #007AFF;
+    --apple-blue-hover: #0051D5;
+    --apple-gray: #6E7681;
+    --success: #1E9E5A;
+    --danger: #E5484D;
+    --warning: #E08600;
+
+    --bg: #F4F7FB;                 /* soft cool off-white app background */
+    --bg-card: #FFFFFF;            /* pure-white cards */
+    --bg-input: #EEF2F8;
+    --text: #1B2430;              /* dark slate, not pure black */
+    --text-secondary: #5B6675;
+    --text-tertiary: #8A93A2;
+    --border: #D9E0EA;
+    --border-subtle: rgba(20, 40, 70, 0.08);
+    --shadow: rgba(20, 40, 80, 0.10);
+
+    /* Desktop Command Center tokens — light */
+    --bg-sidebar: #FFFFFF;
+    --bg-widget-hover: #EEF3FA;
+    --sidebar-active: rgba(0, 122, 255, 0.10);
+    --accent-gradient: linear-gradient(135deg, #007AFF, #0051D5);
+    --accent-gradient-text: linear-gradient(135deg, #0066DD, #0044BB);
+}
+
+/* ── Card elevation — subtle depth on the soft-white bg ── */
+body.theme-light .card,
+body.theme-light .widget-card,
+body.theme-light .tool-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(20, 40, 80, 0.04),
+                0 6px 18px rgba(20, 40, 80, 0.06);
+}
+body.theme-light .card:hover,
+body.theme-light .widget-card:hover,
+body.theme-light .tool-row:hover {
+    border-color: #C2CEDD;
+    box-shadow: 0 2px 4px rgba(20, 40, 80, 0.06),
+                0 10px 28px rgba(20, 40, 80, 0.10);
+}
+
+/* ── Sidebar / header — crisp white panels ── */
+body.theme-light .app-sidebar {
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+}
+body.theme-light .app-header {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+}
+
+/* ── Kill the dark-tuned ambient/gradient backdrops ── */
+body.theme-light .dashboard-view,
+body.theme-light .landing-page {
+    background: var(--bg) !important;
+}
+body.theme-light .dashboard-ambient-orb,
+body.theme-light .landing-page::before,
+body.theme-light .landing-page::after {
+    display: none !important;
+}
+
+/* ── Brand text — solid ink instead of the dark shimmer gradient ── */
+body.theme-light .landing-brand-name {
+    background: none !important;
+    -webkit-text-fill-color: var(--text) !important;
+    background-clip: unset !important;
+    animation: none !important;
+}
+
+/* ── Form fields ── */
+body.theme-light input,
+body.theme-light select,
+body.theme-light textarea {
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+body.theme-light input:focus,
+body.theme-light select:focus,
+body.theme-light textarea:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+/* ── Minimal scrollbar ── */
+body.theme-light ::-webkit-scrollbar { width: 10px; height: 10px; }
+body.theme-light ::-webkit-scrollbar-track { background: transparent; }
+body.theme-light ::-webkit-scrollbar-thumb {
+    background: #C7D0DD;
+    border-radius: 5px;
+    border: 2px solid var(--bg);
+}
+body.theme-light ::-webkit-scrollbar-thumb:hover { background: #AAB6C6; }
