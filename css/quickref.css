@@ -253,6 +253,13 @@
     margin-top: 14px;
     min-height: 40px;
 }
+/* Before the user types, #qrSpellerOutput is innerHTML='' (see
+   quick-ref.js spell('')). Collapse it entirely so the card isn't padded
+   out by the 40px min-height + 14px margin reserve — it expands back the
+   moment phonetic items are rendered. */
+.qr-speller-output:empty {
+    display: none;
+}
 .qr-speller-item {
     display: inline-flex;
     flex-direction: column;
