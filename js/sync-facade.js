@@ -100,6 +100,89 @@
 
     window.Sync = Sync;
 
+    // ── Legacy CloudSync compatibility shim ────────────────────────────────
+    //
+    // Firebase's CloudSync was removed in Phase D, but ~17 call sites still
+    // say `CloudSync.*`: the account modal's Sync Now / keep-local / Delete
+    // Cloud Data buttons, the glossary Save inline handler, and several
+    // plugins' `if (typeof CloudSync!=='undefined' && CloudSync.schedulePush)`
+    // guards. Without this object those throw ReferenceError (or silently
+    // no-op behind the typeof guard). Route them to the live Sync facade and
+    // add the two methods Sync doesn't carry (setDisabled, deleteCloudData).
+    const CloudSync = {
+        fullSync(...a) { return Sync.fullSync(...a); },
+        schedulePush(...a) { return Sync.schedulePush(...a); },
+        pushToCloud(...a) { return Sync.pushToCloud(...a); },
+
+        // Opt out of cloud sync on this device. Local-only flag — the same key
+        // SupabaseAuth's MFA-exempt check and Auth.showModal both read.
+        setDisabled(disabled) {
+            try {
+                localStorage.setItem(STORAGE_KEYS.CLOUD_SYNC_DISABLED, disabled ? 'true' : 'false');
+            } catch (e) { /* storage may be unavailable */ }
+            if (Sync.refreshUI) Sync.refreshUI();
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast(disabled
+                    ? 'Cloud sync disabled — data stays on this device'
+                    : 'Cloud sync enabled', { type: 'info' });
+            }
+            return disabled;
+        },
+
+        deleteCloudData() { return CloudSync._deleteCloudData(); },
+
+        // Erase ALL of the signed-in user's synced rows. Calls SupabaseSync
+        // directly (NOT the Sync.* wrappers) so it is intentionally NOT subject
+        // to the admin-only writeBlocked() gate — self-erasure of your own
+        // data is a right-to-erasure action, and RLS scopes every delete to
+        // the caller's own rows. Cloud-only: localStorage is untouched, and
+        // user_crypto_meta is deliberately preserved (vault-meta.js owns it;
+        // deleting it would brick E2E key recovery).
+        async _deleteCloudData() {
+            const ans = window.prompt(
+                'This permanently deletes ALL your synced cloud data (documents + quotes). ' +
+                'Local data on this device is NOT affected.\n\nType DELETE to confirm:');
+            if (ans !== 'DELETE') return;
+
+            const ss = (typeof window !== 'undefined') ? window.SupabaseSync : null;
+            if (!ss) {
+                if (typeof App !== 'undefined' && App.toast) App.toast('Sync backend unavailable', { type: 'error' });
+                return;
+            }
+
+            let docOk = 0, docFail = 0, qOk = 0, qFail = 0;
+            try {
+                for (const docKey of Object.keys(ss.DOC_LOCAL_KEYS || {})) {
+                    const r = await ss.deleteBlob(docKey);
+                    if (r && r.ok) docOk++; else docFail++;
+                }
+                const quotes = await ss.listQuotes();
+                for (const q of (quotes || [])) {
+                    const r = await ss.deleteQuote(q.id);
+                    if (r && r.ok) qOk++; else qFail++;
+                }
+            } catch (e) {
+                if (typeof App !== 'undefined' && App.toast) {
+                    App.toast('Cloud delete error: ' + (e && e.message ? e.message : e), { type: 'error' });
+                }
+            }
+
+            const failed = docFail + qFail;
+            const msg = `Cloud data deleted (${docOk} docs, ${qOk} quotes)` +
+                (failed ? ` — ${failed} failed, retry to finish` : '');
+            if (typeof App !== 'undefined' && App.toast) {
+                App.toast(msg, { type: failed ? 'error' : 'success' });
+            }
+            if (typeof window !== 'undefined' && window.ActivityLog) {
+                window.ActivityLog.add({
+                    type: 'sync', area: 'supabase', ok: !failed,
+                    message: failed ? `Cloud data delete: ${failed} doc/quote(s) failed` : 'Deleted all cloud data',
+                });
+            }
+        },
+    };
+    window.CloudSync = CloudSync;
+
     // ── Auth facade ────────────────────────────────────────────────────────
     //
     // Same indirection pattern for auth — most plugins read `Auth.*` directly

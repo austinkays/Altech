@@ -594,99 +594,70 @@
                     <h3>Your Account</h3>
                 </div>
                 <div class="auth-account-info">
+                    <div class="seg-group acct-tabnav" role="tablist">
+                        <button type="button" class="seg-btn seg-active" data-acct-tab="profile" onclick="Auth.acctTab('profile')">Profile</button>
+                        <button type="button" class="seg-btn" data-acct-tab="preferences" onclick="Auth.acctTab('preferences')">Prefs</button>
+                        <button type="button" class="seg-btn" data-acct-tab="ai" onclick="Auth.acctTab('ai')">AI</button>
+                        <button type="button" class="seg-btn" data-acct-tab="security" onclick="Auth.acctTab('security')">Security</button>
+                        <button type="button" class="seg-btn" id="acctTabTeam" data-acct-tab="team" style="display:none" onclick="Auth.acctTab('team')">Team</button>
+                        <button type="button" class="seg-btn" data-acct-tab="data" onclick="Auth.acctTab('data')">Data</button>
+                    </div>
+
                     <!-- Profile -->
-                    <div class="auth-field">
-                        <label>Email</label>
-                        <p id="authAccountEmail" class="auth-readonly"></p>
-                    </div>
-                    <div class="auth-field">
-                        <label for="authAccountName">Display Name</label>
-                        <div style="display:flex;gap:0.5rem;align-items:stretch">
-                            <input type="text" id="authAccountName" placeholder="Your name" style="flex:1">
-                            <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="Auth.updateName(document.getElementById('authAccountName').value)" style="white-space:nowrap">Update</button>
+                    <div class="acct-tab-panel" data-acct-panel="profile">
+                        <div class="auth-field">
+                            <label>Email</label>
+                            <p id="authAccountEmail" class="auth-readonly"></p>
                         </div>
-                    </div>
-                    <div class="auth-field">
-                        <label for="authAccountAgency">Agency Name</label>
-                        <div style="display:flex;gap:0.5rem;align-items:stretch">
-                            <input type="text" id="authAccountAgency" placeholder="Altech Insurance Agency" style="flex:1">
-                            <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.saveAgencyName(document.getElementById('authAccountAgency').value)" style="white-space:nowrap">Update</button>
-                        </div>
-                    </div>
-
-                    <!-- 🎨 Theme -->
-                    <details class="settings-section">
-                        <summary class="settings-section-header">
-                            <span class="settings-section-icon">🎨</span>
-                            <span class="settings-section-title">Theme</span>
-                            <span class="settings-section-chevron">›</span>
-                        </summary>
-                        <div class="settings-section-body">
-                            <div class="auth-field">
-                                <label for="themeSelect">Appearance</label>
-                                <select id="themeSelect" onchange="App.setTheme(this.value)" class="settings-select">
-                                    <option value="default">Default</option>
-                                    <option value="aurora">Aurora (Northern Lights)</option>
-                                </select>
-                            </div>
-                            <p style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Aurora is an animated dark theme with northern-lights effects and frosted-glass cards.</p>
-                        </div>
-                    </details>
-
-                    <!-- ☁️ Sync -->
-                    <details class="settings-section">
-                        <summary class="settings-section-header">
-                            <span class="settings-section-icon">☁️</span>
-                            <span class="settings-section-title">Sync</span>
-                            <span class="settings-section-chevron">›</span>
-                        </summary>
-                        <div class="settings-section-body">
-                            <div class="auth-sync-status">
-                                <div class="auth-sync-info">
-                                    <span id="authSyncStatus">Ready to sync</span>
-                                    <span id="authSyncTimestamp" class="auth-sync-timestamp"></span>
-                                </div>
-                                <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
-                            </div>
-                            <label class="auth-field" style="display:flex;align-items:flex-start;gap:0.6rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);cursor:pointer">
-                                <input type="checkbox" id="authSyncDisabled" onchange="CloudSync.setDisabled(this.checked)" style="margin-top:3px;flex-shrink:0">
-                                <span style="font-size:13px;line-height:1.45">
-                                    <strong>Keep data on this device only</strong>
-                                    <span style="display:block;color:var(--text-secondary);font-size:11px;margin-top:2px">Recommended on shared or public computers. Client data stays encrypted in this browser and is never uploaded. Cross-device sync will stop working until you re-enable this.</span>
-                                </span>
-                            </label>
-
-                            <!-- End-to-end encryption (Phase 1c) -->
-                            <div id="vaultSettingsRow">
-                                <div class="vault-row-head">
-                                    <div>
-                                        <strong>🔒 End-to-end encryption <span style="background:var(--apple-blue);color:#fff;font-size:10px;padding:1px 6px;border-radius:6px;margin-left:4px;letter-spacing:0.03em">BETA</span></strong>
-                                        <span class="vault-status">Off — client data is encrypted with a device-bound key</span>
-                                    </div>
-                                    <button class="btn-auth btn-auth-small btn-auth-primary vault-primary-btn" style="margin-top:0;width:auto;padding:0.4rem 1rem;white-space:nowrap">Enable</button>
-                                </div>
-                                <div class="vault-sub-actions" data-e2e-on style="display:none">
-                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.openChange()">Change passphrase</button>
-                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.openRecovery()">Use recovery key</button>
-                                    <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.disableE2E()" style="color:#FF453A">Turn off</button>
-                                </div>
-                                <!-- Biometric / passkey list — populated by VaultUI._refreshBiometricRow.
-                                     Each registered passkey shows a label + Remove button; trailing
-                                     "+ Add biometric / passkey" button kicks off WebAuthn registration. -->
-                                <div id="vaultBiometricRow" data-e2e-on style="display:none"></div>
+                        <div class="auth-field">
+                            <label for="authAccountName">Display Name</label>
+                            <div style="display:flex;gap:0.5rem;align-items:stretch">
+                                <input type="text" id="authAccountName" placeholder="Your name" style="flex:1">
+                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="Auth.updateName(document.getElementById('authAccountName').value)" style="white-space:nowrap">Update</button>
                             </div>
                         </div>
-                    </details>
+                        <div class="auth-field">
+                            <label for="authAccountAgency">Agency Name</label>
+                            <div style="display:flex;gap:0.5rem;align-items:stretch">
+                                <input type="text" id="authAccountAgency" placeholder="Altech Insurance Agency" style="flex:1">
+                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="App.saveAgencyName(document.getElementById('authAccountAgency').value)" style="white-space:nowrap">Update</button>
+                            </div>
+                        </div>
+                    </div>
 
-                    <!-- ✨ Smart Features -->
-                    <details class="settings-section">
-                        <summary class="settings-section-header">
-                            <span class="settings-section-icon">✨</span>
-                            <span class="settings-section-title">Smart Features</span>
-                            <span id="aiSettingsBadge" class="settings-section-badge"></span>
-                            <span class="settings-section-chevron">›</span>
-                        </summary>
-                        <div class="settings-section-body" id="aiSettingsSection">
+                    <!-- Preferences -->
+                    <div class="acct-tab-panel" data-acct-panel="preferences" hidden>
+                        <h4 class="acct-tab-h">🎨 Theme</h4>
+                        <div class="auth-field">
+                            <label for="themeSelect">Appearance</label>
+                            <select id="themeSelect" onchange="App.setTheme(this.value)" class="settings-select">
+                                <option value="default">Default</option>
+                                <option value="aurora">Aurora (Northern Lights)</option>
+                            </select>
+                        </div>
+                        <p style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Aurora is an animated dark theme with northern-lights effects and frosted-glass cards.</p>
+
+                        <h4 class="acct-tab-h" style="margin-top:1.5rem">📖 Agency Glossary</h4>
+                        <div class="auth-field">
+                            <label for="agencyGlossaryText">Custom shorthand &amp; abbreviations</label>
+                            <textarea id="agencyGlossaryText" class="glossary-textarea" rows="5" maxlength="500" placeholder="MoE = Mutual of Enumclaw&#10;NWPP = Northwest Personal Property&#10;BOP = Business Owner's Policy"></textarea>
+                            <p class="glossary-hint">One term per line. The HawkSoft Logger will use these to interpret your shorthand notes. Max 500 characters.</p>
+                        </div>
+                        <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var t=document.getElementById('agencyGlossaryText'); if(t){ localStorage.setItem('altech_agency_glossary',t.value); if(typeof CloudSync!=='undefined'&&CloudSync.schedulePush) CloudSync.schedulePush(); if(typeof App!=='undefined'&&App.toast) App.toast('Glossary saved','success'); } })()" style="margin-top:0">Save Glossary</button>
+
+                        <h4 class="acct-tab-h" style="margin-top:1.5rem">📂 EZLynx XML Path</h4>
+                        <div class="auth-field">
+                            <label for="ezlynxXmlPathInput">Default XML file path</label>
+                            <input type="text" id="ezlynxXmlPathInput" placeholder="C:\Users\You\Documents\HawkSoft\Transfer\AJK.xml" style="font-family:monospace;font-size:12px">
+                            <p style="margin:6px 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">For local dev server (npm run dev) only. On production, the import button remembers your last-picked file automatically — no path needed.</p>
+                        </div>
+                        <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var p=document.getElementById('ezlynxXmlPathInput'); if(p){ localStorage.setItem(STORAGE_KEYS.EZLYNX_XML_PATH, p.value.trim()); if(typeof App!=='undefined'&&App.toast) App.toast('EZLynx XML path saved','success'); } })()" style="margin-top:0">Save Path</button>
+                    </div>
+
+                    <!-- AI -->
+                    <div class="acct-tab-panel" data-acct-panel="ai" hidden>
+                        <h4 class="acct-tab-h">✨ Smart Features <span id="aiSettingsBadge" class="settings-section-badge"></span></h4>
+                        <div id="aiSettingsSection">
                             <p style="margin:0 0 0.75rem;font-size:12px;color:var(--text-secondary);line-height:1.5">
                                 Smart features power scanning, extraction, and analysis across the app. A default is provided — add your own key to unlock premium models.
                             </p>
@@ -737,50 +708,12 @@
                                 </div>
                             </details>
                         </div>
-                    </details>
+                    </div>
 
-                    <!-- � Agency Glossary -->
-                    <details class="settings-section" ontoggle="if(this.open){var t=document.getElementById('agencyGlossaryText');if(t&&!t.value)t.value=localStorage.getItem('altech_agency_glossary')||''}">
-                        <summary class="settings-section-header">
-                            <span class="settings-section-icon">📖</span>
-                            <span class="settings-section-title">Agency Glossary</span>
-                            <span class="settings-section-chevron">›</span>
-                        </summary>
-                        <div class="settings-section-body">
-                            <div class="auth-field">
-                                <label for="agencyGlossaryText">Custom shorthand &amp; abbreviations</label>
-                                <textarea id="agencyGlossaryText" class="glossary-textarea" rows="5" maxlength="500" placeholder="MoE = Mutual of Enumclaw&#10;NWPP = Northwest Personal Property&#10;BOP = Business Owner's Policy"></textarea>
-                                <p class="glossary-hint">One term per line. The HawkSoft Logger will use these to interpret your shorthand notes. Max 500 characters.</p>
-                            </div>
-                            <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var t=document.getElementById('agencyGlossaryText'); if(t){ localStorage.setItem('altech_agency_glossary',t.value); if(typeof CloudSync!=='undefined'&&CloudSync.schedulePush) CloudSync.schedulePush(); if(typeof App!=='undefined'&&App.toast) App.toast('Glossary saved','success'); } })()" style="margin-top:0">Save Glossary</button>
-                        </div>
-                    </details>
-
-                    <!-- 📂 EZLynx XML Path -->
-                    <details class="settings-section" ontoggle="if(this.open){var p=document.getElementById('ezlynxXmlPathInput');if(p&&!p.value)p.value=localStorage.getItem(STORAGE_KEYS.EZLYNX_XML_PATH)||''}">
-                        <summary class="settings-section-header">
-                            <span class="settings-section-icon">📂</span>
-                            <span class="settings-section-title">EZLynx XML Path</span>
-                            <span class="settings-section-chevron">›</span>
-                        </summary>
-                        <div class="settings-section-body">
-                            <div class="auth-field">
-                                <label for="ezlynxXmlPathInput">Default XML file path</label>
-                                <input type="text" id="ezlynxXmlPathInput" placeholder="C:\Users\You\Documents\HawkSoft\Transfer\AJK.xml" style="font-family:monospace;font-size:12px">
-                                <p style="margin:6px 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">For local dev server (npm run dev) only. On production, the import button remembers your last-picked file automatically — no path needed.</p>
-                            </div>
-                            <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var p=document.getElementById('ezlynxXmlPathInput'); if(p){ localStorage.setItem(STORAGE_KEYS.EZLYNX_XML_PATH, p.value.trim()); if(typeof App!=='undefined'&&App.toast) App.toast('EZLynx XML path saved','success'); } })()" style="margin-top:0">Save Path</button>
-                        </div>
-                    </details>
-
-                    <!-- �🔒 Security -->
-                    <details class="settings-section">
-                        <summary class="settings-section-header">
-                            <span class="settings-section-icon">🔒</span>
-                            <span class="settings-section-title">Security</span>
-                            <span class="settings-section-chevron">›</span>
-                        </summary>
-                        <div class="settings-section-body" id="authChangePasswordSection">
+                    <!-- Security -->
+                    <div class="acct-tab-panel" data-acct-panel="security" hidden>
+                        <h4 class="acct-tab-h">🔑 Password</h4>
+                        <div id="authChangePasswordSection">
                             <form id="authChangePwForm" class="auth-form" onsubmit="Auth.handleChangePasswordSubmit(event)">
                                 <div class="auth-field">
                                     <label for="authCurrentPassword">Current Password</label>
@@ -799,16 +732,31 @@
                                 <button type="submit" class="btn-auth btn-auth-primary" style="margin-top:0.25rem">Update Password</button>
                             </form>
                         </div>
-                    </details>
 
-                    <!-- 👥 Team -->
-                    <details class="settings-section" id="authInviteSection" style="display:none">
-                        <summary class="settings-section-header">
-                            <span class="settings-section-icon">👥</span>
-                            <span class="settings-section-title">Team</span>
-                            <span class="settings-section-chevron">›</span>
-                        </summary>
-                        <div class="settings-section-body">
+                        <h4 class="acct-tab-h" style="margin-top:1.5rem">🔒 End-to-end encryption</h4>
+                        <div id="vaultSettingsRow">
+                            <div class="vault-row-head">
+                                <div>
+                                    <strong>🔒 End-to-end encryption <span style="background:var(--apple-blue);color:#fff;font-size:10px;padding:1px 6px;border-radius:6px;margin-left:4px;letter-spacing:0.03em">BETA</span></strong>
+                                    <span class="vault-status">Off — client data is encrypted with a device-bound key</span>
+                                </div>
+                                <button class="btn-auth btn-auth-small btn-auth-primary vault-primary-btn" style="margin-top:0;width:auto;padding:0.4rem 1rem;white-space:nowrap">Enable</button>
+                            </div>
+                            <div class="vault-sub-actions" data-e2e-on style="display:none">
+                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.openChange()">Change passphrase</button>
+                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.openRecovery()">Use recovery key</button>
+                                <button class="btn-auth btn-auth-small btn-auth-secondary" onclick="VaultUI.disableE2E()" style="color:#FF453A">Turn off</button>
+                            </div>
+                            <!-- Biometric / passkey list — populated by VaultUI._refreshBiometricRow.
+                                 Each registered passkey shows a label + Remove button; trailing
+                                 "+ Add biometric / passkey" button kicks off WebAuthn registration. -->
+                            <div id="vaultBiometricRow" data-e2e-on style="display:none"></div>
+                        </div>
+                    </div>
+
+                    <!-- Team -->
+                    <div class="acct-tab-panel" data-acct-panel="team" hidden>
+                        <div id="authInviteSection" style="display:none">
                             <div class="auth-invite-row" onclick="Onboarding.showShareModal()">
                                 <span>👥</span>
                                 <div class="auth-invite-text">
@@ -826,7 +774,26 @@
                                 <span class="auth-invite-arrow">›</span>
                             </div>
                         </div>
-                    </details>
+                    </div>
+
+                    <!-- Data -->
+                    <div class="acct-tab-panel" data-acct-panel="data" hidden>
+                        <h4 class="acct-tab-h">☁️ Cloud Sync</h4>
+                        <div class="auth-sync-status">
+                            <div class="auth-sync-info">
+                                <span id="authSyncStatus">Ready to sync</span>
+                                <span id="authSyncTimestamp" class="auth-sync-timestamp"></span>
+                            </div>
+                            <button class="btn-auth btn-auth-small btn-auth-primary" style="margin-top:0;width:auto;padding:0.4rem 1rem" onclick="CloudSync.fullSync()">Sync Now</button>
+                        </div>
+                        <label class="auth-field" style="display:flex;align-items:flex-start;gap:0.6rem;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--border);cursor:pointer">
+                            <input type="checkbox" id="authSyncDisabled" onchange="CloudSync.setDisabled(this.checked)" style="margin-top:3px;flex-shrink:0">
+                            <span style="font-size:13px;line-height:1.45">
+                                <strong>Keep data on this device only</strong>
+                                <span style="display:block;color:var(--text-secondary);font-size:11px;margin-top:2px">Recommended on shared or public computers. Client data stays encrypted in this browser and is never uploaded. Cross-device sync will stop working until you re-enable this.</span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
                 <div class="auth-account-actions">
                     <button class="btn-auth btn-auth-secondary" onclick="Auth.logout()">Sign Out</button>
@@ -937,6 +904,22 @@
                     </div>
                 </form>
             </div>
+        </div>
+    </div>
+
+    <!-- ══ Admin User Management ══
+         Opened only for signed-in admins via AdminPanel.open() (js/admin-panel.js).
+         Reuses .auth-modal* styling; never shown under the auth-gate. -->
+    <div id="adminPanelModal" class="auth-modal-overlay" style="display:none">
+        <div class="auth-modal auth-modal-wide">
+            <button class="auth-close" onclick="AdminPanel.close()">&times;</button>
+            <div class="auth-modal-header">
+                <h3>User Management</h3>
+                <p style="margin:0.3rem 0 0;font-size:12px;color:var(--text-secondary)">Grant admin or block accounts. Changes apply immediately.</p>
+            </div>
+            <div id="adminPanelError" class="auth-error" style="display:none"></div>
+            <div id="adminPanelStatus" style="font-size:12px;color:var(--text-secondary);padding:0.5rem 0">Loading users…</div>
+            <div id="adminUserList"></div>
         </div>
     </div>
 
@@ -1296,6 +1279,7 @@
 <script src="js/supabase-auth.js"></script>
 <script src="js/auth-mfa-ui.js"></script>
 <script src="js/sync-facade.js"></script>
+<script src="js/admin-panel.js"></script>
 <script src="js/vault-meta.js"></script>
 <!-- Biometric / passkey unlock — loads before vault-ui so the unlock modal
      can call into BiometricUnlock.unlock() / register() on user action. -->

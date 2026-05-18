@@ -349,8 +349,8 @@
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s, transform 0.1s, box-shadow 0.15s;
     font-family: inherit;
-    min-height: 64px;
-    height: 64px;
+    min-height: 70px;
+    height: 70px;
     width: 100%;
     box-sizing: border-box;
     user-select: none;
@@ -370,6 +370,7 @@
     text-overflow: ellipsis;
     max-width: 100%;
     letter-spacing: 0.2px;
+    line-height: 1.25;
 }
 .qr-emoji-btn:hover {
     border-color: #0d9488;

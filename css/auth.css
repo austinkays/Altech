@@ -446,6 +446,77 @@
     to   { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Account modal: tabbed settings (replaces the <details> accordion) ──
+   Reuses the .seg-group / .seg-btn / .seg-active segmented control and the
+   settingsSlideIn keyframe. Colors come from design tokens, which already
+   swap under body.dark-mode (same mechanism .seg-* itself relies on). */
+.auth-modal-wide {
+    max-width: 460px;
+}
+.acct-tabnav.seg-group {
+    display: flex;
+    width: 100%;
+    margin: 0 0 1.1rem;
+}
+.acct-tabnav .seg-btn {
+    flex: 1;
+    padding: 7px 4px;
+    text-align: center;
+    font-size: 11px;
+}
+.acct-tab-panel {
+    animation: settingsSlideIn 0.18s ease;
+}
+.acct-tab-panel[hidden] {
+    display: none;
+}
+.acct-tab-h {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 0.6rem;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+/* Admin User Management modal rows */
+.admin-user-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+}
+.admin-user-row:last-child {
+    border-bottom: none;
+}
+.admin-user-meta {
+    flex: 1;
+    min-width: 0;
+}
+.admin-user-email {
+    color: var(--text);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.admin-user-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+.admin-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 6px;
+    margin-left: 6px;
+    letter-spacing: 0.03em;
+}
+.admin-badge.is-admin   { background: var(--apple-blue); color: #fff; }
+.admin-badge.is-blocked { background: var(--danger); color: #fff; }
+
 /* Refined select inside settings */
 .settings-select {
     width: 100%;
