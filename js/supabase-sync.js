@@ -453,6 +453,20 @@ window.SupabaseSync = (() => {
             }
         }
 
+        // Surface a successful cloud pull to the activity log. This (a) makes
+        // restores visible in the header pill / activity panel like pushes
+        // already are, and (b) wakes the dashboard's ActivityLog subscriber so
+        // the Reminders + CGL cards re-render against the freshly written
+        // localStorage — covering restore paths (e.g. vault biometric unlock)
+        // that don't call DashboardWidgets.refreshAll() themselves. Only logged
+        // when something was actually written, to avoid no-op noise.
+        if (window.ActivityLog && restored.length > 0) {
+            window.ActivityLog.add({
+                type: 'sync', area: 'supabase', ok: true,
+                message: `Restored ${restored.length} doc${restored.length === 1 ? '' : 's'} from cloud`,
+            });
+        }
+
         return { restored, skipped, failed };
     }
 

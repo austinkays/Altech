@@ -292,7 +292,9 @@ describe('completion ledger — wiring invariants', () => {
 
     test('_load() reconciles from the ledger', () => {
         const block = SRC.slice(SRC.indexOf('function _load'));
-        expect(block.slice(0, 600)).toMatch(/_reconcileFromLedger\(\)/);
+        // Arg-agnostic: _load now forwards an optional { quiet } opts through
+        // to _reconcileFromLedger (quiet refresh path for the dashboard widget).
+        expect(block.slice(0, 600)).toMatch(/_reconcileFromLedger\(/);
     });
 
     test('completeTask / uncompleteTask / deleteTask touch the ledger', () => {

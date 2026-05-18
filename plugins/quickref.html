@@ -10,29 +10,7 @@
 
 <div class="qr-container">
 
-    <!-- ① Spell It Out -->
-    <div class="card qr-section" id="qrs-speller">
-        <div class="qr-section-header">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
-                <h2 style="margin:0;">🔤 Spell It Out</h2>
-                <button class="qr-section-toggle" onclick="QuickRef.toggleSection('speller')" title="Collapse section">
-                    <span class="qr-chevron">▾</span>
-                </button>
-            </div>
-        </div>
-        <div class="qr-section-body">
-            <div class="qr-speller-input-wrap">
-                <input type="text" class="qr-speller-input" id="qrSpellerInput"
-                    placeholder="Type a name, word, or number…"
-                    oninput="QuickRef.spell(this.value)"
-                    autocomplete="off" spellcheck="false">
-                <button class="qr-speller-clear" id="qrSpellerClear" onclick="QuickRef.clearSpeller()" title="Clear" style="display:none;">✕</button>
-            </div>
-            <div class="qr-speller-output" id="qrSpellerOutput"></div>
-        </div>
-    </div>
-
-    <!-- ② Quick Emojis -->
+    <!-- ① Quick Emojis -->
     <div class="card qr-section" id="qrs-emojis">
         <div class="qr-section-header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
@@ -51,6 +29,28 @@
         </div>
         <div class="qr-section-body">
             <div class="qr-emoji-grid" id="qrEmojiGrid"></div>
+        </div>
+    </div>
+
+    <!-- ② Spell It Out -->
+    <div class="card qr-section" id="qrs-speller">
+        <div class="qr-section-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex: 1;">
+                <h2 style="margin:0;">🔤 Spell It Out</h2>
+                <button class="qr-section-toggle" onclick="QuickRef.toggleSection('speller')" title="Collapse section">
+                    <span class="qr-chevron">▾</span>
+                </button>
+            </div>
+        </div>
+        <div class="qr-section-body">
+            <div class="qr-speller-input-wrap">
+                <input type="text" class="qr-speller-input" id="qrSpellerInput"
+                    placeholder="Type a name, word, or number…"
+                    oninput="QuickRef.spell(this.value)"
+                    autocomplete="off" spellcheck="false">
+                <button class="qr-speller-clear" id="qrSpellerClear" onclick="QuickRef.clearSpeller()" title="Clear" style="display:none;">✕</button>
+            </div>
+            <div class="qr-speller-output" id="qrSpellerOutput"></div>
         </div>
     </div>
 

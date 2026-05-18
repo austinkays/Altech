@@ -449,6 +449,17 @@ window.DashboardWidgets = (() => {
         const container = document.getElementById('widgetReminders');
         if (!container) return;
 
+        // Re-hydrate the Reminders module from localStorage before reading
+        // counts. The module's in-memory state is otherwise only loaded by
+        // Reminders.init() (which runs only when the Reminders *page* is
+        // opened), so without this the card shows stale/empty data until the
+        // user visits that page — and stays stale after a cloud restore
+        // overwrites the stored blob. refreshFromStorage() is a pure read
+        // (no persist/push/log side effects), safe to call on every render.
+        if (typeof Reminders !== 'undefined' && Reminders.refreshFromStorage) {
+            try { Reminders.refreshFromStorage(); } catch (e) { /* ignore */ }
+        }
+
         const hasModule = typeof Reminders !== 'undefined' && Reminders.getCounts;
         const counts = hasModule ? Reminders.getCounts() : { total: 0, overdue: 0, dueToday: 0, dueSoon: 0, completed: 0, upcoming: 0, snoozed: 0 };
 
@@ -1604,6 +1615,31 @@ window.DashboardWidgets = (() => {
                 }
             });
             window._todayActivitySubscribed = true;
+        }
+    }
+
+    // Live-update the Reminders + CGL cards on any activity event (a save from
+    // the Reminders/Compliance page, a cloud sync/restore, an import). Without
+    // this they only refreshed on the 60 s interval or a return-home — and
+    // since the 60 s interval re-renders from stale module memory, the user
+    // saw no real update until they opened the source page. renderReminders
+    // now self-hydrates from storage (above) and renderCompliance reads
+    // localStorage directly, so re-rendering here picks up fresh data.
+    // restoreFromCloud() emits a 'sync' ActivityLog event, so a cloud pull
+    // updates these cards immediately (covers the vault-unlock restore path
+    // that doesn't call refreshAll()). Wired once per session; the render
+    // functions emit no ActivityLog events, so no re-entrancy.
+    if (typeof window !== 'undefined' && !window._remindersCglActivitySubscribed) {
+        if (window.ActivityLog && typeof window.ActivityLog.subscribe === 'function') {
+            window.ActivityLog.subscribe(() => {
+                const dv = document.getElementById('dashboardView');
+                if (dv && dv.style.display !== 'none') {
+                    try { renderRemindersWidget(); } catch (e) { /* ignore */ }
+                    try { renderComplianceWidget(); } catch (e) { /* ignore */ }
+                    try { updateBadges(); } catch (e) { /* ignore */ }
+                }
+            });
+            window._remindersCglActivitySubscribed = true;
         }
     }
 
