@@ -645,3 +645,78 @@ describe('IntakeV2 — export parity (effective date, term, earthquake)', () => 
         expect(ezHome).toContain('<Effective>2026-09-01</Effective>');
     });
 });
+
+// ─── EZLynx import safety ──────────────────────────────────────────────────
+// "I never want to see the import fail — I'd rather see an error that my
+// export is missing info." Locks the builder hardening (license-less driver
+// → Not Rated, bad VIN → no VIN lookup, junk gender → Not Specified) and the
+// pre-export validator that surfaces blocking/warning lists.
+describe('IntakeV2 — EZLynx import safety', () => {
+    let w;
+    beforeAll(async () => { w = bootDom(); await activate(w); });
+
+    function freshAuto(extra) {
+        // Reset to a clean, importable baseline each test.
+        w.IntakeV2.data.operators = [];
+        w.IntakeV2.data.autos = [];
+        w.IntakeV2.data.homes = [];
+        Object.assign(w.IntakeV2.data.applicant, { firstName: 'Eze', lastName: 'Safe', dob: '1980-01-01' });
+        Object.assign(w.IntakeV2.data.address, { street: '1 A St', city: 'Olympia', state: 'WA', zip: '98501' });
+        return extra && extra();
+    }
+
+    test('license-less driver exports as Not Rated; licensed driver stays Rated', () => {
+        freshAuto();
+        const lic = w.IntakeV2.addItem('operators', { firstName: 'Licensed', lastName: 'Driver', gender: 'Nonbinary' });
+        lic.dl.num = 'D1234567'; lic.dl.state = 'WA';
+        const nolic = w.IntakeV2.addItem('operators', { firstName: 'Nolic', lastName: 'Driver' });
+        const auto = w.IntakeV2.addItem('autos', { year: 2018, make: 'Honda', model: 'Civic', vin: '1HGCM82633A004352' });
+        auto.primaryOperatorId = lic.id;
+        auto.additionalOperatorIds = [nolic.id];
+
+        const xml = w.IntakeV2EZLynxXML.buildIntakeV2EZAutoXML(w.IntakeV2.data).content;
+        expect(xml).toContain('<Rated>Rated</Rated>');       // licensed driver
+        expect(xml).toContain('<Rated>Not Rated</Rated>');   // license-less driver
+        // Junk gender never passes through raw (would fail V200 deserialize)
+        expect(xml).toContain('<Gender>Not Specified</Gender>');
+        expect(xml).not.toContain('<Gender>Nonbinary</Gender>');
+        // Valid VIN → lookup on + VIN emitted
+        expect(xml).toContain('<UseVinLookup>Yes</UseVinLookup>');
+        expect(xml).toContain('<Vin>1HGCM82633A004352</Vin>');
+    });
+
+    test('invalid VIN → UseVinLookup No and no <Vin> element', () => {
+        freshAuto();
+        const op = w.IntakeV2.addItem('operators', { firstName: 'A', lastName: 'B' });
+        op.dl.num = 'X1'; op.dl.state = 'WA';
+        const auto = w.IntakeV2.addItem('autos', { year: 2015, make: 'Ford', model: 'F150', vin: 'NOTAVALIDVIN' });
+        auto.primaryOperatorId = op.id;
+        const xml = w.IntakeV2EZLynxXML.buildIntakeV2EZAutoXML(w.IntakeV2.data).content;
+        expect(xml).toContain('<UseVinLookup>No</UseVinLookup>');
+        expect(xml).not.toContain('<Vin>');
+        expect(xml).toContain('<Make>Ford</Make>'); // still identifiable via YMM
+    });
+
+    test('validator: clean auto has no blocking, warns on missing DL', () => {
+        freshAuto();
+        const op = w.IntakeV2.addItem('operators', { firstName: 'No', lastName: 'License' });
+        const auto = w.IntakeV2.addItem('autos', { year: 2020, make: 'Toyota', model: 'Camry', vin: '4T1BF1FK5GU260000' });
+        auto.primaryOperatorId = op.id;
+        const r = w.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx(w.IntakeV2.data);
+        expect(r.blocking).toEqual([]);
+        expect(r.warnings.some(s => /no DL number/i.test(s))).toBe(true);
+    });
+
+    test('validator: blocks no-named-insured and unidentifiable vehicle', () => {
+        freshAuto();
+        w.IntakeV2.data.applicant.firstName = '';
+        w.IntakeV2.data.applicant.lastName = '';
+        const op = w.IntakeV2.addItem('operators', { firstName: 'X', lastName: 'Y' });
+        op.dl.num = 'D9'; op.dl.state = 'WA';
+        const auto = w.IntakeV2.addItem('autos', { vin: 'BADVIN' }); // no year/make/model, bad VIN
+        auto.primaryOperatorId = op.id;
+        const r = w.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx(w.IntakeV2.data);
+        expect(r.blocking.some(s => /named insured/i.test(s))).toBe(true);
+        expect(r.blocking.some(s => /not identifiable/i.test(s))).toBe(true);
+    });
+});

@@ -58,8 +58,29 @@
         const x = String(g || '').trim().toLowerCase();
         if (x === 'm' || x === 'male')   return 'Male';
         if (x === 'f' || x === 'female') return 'Female';
-        if (x === 'nonbinary' || x === 'nb' || x === 'x') return 'Not Specified';
-        return g || '';
+        // Anything else (nonbinary, prefer-not-to-say, blank, junk) → the
+        // V200-safe enum. EZLynx <Gender> only accepts Male / Female /
+        // Not Specified; passing the raw value through (the old `return g`)
+        // failed the server-side deserializer.
+        return 'Not Specified';
+    }
+    // A VIN EZLynx will accept for its decoder: exactly 17 chars, no I/O/Q.
+    // Anything else → we must NOT set UseVinLookup=Yes (EZLynx tries to
+    // decode it and the whole import fails) and must NOT emit a junk <Vin>.
+    function validVin(v) {
+        return /^[A-HJ-NPR-Z0-9]{17}$/i.test(String(v || '').trim());
+    }
+    // Operators that belong on an EZAUTO policy — kept identical to the
+    // builder's own filter so the validator and the XML never disagree.
+    function driverOpsFor(v2) {
+        const operators = Array.isArray(v2.operators) ? v2.operators : [];
+        const autos = Array.isArray(v2.autos) ? v2.autos : [];
+        const linked = new Set();
+        autos.forEach(au => {
+            if (au.primaryOperatorId) linked.add(au.primaryOperatorId);
+            (au.additionalOperatorIds || []).forEach(id => linked.add(id));
+        });
+        return operators.filter(op => op.isPrimaryApplicant || op.isCoApplicant || linked.has(op.id));
     }
     function isYes(v) {
         if (v === true) return 'Yes';
@@ -350,7 +371,11 @@
                     tag('Relation', relationHS(op.relationship, op.isPrimaryApplicant)),
                     tag('GoodStudent', op.goodStudent ? 'Yes' : 'No'),
                     tag('MATDriver', op.matureDriver ? 'Yes' : 'No'),
-                    tag('Rated', 'Rated'),
+                    // EZLynx cannot rate a driver with no license number — a
+                    // <Rated>Rated</Rated> driver missing <DLNumber> fails the
+                    // import. Degrade to Not Rated so the file imports; the
+                    // pre-export validator warns the agent to add the DL#.
+                    tag('Rated', (dl.num && String(dl.num).trim()) ? 'Rated' : 'Not Rated'),
                     tagIf('PrincipalVehicle', principalVehicle),
                     violations,
                     '</Driver>',
@@ -369,11 +394,16 @@
             '<Vehicles>',
             ...autos.map((veh, i) => {
                 const id = i + 1;
+                // Only ask EZLynx to VIN-decode a structurally valid VIN.
+                // A bad/short VIN with UseVinLookup=Yes fails the whole
+                // import; an invalid VIN element can be rejected on its own.
+                // Fall back to Year/Make/Model identification instead.
+                const vinOk = validVin(veh.vin);
                 return [
                     `<Vehicle id="${id}">`,
-                    tag('UseVinLookup', veh.vin ? 'Yes' : 'No'),
+                    tag('UseVinLookup', vinOk ? 'Yes' : 'No'),
                     tagIf('Year', veh.year),
-                    tagIf('Vin', veh.vin),
+                    vinOk ? tag('Vin', String(veh.vin).trim().toUpperCase()) : '',
                     tagIf('Make', veh.make),
                     tagIf('Model', veh.model),
                     tagIf('Anti-Theft', antiTheftHS(veh.antiTheftDevice)),
@@ -789,7 +819,76 @@
         };
     }
 
+    // ─── Pre-export validation ───────────────────────────────────────────────
+    // Catch the things that make EZLynx reject an import BEFORE the file is
+    // produced, so the agent sees a clear "your export is missing X" message
+    // instead of a silent failure inside EZLynx. `blocking` = the file would
+    // not import at all (abort); `warnings` = it imports but fields are blank
+    // / a driver is Not Rated (let the agent decide).
+    function validateIntakeV2ForEZLynx(v2) {
+        v2 = v2 || (window.IntakeV2 && window.IntakeV2.data) || {};
+        const blocking = [];
+        const warnings = [];
+
+        const a = v2.applicant || {};
+        const addr = v2.address || {};
+        const autos = Array.isArray(v2.autos) ? v2.autos : [];
+        const homes = Array.isArray(v2.homes) ? v2.homes : [];
+        const hasAuto = autos.length > 0;
+        const hasHome = homes.length > 0;
+
+        // Named insured + address are required for any EZLynx import.
+        if (!(a.firstName && String(a.firstName).trim()) || !(a.lastName && String(a.lastName).trim())) {
+            blocking.push('No named insured — applicant first and last name are required.');
+        }
+        if (!(addr.city && addr.state && addr.zip)) {
+            blocking.push('Incomplete address — city, state and ZIP are required for rating.');
+        }
+
+        if (hasAuto) {
+            const driverOps = driverOpsFor(v2);
+            if (driverOps.length === 0) {
+                blocking.push('Auto policy has no drivers — add at least one operator.');
+            }
+            driverOps.forEach(op => {
+                const nm = [op.firstName, op.lastName].filter(Boolean).join(' ') || 'A driver';
+                const dl = op.dl || {};
+                if (!(dl.num && String(dl.num).trim())) {
+                    warnings.push(`${nm}: no DL number — exported as "Not Rated" (EZLynx will not rate this driver until a license # is added).`);
+                } else if (!(dl.state && String(dl.state).trim())) {
+                    warnings.push(`${nm}: DL number present but no DL state — add the state so the driver rates.`);
+                }
+            });
+            autos.forEach((veh, i) => {
+                const label = [veh.year, veh.make, veh.model].filter(Boolean).join(' ') || `Vehicle #${i + 1}`;
+                const idOk = validVin(veh.vin) || (veh.year && veh.make && veh.model);
+                if (!idOk) {
+                    blocking.push(`${label}: not identifiable — needs a valid 17-character VIN or Year + Make + Model.`);
+                } else if (veh.vin && !validVin(veh.vin)) {
+                    warnings.push(`${label}: VIN "${String(veh.vin).trim()}" is not a valid 17-character VIN — exported without VIN lookup; EZLynx will rate from Year/Make/Model.`);
+                }
+            });
+            const c0 = (autos[0] && autos[0].coverages) || {};
+            if (!c0.liab) {
+                warnings.push('No auto liability limits selected — EZLynx may not be able to rate the auto policy.');
+            }
+        }
+
+        if (hasHome) {
+            const h0 = homes[0] || {};
+            const hc = h0.coverages || {};
+            if (!hc.dwellingA) {
+                warnings.push('Home has no Coverage A (dwelling limit) — EZLynx home rating needs it.');
+            }
+            if (!h0.yrBuilt && !h0.sqFt && !h0.dwellingType) {
+                warnings.push('Home has almost no dwelling detail (year built / square footage / type) — the EZLynx home app will be largely blank.');
+            }
+        }
+
+        return { blocking, warnings };
+    }
+
     // Expose for the orchestrator
-    window.IntakeV2EZLynxXML = { buildIntakeV2EZAutoXML, buildIntakeV2EZHomeXML };
+    window.IntakeV2EZLynxXML = { buildIntakeV2EZAutoXML, buildIntakeV2EZHomeXML, validateIntakeV2ForEZLynx };
 
 })();
