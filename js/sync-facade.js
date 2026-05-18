@@ -111,6 +111,38 @@
     // add the two methods Sync doesn't carry (setDisabled, deleteCloudData).
     const CloudSync = {
         fullSync(...a) { return Sync.fullSync(...a); },
+
+        // Sync Now button handler with visible feedback. Bare fullSync() ran
+        // silently (or no-op'd when admin-gated) so the button looked dead —
+        // disable + "Syncing…" while in flight, then toast the outcome and
+        // stamp #authSyncTimestamp so something visibly changed.
+        async syncNowUI(btn) {
+            const orig = btn ? btn.textContent : '';
+            if (btn) { btn.disabled = true; btn.textContent = 'Syncing…'; }
+            let res;
+            try { res = await Sync.fullSync(); }
+            catch (e) { res = { ok: false, error: e }; }
+            if (btn) { btn.disabled = false; btn.textContent = orig || 'Sync Now'; }
+
+            const skip = res && res.skipped;
+            const toast = (m, t) => { if (typeof App !== 'undefined' && App.toast) App.toast(m, { type: t }); };
+            if (skip === 'policy-blocked') {
+                toast('Cloud sync is restricted to admin accounts by agency policy', 'info');
+            } else if (skip === 'mfa-required') {
+                toast('Enable two-factor authentication to sync to the cloud', 'info');
+            } else if (res && res.ok === false && res.error) {
+                toast('Sync failed — your changes are still saved locally', 'error');
+            } else {
+                toast('Cloud sync complete', 'success');
+                try {
+                    const ts = document.getElementById('authSyncTimestamp');
+                    if (ts) ts.textContent = 'Last synced ' +
+                        new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+                } catch (e) { /* ignore */ }
+            }
+            return res;
+        },
+
         schedulePush(...a) { return Sync.schedulePush(...a); },
         pushToCloud(...a) { return Sync.pushToCloud(...a); },
 

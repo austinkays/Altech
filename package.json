@@ -41,6 +41,7 @@
   },
   "homepage": "https://github.com/austinkays/Altech#readme",
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
     "ioredis": "^5.9.3",
     "pdf-lib": "^1.17.1",
     "stripe": "^20.3.1"
