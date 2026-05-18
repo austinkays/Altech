@@ -192,7 +192,6 @@ Altech/
 │   ├── onboarding.js              #   First-run welcome flow + access code verification
 │   ├── paywall.js                 #   Stripe subscription paywall (beta)
 │   ├── admin-panel.js             #   Admin user management UI
-│   ├── bug-report.js              #   In-app bug reporting → GitHub Issues
 │   │
 │   │  ── Plugin Modules ────────────────────────────────────────
 │   ├── compliance-dashboard.js    #   CGL & Bonds UI
