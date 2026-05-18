@@ -622,6 +622,7 @@
                     liabilityE:'', medPayF:'',
                     deductible:'', windHailDeductible:'',
                     replacementType:'',
+                    earthquake:false, earthquakeDeductible:'', earthquakeZone:'',
                 },
                 // Common HO endorsements
                 endorsements:{

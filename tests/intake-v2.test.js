@@ -583,3 +583,65 @@ describe('IntakeV2 — operator field focus stability', () => {
         expect(after.value).toBe('5DABC');
     });
 });
+
+// ─── V2 export parity (HIGH gaps) ─────────────────────────────────────────
+// Locks the V1→V2 parity fixes the audit surfaced: the real requested
+// effective date must survive both exporters (CMSMTF previously hardcoded
+// "(today)", EZAUTO emitted no <Effective>); policy term must flow; and
+// earthquake must reach CMSMTF (gen_bEarthquake/gen_sEQDeduct/zone) AND the
+// EZHOME <Earthquake> block (V2 previously had no EQ input at all). Without
+// this test these divergences are unguarded — every other ezlynx/cmsmtf
+// contract test exercises only the V1 builders.
+describe('IntakeV2 — export parity (effective date, term, earthquake)', () => {
+    let w, cmsmtf, ezAuto, ezHome;
+    beforeAll(async () => {
+        w = bootDom();
+        await activate(w);
+        Object.assign(w.IntakeV2.data.applicant, { firstName: 'PARITY', lastName: 'CHECK', dob: '1980-01-01' });
+        Object.assign(w.IntakeV2.data.address, { street: '9 Parity St', city: 'Tacoma', state: 'WA', zip: '98402', county: 'Pierce' });
+        Object.assign(w.IntakeV2.data.priorInsurance, {
+            effectiveDate: '2026-09-01', policyTerm: '12 Month', priorPolicyStatus: 'Non-Renewed',
+        });
+        const home = w.IntakeV2.addItem('homes', { yrBuilt: 1990, sqFt: 1800, dwellingType: 'One Family' });
+        home.coverages.dwellingA = 400000;
+        home.coverages.earthquake = true;
+        home.coverages.earthquakeDeductible = '10%';
+        home.coverages.earthquakeZone = '4';
+        w.IntakeV2.syncApplicantOperators();
+        const auto = w.IntakeV2.addItem('autos', { year: 2021, make: 'Honda', model: 'CR-V', vin: 'PARITYVIN00001234' });
+        auto.primaryOperatorId = w.IntakeV2.data.operators[0].id;
+
+        const cap = [];
+        const orig = w.App.downloadFile;
+        w.App.downloadFile = (content, name) => { cap.push({ content, name }); };
+        try { w.IntakeV2.exportCMSMTF(); w.IntakeV2.exportEZLynxXML(); }
+        finally { w.App.downloadFile = orig; }
+        cmsmtf = (cap.find(c => /\.cmsmtf$/i.test(c.name) || /Lead_/.test(c.name)) || {}).content || '';
+        ezAuto = (cap.find(c => /^EZLynx_Import_/.test(c.name)) || {}).content || '';
+        ezHome = (cap.find(c => /^EZLynx_Home_Import_/.test(c.name)) || {}).content || '';
+    });
+
+    test('CMSMTF emits the real effective date, not the (today) placeholder', () => {
+        expect(cmsmtf).toContain('gen_tEffectiveDate = 09/01/2026');
+        expect(cmsmtf).not.toContain('gen_tEffectiveDate = (today)');
+        expect(cmsmtf).toContain('gen_nTerm = 12');
+        expect(cmsmtf).toContain('Prior Policy Status: Non-Renewed');
+    });
+
+    test('CMSMTF emits the earthquake tags (V1 parity)', () => {
+        expect(cmsmtf).toContain('gen_bEarthquake = Y');
+        expect(cmsmtf).toContain('gen_sEQDeduct = 10%');
+        expect(cmsmtf).toContain('hpm_sEarthquakeZone = 4');
+    });
+
+    test('EZLynx EZAUTO carries the effective date + policy term', () => {
+        expect(ezAuto).toContain('<Effective>2026-09-01</Effective>');
+        expect(ezAuto).toContain('<PolicyTerm>12 Month</PolicyTerm>');
+    });
+
+    test('EZLynx EZHOME emits the <Earthquake> block (was missing in V2)', () => {
+        expect(ezHome).toContain('<Earthquake><Earthquake>Yes</Earthquake></Earthquake>');
+        expect(ezHome).toContain('endorsements_earthquake_common');
+        expect(ezHome).toContain('<Effective>2026-09-01</Effective>');
+    });
+});

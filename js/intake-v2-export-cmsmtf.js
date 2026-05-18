@@ -191,6 +191,7 @@
         const pi = v2.priorInsurance || {};
         if (pi.continuous)           misc.push(`Continuous Coverage: ${pi.continuous}`);
         if (pi.continuousMonths)     misc.push(`Continuous Months: ${pi.continuousMonths}`);
+        if (pi.priorPolicyStatus)    misc.push(`Prior Policy Status: ${pi.priorPolicyStatus}`);
 
         // Discounts and affinity programs
         const dc = v2.discounts || {};
@@ -219,7 +220,12 @@
         lines.push(_line('gen_sApplicationType', 'Personal'));
         lines.push(_line('gen_sPolicyTitle', policyTitle));
         lines.push(_line('gen_sLOBCode', lobCode));
-        lines.push(_line('gen_tEffectiveDate', '(today)'));
+        // Real requested effective date when the agent captured it; fall back
+        // to HawkSoft's (today) token only when blank (was unconditionally
+        // hardcoded — silently discarding the entered bind date).
+        lines.push(_line('gen_tEffectiveDate', _dateHS(pi.effectiveDate) || '(today)'));
+        const termMonths = String(pi.policyTerm || '').replace(/\D/g, '');
+        if (termMonths) lines.push(_line('gen_nTerm', termMonths));
         lines.push(_line('gen_sLeadSource', household.referralSource));
         lines.push(_line('gen_nClientStatus', 'Prospect'));
 
@@ -232,6 +238,14 @@
             if (dwelling.includes('condo')) form = 'HO6';
             else if (dwelling === 'tenant-occupied' || dwelling.includes('rent')) form = 'HO4';
             lines.push(_line('gen_sForm', form));
+            // Earthquake — dedicated HawkSoft tags (V1 parity). Only emit
+            // when the agent flagged EQ on the primary home.
+            const hc = (home && home.coverages) || {};
+            if (hc.earthquake) {
+                lines.push(_line('gen_bEarthquake', 'Y'));
+                if (hc.earthquakeDeductible) lines.push(_line('gen_sEQDeduct', hc.earthquakeDeductible));
+                if (hc.earthquakeZone)       lines.push(_line('hpm_sEarthquakeZone', hc.earthquakeZone));
+            }
         } else if (hasAuto) {
             lines.push(_line('gen_sForm', 'Standard'));
         }
@@ -454,6 +468,7 @@
             if (home.hazards && home.hazards.businessOnPremises) h.push('Business on premises');
             if (home.hazards && home.hazards.dogs)         h.push(`Dogs: ${home.hazards.dogs}`);
             if (home.coverages && home.coverages.windHailDeductible) h.push(`Wind ded: ${home.coverages.windHailDeductible}`);
+            if (home.coverages && home.coverages.earthquake) h.push(`Earthquake${home.coverages.earthquakeDeductible ? ' ' + home.coverages.earthquakeDeductible + ' ded' : ''}${home.coverages.earthquakeZone ? ' zone ' + home.coverages.earthquakeZone : ''}`);
             // Endorsements (only emit those that are true)
             const endorsements = [];
             if (home.endorsements) {

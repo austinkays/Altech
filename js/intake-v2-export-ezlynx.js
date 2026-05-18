@@ -270,7 +270,8 @@
         // filler JSON.
         const policyInfo = [
             '<PolicyInfo>',
-            tag('PolicyTerm', '6 Month'),
+            tag('PolicyTerm', pi.policyTerm || '6 Month'),
+            tagIf('Effective', isoDate(pi.effectiveDate)),
             '</PolicyInfo>',
         ].join('');
 
@@ -607,7 +608,8 @@
         })();
         const policyInfo = [
             '<PolicyInfo>',
-            tag('PolicyTerm', '12 Month'),
+            tag('PolicyTerm', pi.policyTerm || '12 Month'),
+            tagIf('Effective', isoDate(pi.effectiveDate)),
             tag('PolicyType', policyTypeFromDwelling),
             tag('Package', hasAuto ? 'Yes' : 'No'),
             tagIf('CreditCheckAuth', household.creditCheckAuth ? 'Yes' : ''),
@@ -715,6 +717,12 @@
             '<Sinkhole>',
             tag('SinkholeCollapse', 'No'),
             '</Sinkhole>',
+            // Earthquake — V1 EZHOME parity (nested <Earthquake> wrapper).
+            // V2 previously omitted this entirely, so CEA / earthquake
+            // quoting lost the signal on the EZLynx side.
+            '<Earthquake>',
+            tag('Earthquake', cov.earthquake ? 'Yes' : 'No'),
+            '</Earthquake>',
             // Carrier-specific endorsement signals — emitted as ExtendedInfo
             // keys when supported. The valuepairs flow into the rater UI.
             '</Endorsements>',
@@ -734,6 +742,11 @@
             pairs.push(['endorsements_waterbackup_common',    end.waterBackup ? 'Yes' : 'No']);
             pairs.push(['endorsements_ordinanceorlaw_common', end.ordinanceLaw ? 'Yes' : 'No']);
             pairs.push(['endorsements_identitytheft_common',  end.identityTheft ? 'Yes' : 'No']);
+            if (cov.earthquake) {
+                pairs.push(['endorsements_earthquake_common', 'Yes']);
+                if (cov.earthquakeDeductible) pairs.push(['endorsements_earthquake_deductible', cov.earthquakeDeductible]);
+                if (cov.earthquakeZone)       pairs.push(['endorsements_earthquake_zone', cov.earthquakeZone]);
+            }
             return '<ExtendedInfo name="ICQ|NAME_VALUE_PAIRS">'
                 + pairs.map(([k, v]) => `<valuepair name="${xesc(k)}"><value>${xesc(v)}</value></valuepair>`).join('')
                 + '</ExtendedInfo>';

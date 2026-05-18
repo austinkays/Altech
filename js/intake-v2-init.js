@@ -65,6 +65,7 @@
                 boat: { carrier: '', exp: '', years: '', months: '', limits: '' },
                 rv:   { carrier: '', exp: '', years: '', months: '', limits: '' },
                 continuous: '', continuousMonths: '',
+                effectiveDate: '', policyTerm: '', priorPolicyStatus: '',
                 lapses: [],
             },
             history: {
