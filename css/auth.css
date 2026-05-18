@@ -483,8 +483,8 @@
 .admin-user-row {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.6rem 0;
+    gap: 0.75rem;
+    padding: 0.7rem 0;
     border-bottom: 1px solid var(--border);
     font-size: 13px;
 }
@@ -495,7 +495,15 @@
     flex: 1;
     min-width: 0;
 }
+.admin-user-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
 .admin-user-email {
+    flex: 0 1 auto;
+    min-width: 0;
     color: var(--text);
     font-weight: 600;
     white-space: nowrap;
@@ -503,19 +511,36 @@
     text-overflow: ellipsis;
 }
 .admin-user-sub {
+    margin-top: 2px;
     font-size: 11px;
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .admin-badge {
+    flex-shrink: 0;
     font-size: 10px;
     font-weight: 700;
-    padding: 1px 6px;
-    border-radius: 6px;
-    margin-left: 6px;
-    letter-spacing: 0.03em;
+    padding: 1px 7px;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 .admin-badge.is-admin   { background: var(--apple-blue); color: #fff; }
 .admin-badge.is-blocked { background: var(--danger); color: #fff; }
+.admin-user-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+.admin-user-self {
+    font-size: 11px;
+    color: var(--text-secondary);
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+}
 
 /* Refined select inside settings */
 .settings-select {

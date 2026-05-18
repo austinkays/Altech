@@ -79,7 +79,7 @@ npm run audit-docs      # Check this doc for drift (run after every session)
 │   ├── intake-assist-*.css     # chat / sidebar / features / polish
 │   ├── dashboard.css           # Bento grid + Today widget (~1,373 lines)
 │   ├── reminders.css           # Task reminders (~1,422 lines)
-│   ├── auth.css                # Auth modal + tabbed settings + Agency Glossary textarea (~1,128 lines)
+│   ├── auth.css                # Auth modal + tabbed settings + Agency Glossary textarea (~1,153 lines)
 │   ├── intake-v2.css           # Intake v2 wizard (~1,913 lines)
 │   ├── vault.css / broadform.css  # Vault UI; Carrier Match (in-dev)
 │   └── (plugin-scoped CSS)     # call-logger, task-sheet, returned-mail, accounting, ezlynx,
