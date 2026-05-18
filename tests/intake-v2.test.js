@@ -525,3 +525,61 @@ describe('IntakeV2 — mutation API smoke', () => {
         expect(w.IntakeV2.data.operators.find(o => o.id === extra.id)).toBeUndefined();
     });
 });
+
+// ─── Operator field focus stability ───────────────────────────────────────
+// Regression: typing in an operator card field (reported on DL Number, but
+// every operator field was affected) lost the caret after each character —
+// the delegated `input` handler fired requestRerender('operators') on every
+// keystroke and render() blunt-swaps root.innerHTML, destroying the focused
+// <input>. Fix: gate the operator fan-out on `change` (not `input`); the
+// operators renderer also restores focus+caret as a safety net.
+describe('IntakeV2 — operator field focus stability', () => {
+    let w;
+    beforeAll(async () => { w = bootDom(); await activate(w); });
+
+    const dlEl = (opId) => w.document.getElementById(`iv2-op-dl-num-${opId}`);
+
+    test('typing (input) in DL Number does NOT rebuild the pool — node + focus survive', () => {
+        const op = w.IntakeV2.addItem('operators', { firstName: 'Jane', lastName: 'Doe' });
+        const el = dlEl(op.id);
+        expect(el).not.toBeNull();
+        el.focus();
+        expect(w.document.activeElement).toBe(el);
+
+        el.value = '5';
+        el.dispatchEvent(new w.Event('input', { bubbles: true }));
+
+        // Value persisted per keystroke (setItemField runs on input)…
+        expect(w.IntakeV2.getItem('operators', op.id).dl.num).toBe('5');
+        // …but the operators region was NOT rebuilt: same DOM node, still focused.
+        expect(dlEl(op.id)).toBe(el);
+        expect(w.document.activeElement).toBe(el);
+    });
+
+    test('input on a second operator field also keeps focus (not just DL Number)', () => {
+        const op = w.IntakeV2.data.operators.find(o => o.firstName === 'Jane');
+        const el = w.document.getElementById(`iv2-op-dl-state-${op.id}`)
+                || dlEl(op.id);
+        el.focus();
+        const tag = el;
+        el.value = el.tagName === 'SELECT' ? el.value : 'WA';
+        el.dispatchEvent(new w.Event('input', { bubbles: true }));
+        expect(w.document.activeElement).toBe(tag);
+    });
+
+    test('change rebuilds the pool but restores focus + caret to the same field', () => {
+        const op = w.IntakeV2.data.operators.find(o => o.firstName === 'Jane');
+        const el = dlEl(op.id);
+        el.focus();
+        el.value = '5DABC';
+        try { el.setSelectionRange(5, 5); } catch (_) { /* jsdom text input supports this */ }
+        el.dispatchEvent(new w.Event('change', { bubbles: true }));
+
+        const after = dlEl(op.id);
+        expect(after).not.toBeNull();
+        // Region was rebuilt by the fan-out, yet focus landed back on the
+        // same field id (caret restored) rather than being lost.
+        expect(w.document.activeElement).toBe(after);
+        expect(after.value).toBe('5DABC');
+    });
+});
