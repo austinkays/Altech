@@ -16,7 +16,7 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 51 files in `css/` (~26,400 lines total) |
+| **CSS** | 52 files in `css/` (~26,641 lines total) |
 | **JS** | 109 modules in `js/` (~64,360 lines total) |
 | **Plugins** | 19 HTML templates in `plugins/` (~6,785 lines total, + `tools/broadform.html`) |
 | **APIs** | 13 routable serverless functions + ~22 `_`-prefixed helpers in `api/` (~8,600 lines total) |
@@ -68,7 +68,7 @@ npm run audit-docs      # Check this doc for drift (run after every session)
 │  exact file/line counts. Firebase was fully removed in the Phase D cleanup
 │  (May 2026) — Supabase is the sole auth + sync backend.
 │
-├── css/                        # 51 stylesheets (~26,400 lines) — see CLAUDE.md "CSS Architecture"
+├── css/                        # 52 stylesheets (~26,641 lines) — see CLAUDE.md "CSS Architecture"
 │   ├── variables.css           # :root tokens + body.dark-mode overrides ONLY (the only place theme vars live)
 │   ├── base.css / layout.css   # Reset/typography; app shell, sidebar, plugin container
 │   ├── components-*.css        # Split component families: cards, inputs, buttons, forms, modals,
@@ -248,7 +248,11 @@ All CSS variables are defined in `css/variables.css`. There are **24 variables i
 
 #### Professional Theme (`body.theme-pro`)
 
-Defined in `css/theme-professional.css` — a permanently dark OLED-black theme. Overrides the same variables as `body.dark-mode` but with slightly different values (e.g., `--text: #F5F5F7`, `--success: #30D158`).
+Defined in `css/theme-professional.css` — a permanently dark OLED-black theme. Overrides the same variables as `body.dark-mode` but with slightly different values (e.g., `--text: #F5F5F7`, `--success: #30D158`). NOTE: not in `_VALID_THEMES` and not wired to the Theme dropdown (dead/unreachable CSS — left in place, not currently selectable).
+
+#### Light Theme (`body.theme-light`)
+
+Defined in `css/theme-light.css` — a clean cool white/blue theme (Apple-blue accent, soft off-white bg, white cards). The **inverse of Aurora**: selecting it forces dark mode OFF (`App.setTheme('light')` removes `body.dark-mode`, persists `DARK_MODE='false'`); toggling dark mode back on deactivates it (→ `default`). Exists because the base `:root` light palette is warm cream, not the cool white/blue agency-software look. In `_VALID_THEMES` (`'default'|'aurora'|'light'`) and selectable via the Settings → Preferences Theme dropdown.
 
 ### 3.2 Variable Naming — CRITICAL RULES
 

@@ -37,6 +37,10 @@ Object.assign(App, {
         if (!isDark && document.body.classList.contains('theme-aurora')) {
             this.setTheme('default');
         }
+        // Light is light-only — deactivate if switching to dark
+        if (isDark && document.body.classList.contains('theme-light')) {
+            this.setTheme('default');
+        }
         // Sync dark mode preference to cloud
         if (window.Sync && window.Sync.schedulePush) {
             window.Sync.schedulePush();
@@ -44,8 +48,8 @@ Object.assign(App, {
     },
 
     // ── Theme system ──
-    // Valid themes: 'default', 'aurora'
-    _VALID_THEMES: ['default', 'aurora'],
+    // Valid themes: 'default', 'aurora' (dark-only), 'light' (light-only)
+    _VALID_THEMES: ['default', 'aurora', 'light'],
 
     setTheme(themeId) {
         if (!this._VALID_THEMES.includes(themeId)) themeId = 'default';
@@ -63,6 +67,16 @@ Object.assign(App, {
                 this.updateDarkModeIcons(true);
             }
             document.body.classList.add('theme-aurora');
+        } else if (themeId === 'light') {
+            // Light is a light theme — ensure dark mode is off (inverse of Aurora)
+            if (document.body.classList.contains('dark-mode')) {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem(STORAGE_KEYS.DARK_MODE, 'false');
+                this.updateDarkModeIcons(false);
+            }
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.content = '#007AFF';
+            document.body.classList.add('theme-light');
         }
 
         localStorage.setItem(STORAGE_KEYS.THEME, themeId);
