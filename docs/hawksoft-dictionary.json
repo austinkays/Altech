@@ -1,0 +1,59 @@
+{
+  "_comment": "Two DIFFERENT HawkSoft enum spaces. DO NOT mix them. See docs/HAWKSOFT_API.md. Unknown values are the literal string \"TBD\" — never guessed; they require a live capture against a designated test client.",
+  "lastVerified": "2026-05-18",
+  "pathA_partnerApi": {
+    "_doc": "Sanctioned HawkSoft Partner API v3.0 — what the live logger uses today.",
+    "source": "api/hawksoft-logger.js CHANNEL_MAP + HawkSoft Partner API v3.0",
+    "status": "confirmed",
+    "endpoint": "POST https://integration.hawksoft.app/vendor/agency/{agencyId}/client/{clientId}/log?version=3.0",
+    "auth": "HTTP Basic — base64(HAWKSOFT_CLIENT_ID:HAWKSOFT_CLIENT_SECRET)",
+    "logActionEnum": {
+      "_doc": "LogAction codes 1-56 = group base + offset. Group base: Phone 1, Mail 9, Walk In 17, Online 25, Email 33, Text 41, Chat 49. Offset within group: To Insured +0, To Carrier +1, To Agency Staff +2, To 3rd Party +3, From Insured +4, From Carrier +5, From Agency Staff +6, From 3rd Party +7.",
+      "groups": { "Phone": 1, "Mail": 9, "WalkIn": 17, "Online": 25, "Email": 33, "Text": 41, "Chat": 49 },
+      "offsets": {
+        "To Insured": 0, "To Carrier": 1, "To Agency Staff": 2, "To 3rd Party": 3,
+        "From Insured": 4, "From Carrier": 5, "From Agency Staff": 6, "From 3rd Party": 7
+      }
+    },
+    "callTypeMap": {
+      "_doc": "Mirror of api/hawksoft-logger.js CHANNEL_MAP. The CODE is the single source of truth — edit it there, then re-mirror here.",
+      "Inbound":  { "channel": 5,  "method": "Phone",   "direction": "From", "party": "Insured" },
+      "Outbound": { "channel": 1,  "method": "Phone",   "direction": "To",   "party": "Insured" },
+      "Walk-In":  { "channel": 21, "method": "Walk In", "direction": "From", "party": "Insured" },
+      "Email":    { "channel": 33, "method": "Email",   "direction": "To",   "party": "Insured" },
+      "Text":     { "channel": 41, "method": "Text",    "direction": "To",   "party": "Insured" },
+      "Mail":     { "channel": 9,  "method": "Mail",    "direction": "To",   "party": "Insured" },
+      "_default": { "channel": 5,  "method": "Phone",   "direction": "From", "party": "Insured" }
+    }
+  },
+  "pathB_internalApi": {
+    "_doc": "UNSANCTIONED internal cs.hawksoft.app API from the HawkSoft 6 DevTools exploration. NOT wired. Unverified against a live session. Confirmed values are direct observations; everything else is \"TBD\" pending a live capture.",
+    "source": "HawkSoft 6 API integration guide (cs.hawksoft.app)",
+    "status": "partially_confirmed",
+    "endpoint": "POST https://cs.hawksoft.app/api/client/{clientId}/log",
+    "auth": "Ambient session cookies (hstoken, cms) via credentials: 'include' — never read or transmit the token values",
+    "channel": {
+      "confirmed": { "1": "Internal", "3": "Phone", "5": "Walk-in", "8": "Email" },
+      "tbd": { "Fax": "TBD", "Letter": "TBD", "Text": "TBD", "Web": "TBD" }
+    },
+    "from_to_type": {
+      "confirmed": { "0": "none", "1": "From", "2": "To" }
+    },
+    "action": {
+      "confirmed": { "85": "Standard log entry" },
+      "tbd": { "_doc": "All other action IDs unconfirmed — need a live capture.", "value": "TBD" }
+    },
+    "noteHtmlDialect": {
+      "_doc": "Mirror of the buildHawkSoftNote mapping in js/hawksoft-note.js. Semantic tags (strong/em/p) are stripped by HawkSoft — only these patterns survive.",
+      "bold": "<span style=\"font-weight: bold;\">…</span>",
+      "italic": "<span style=\"font-style: italic;\">…</span>",
+      "underline": "<span style=\"text-decoration-line: underline;\">…</span>",
+      "color": "<span style=\"color: rgb(R, G, B);\">…</span>",
+      "paragraph": "<div>…</div>",
+      "break": "<div><br></div>",
+      "bulletList": "<ul><li>…</li></ul>",
+      "numberedList": "<ol><li>…</li></ol>",
+      "link": "<a target=\"_blank\" href=\"https://…\">…</a>"
+    }
+  }
+}
