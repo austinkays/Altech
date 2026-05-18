@@ -94,51 +94,64 @@ window.AdminPanel = (() => {
             const meta = document.createElement('div');
             meta.className = 'admin-user-meta';
 
-            const emailLine = document.createElement('div');
-            emailLine.className = 'admin-user-email';
-            emailLine.textContent = u.email || '(no email)';   // textContent → XSS-safe
+            const line = document.createElement('div');
+            line.className = 'admin-user-line';
+
+            const email = document.createElement('span');
+            email.className = 'admin-user-email';
+            email.textContent = u.email || '(no email)';   // textContent → XSS-safe
+            email.title = u.email || '';
+            line.appendChild(email);
+
             if (u.isAdmin) {
                 const b = document.createElement('span');
                 b.className = 'admin-badge is-admin';
-                b.textContent = 'ADMIN';
-                emailLine.appendChild(b);
+                b.textContent = 'Admin';
+                line.appendChild(b);
             }
             if (u.isBlocked) {
                 const b = document.createElement('span');
                 b.className = 'admin-badge is-blocked';
-                b.textContent = 'BLOCKED';
-                emailLine.appendChild(b);
+                b.textContent = 'Blocked';
+                line.appendChild(b);
             }
 
             const sub = document.createElement('div');
             sub.className = 'admin-user-sub';
-            sub.textContent = (u.displayName || '—') + (isSelf ? ' · you' : '');
+            sub.textContent = u.displayName || '—';
 
-            meta.appendChild(emailLine);
+            meta.appendChild(line);
             meta.appendChild(sub);
 
-            const adminBtn = document.createElement('button');
-            adminBtn.className = 'btn-auth btn-auth-small btn-auth-secondary';
-            adminBtn.style.marginTop = '0';
-            adminBtn.textContent = u.isAdmin ? 'Remove admin' : 'Make admin';
-            adminBtn.onclick = () => _setFlag(u.uid, { isAdmin: !u.isAdmin }, adminBtn);
+            const actions = document.createElement('div');
+            actions.className = 'admin-user-actions';
 
-            const blockBtn = document.createElement('button');
-            blockBtn.className = 'btn-auth btn-auth-small btn-auth-secondary';
-            blockBtn.style.marginTop = '0';
-            blockBtn.textContent = u.isBlocked ? 'Unblock' : 'Block';
-            blockBtn.onclick = () => _setFlag(u.uid, { isBlocked: !u.isBlocked }, blockBtn);
-
-            // Mirror the server-side self-protection guards client-side.
             if (isSelf) {
-                adminBtn.disabled = true;
-                blockBtn.disabled = true;
-                adminBtn.title = blockBtn.title = "You can't change your own admin/blocked status.";
+                // Self-block / self-de-admin is rejected server-side too —
+                // show a quiet marker instead of dead, greyed-out buttons.
+                const you = document.createElement('span');
+                you.className = 'admin-user-self';
+                you.textContent = 'You';
+                actions.appendChild(you);
+            } else {
+                const adminBtn = document.createElement('button');
+                adminBtn.className = 'btn-auth btn-auth-small btn-auth-secondary';
+                adminBtn.style.marginTop = '0';
+                adminBtn.textContent = u.isAdmin ? 'Remove admin' : 'Make admin';
+                adminBtn.onclick = () => _setFlag(u.uid, { isAdmin: !u.isAdmin }, adminBtn);
+
+                const blockBtn = document.createElement('button');
+                blockBtn.className = 'btn-auth btn-auth-small btn-auth-secondary';
+                blockBtn.style.marginTop = '0';
+                blockBtn.textContent = u.isBlocked ? 'Unblock' : 'Block';
+                blockBtn.onclick = () => _setFlag(u.uid, { isBlocked: !u.isBlocked }, blockBtn);
+
+                actions.appendChild(adminBtn);
+                actions.appendChild(blockBtn);
             }
 
             row.appendChild(meta);
-            row.appendChild(adminBtn);
-            row.appendChild(blockBtn);
+            row.appendChild(actions);
             list.appendChild(row);
         });
     }
