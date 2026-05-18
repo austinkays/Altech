@@ -379,6 +379,157 @@ window.ProspectFormatters = (() => {
             `).join('') + '</div>';
     }
 
+    // ── Candidate collection (Phase-1 discovery) ────────────────────────────
+    // Moved out of prospect.js (size-ceilinged) during the prospect-intel
+    // search improvement pass. Pure: arrays in, ranked array out.
+
+    function _cityMatch(city, searchCity) {
+        if (!city || !searchCity) return false;
+        return String(city).toUpperCase().includes(String(searchCity).toUpperCase());
+    }
+
+    /**
+     * Collect candidate businesses from every Phase-1 discovery source.
+     * @param {{li,sos,places,dor}} sources  raw per-source API responses
+     */
+    function _collectCandidates(sources, searchName, searchState, searchCity) {
+        const { li: liData, sos: sosData, places: placesData, dor: dorData } = sources || {};
+        const candidates = [];
+
+        const pushEntity = (e, source, extra = {}) => candidates.push({
+            businessName: e.businessName || searchName,
+            ubi: e.ubi || '',
+            city: e.city || '',
+            state: searchState,
+            entityType: e.entityType || extra.defaultType || 'Business Entity',
+            status: e.status || '',
+            source,
+            stateMatch: true,
+            cityMatch: _cityMatch(e.city, searchCity),
+            ...extra.fields,
+        });
+
+        // L&I — contractor registry
+        if (liData?.multipleResults && liData.results) {
+            for (const r of liData.results) pushEntity(
+                { businessName: r.businessName, ubi: r.ubi, city: r.city, entityType: r.licenseType, status: r.status },
+                'L&I', { defaultType: 'Contractor', fields: { licenseNumber: r.licenseNumber || '' } });
+        } else if (liData?.contractor && liData.available !== false && !liData.error) {
+            const c = liData.contractor;
+            pushEntity(
+                { businessName: c.businessName, ubi: c.ubi, city: c.address?.city, entityType: c.licenseType, status: c.status },
+                'L&I', { defaultType: 'Contractor', fields: { licenseNumber: c.licenseNumber || '' } });
+        }
+
+        // SOS — business entity
+        if (sosData?.multipleResults && sosData.results) {
+            for (const r of sosData.results) pushEntity(
+                { businessName: r.businessName, ubi: r.ubi, city: r.city, entityType: r.entityType, status: r.status }, 'SOS');
+        } else if (sosData?.entity && !sosData.entity?.multipleResults && sosData.available !== false && !sosData.error) {
+            const e = sosData.entity;
+            pushEntity(
+                { businessName: e.businessName, ubi: e.ubi, city: e.principalOffice?.city, entityType: e.entityType, status: e.status }, 'SOS');
+        }
+
+        // DOR — broad WA tax registry (covers non-contractor businesses)
+        if (dorData?.multipleResults && dorData.results) {
+            for (const r of dorData.results) pushEntity(
+                { businessName: r.businessName, ubi: r.ubi, city: r.city, entityType: r.entityType, status: r.status }, 'DOR');
+        } else if (dorData?.entity && dorData.available !== false && !dorData.error) {
+            const e = dorData.entity;
+            pushEntity(
+                { businessName: e.businessName, ubi: e.ubi, city: e.principalOffice?.city, entityType: e.entityType, status: e.status }, 'DOR');
+        }
+
+        // Google Places — discover mode (multiple)
+        if (placesData?.multipleResults && placesData.results) {
+            for (const r of placesData.results) candidates.push({
+                businessName: r.name || searchName,
+                city: r.city || '',
+                state: r.state || '',
+                address: r.address || '',
+                placeId: r.placeId || '',
+                source: 'Google',
+                rating: r.rating || null,
+                totalReviews: r.totalReviews || 0,
+                stateMatch: r.stateMatch === true,
+                cityMatch: _cityMatch(r.city, searchCity),
+            });
+        }
+
+        return _dedupeCandidates(candidates, searchState);
+    }
+
+    /** Merge candidates with very similar names from the same state. */
+    function _dedupeCandidates(candidates, searchState) {
+        const result = [];
+        const seen = new Set();
+
+        for (const c of candidates) {
+            const normName = (c.businessName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+            const key = normName + '|' + (c.state || searchState);
+
+            if (seen.has(key)) {
+                const existing = result.find(r =>
+                    (r.businessName || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === normName &&
+                    (r.state || searchState) === (c.state || searchState));
+                if (existing) {
+                    existing.sources = existing.sources || [existing.source];
+                    if (!existing.sources.includes(c.source)) existing.sources.push(c.source);
+                    if (!existing.ubi && c.ubi) existing.ubi = c.ubi;
+                    if (!existing.placeId && c.placeId) existing.placeId = c.placeId;
+                    if (!existing.address && c.address) existing.address = c.address;
+                    if (!existing.rating && c.rating) existing.rating = c.rating;
+                    if (!existing.licenseNumber && c.licenseNumber) existing.licenseNumber = c.licenseNumber;
+                    if (!existing.city && c.city) existing.city = c.city;
+                    if (c.cityMatch) existing.cityMatch = true;
+                }
+                continue;
+            }
+
+            seen.add(key);
+            c.sources = [c.source];
+            result.push(c);
+        }
+
+        // Rank: state match → city match → most corroborating sources.
+        result.sort((a, b) => {
+            if (a.stateMatch !== b.stateMatch) return a.stateMatch ? -1 : 1;
+            if (!!a.cityMatch !== !!b.cityMatch) return a.cityMatch ? -1 : 1;
+            return (b.sources?.length || 1) - (a.sources?.length || 1);
+        });
+
+        return result;
+    }
+
+    /**
+     * Human-readable advisories about Phase-1 sources that were blocked or
+     * unconfigured, so a thin/empty result set is explained rather than silent.
+     * @returns {string[]}
+     */
+    function _sourceGapNotes(sources) {
+        const { sos, places, dor, state } = sources || {};
+        const notes = [];
+        if (places && places.available === false && /not configured/i.test(places.note || '')) {
+            notes.push('Google Places isn’t configured (set PLACES_API_KEY) — no business profile, photos, or map match.');
+        }
+        if (sos && sos.manualSearch) {
+            notes.push(`${state || 'State'} Secretary of State blocked the automated lookup — entity details may be missing until you paste SOS data.`);
+        }
+        if (state === 'WA' && dor && dor.available === false && !/Washington-only/i.test(dor.note || '')) {
+            notes.push('WA Department of Revenue lookup was unavailable — non-contractor coverage is reduced.');
+        }
+        return notes;
+    }
+
+    /** Render gap notes as a muted advisory banner ('' when none). */
+    function _gapNoteBanner(notes) {
+        if (!notes || !notes.length) return '';
+        return `<div style="background: rgba(255,149,0,0.06); border-left: 4px solid #FF9500; padding: 12px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 12px; color: var(--text-secondary);">`
+            + notes.map(n => `<div>⚠️ ${_esc(n)}</div>`).join('')
+            + `</div>`;
+    }
+
     return {
         formatLIData: _formatLIData,
         formatSOSData: _formatSOSData,
@@ -389,5 +540,9 @@ window.ProspectFormatters = (() => {
         formatSOSError: _formatSOSError,
         formatRiskClassification: _formatRiskClassification,
         formatInvestigationLinks: _formatInvestigationLinks,
+        collectCandidates: _collectCandidates,
+        dedupeCandidates: _dedupeCandidates,
+        sourceGapNotes: _sourceGapNotes,
+        gapNoteBanner: _gapNoteBanner,
     };
 })();

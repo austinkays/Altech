@@ -8,6 +8,7 @@
  *   li           — WA L&I Contractor Registry
  *   or-ccb       — Oregon Construction Contractors Board
  *   sos          — Secretary of State entity lookup (WA, OR, AZ)
+ *   dor          — WA Department of Revenue entity lookup (broad, non-contractor)
  *   osha         — OSHA inspection database
  *   sam          — SAM.gov federal entity registration
  *   places       — Google Places business profile
@@ -18,7 +19,7 @@ import { securityMiddleware } from '../lib/security.js';
 import { isUpstreamTimeout, sendUpstreamTimeout } from './_fetch-timeout.js';
 import { handleLILookup } from './_prospect-li.js';
 import { handleORCCBLookup } from './_prospect-or-ccb.js';
-import { handleSOSLookup } from './_prospect-sos.js';
+import { handleSOSLookup, handleDORLookup } from './_prospect-sos.js';
 import { handleOSHALookup } from './_prospect-osha.js';
 import { handleSAMLookup } from './_prospect-sam.js';
 import { handlePlacesLookup } from './_prospect-places.js';
@@ -43,6 +44,7 @@ async function handler(req, res) {
     switch (type) {
       case 'li':          result = await handleLILookup(req.query); break;
       case 'sos':         result = await handleSOSLookup(req.query); break;
+      case 'dor':         result = await handleDORLookup(req.query); break;
       case 'or-ccb':      result = await handleORCCBLookup(req.query); break;
       case 'osha':        result = await handleOSHALookup(req.query); break;
       case 'ai-analysis': result = await handleAIAnalysis(req, res); break;
@@ -51,7 +53,7 @@ async function handler(req, res) {
       default:
         return res.status(400).json({
           success: false,
-          error: `Invalid type: ${type}. Must be "li", "sos", "or-ccb", "osha", "ai-analysis", "sam", or "places"`
+          error: `Invalid type: ${type}. Must be "li", "sos", "dor", "or-ccb", "osha", "ai-analysis", "sam", or "places"`
         });
     }
 

@@ -28,10 +28,10 @@ export async function handleAIAnalysis(req, res) {
     return { success: false, error: 'Invalid JSON body' };
   }
 
-  const { businessName, state, li, sos, osha, sam, places, aiSettings } = body;
+  const { businessName, state, city, li, sos, osha, sam, places, aiSettings } = body;
   const ai = createRouter(aiSettings);
 
-  const dataContext = buildDataContext(businessName, state, li, sos, osha, sam, places);
+  const dataContext = buildDataContext(businessName, state, city, li, sos, osha, sam, places);
 
   // Count how many data sources returned useful data
   const hasLI = li && !li.error && li.contractor;
@@ -52,7 +52,7 @@ ${(!sos || !sos.entity) ? '⚠️ SECRETARY OF STATE DATA GAP: SOS entity data w
 ${dataContext}
 
 ## Your Task
-Research "${businessName}" in ${state} THOROUGHLY. Find everything about this business:
+Research "${businessName}" in ${city ? `${city}, ` : ''}${state} THOROUGHLY. Find everything about this business:
 - Website URL, social media accounts (Facebook, LinkedIn, Instagram, Yelp, BBB, etc.)
 - Physical location details: building type, estimated square footage, owned vs leased
 - Services offered, service area/geographic coverage
@@ -123,8 +123,9 @@ Produce a JSON response with these EXACT keys (all string values unless noted �
  * Build a markdown data context from all investigation sources.
  * Caller passes whatever they have (li/sos/osha/sam/places may be null).
  */
-function buildDataContext(businessName, state, li, sos, osha, sam, places) {
+function buildDataContext(businessName, state, city, li, sos, osha, sam, places) {
   const sections = [`**Business Name:** ${businessName || 'Unknown'}`, `**State:** ${state || 'Unknown'}`];
+  if (city) sections.push(`**City:** ${city}`);
 
   // L&I / Contractor data
   if (li && !li.error && li.contractor) {

@@ -304,38 +304,72 @@ describe('Prospect — address priority', () => {
 });
 
 // ────────────────────────────────────────────────────
-// _collectCandidates source verification
+// Candidate collection — ProspectFormatters (moved out of prospect.js)
 // ────────────────────────────────────────────────────
 
-describe('Prospect — candidate collection', () => {
-  test('_collectCandidates handles empty data sources', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'js/prospect.js'), 'utf8');
-    // Extract the function
-    const fnStart = source.indexOf('function _collectCandidates(');
-    const fnEnd = source.indexOf('function _deduplicateCandidates(');
-    expect(fnStart).toBeGreaterThan(-1);
-    expect(fnEnd).toBeGreaterThan(fnStart);
+function loadProspectFormatters() {
+  const src = fs.readFileSync(path.join(ROOT, 'js/prospect-formatters.js'), 'utf8');
+  const fdom = new JSDOM('<!doctype html><html><body></body></html>');
+  const w = fdom.window;
+  // The file is browser IIFE code (`window.ProspectFormatters = (()=>{...})()`);
+  // inject window/document explicitly rather than relying on window.eval.
+  new Function('window', 'document', `${src}\n;return window.ProspectFormatters;`)(w, w.document);
+  return w.ProspectFormatters;
+}
+
+describe('Prospect — candidate collection (ProspectFormatters)', () => {
+  let PF;
+  beforeAll(() => { PF = loadProspectFormatters(); });
+
+  test('exposes the relocated pure helpers', () => {
+    expect(typeof PF.collectCandidates).toBe('function');
+    expect(typeof PF.dedupeCandidates).toBe('function');
+    expect(typeof PF.sourceGapNotes).toBe('function');
+    expect(typeof PF.gapNoteBanner).toBe('function');
   });
 
-  test('_deduplicateCandidates sorts state-matching results first', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'js/prospect.js'), 'utf8');
-    const dedup = source.substring(
-      source.indexOf('function _deduplicateCandidates('),
-      source.indexOf('function _showBusinessSelection(')
-    );
-    // Verify sort prioritizes stateMatch
-    expect(dedup).toContain('a.stateMatch');
-    expect(dedup).toContain('b.stateMatch');
+  test('handles empty data sources', () => {
+    expect(PF.collectCandidates({}, 'ABC', 'WA', '')).toEqual([]);
+    expect(PF.collectCandidates({ li: {}, sos: {}, places: {}, dor: {} }, 'ABC', 'WA', '')).toEqual([]);
   });
 
-  test('Google Places candidates include stateMatch flag', () => {
-    const source = fs.readFileSync(path.join(ROOT, 'js/prospect.js'), 'utf8');
-    const collectFn = source.substring(
-      source.indexOf('function _collectCandidates('),
-      source.indexOf('function _deduplicateCandidates(')
-    );
-    // Places candidates should have stateMatch property
-    expect(collectFn).toContain('stateMatch');
+  test('collects the new DOR source as a candidate', () => {
+    const out = PF.collectCandidates({
+      dor: { available: true, entity: { businessName: 'Joe Diner', ubi: '111', principalOffice: { city: 'Tacoma' }, entityType: 'LLC', status: 'Active' } }
+    }, 'Joe Diner', 'WA', '');
+    expect(out).toHaveLength(1);
+    expect(out[0].source).toBe('DOR');
+    expect(out[0].businessName).toBe('Joe Diner');
+  });
+
+  test('merges same-name candidates across sources (L&I + DOR)', () => {
+    const out = PF.collectCandidates({
+      li: { contractor: { businessName: 'ACME INC', ubi: '9', address: { city: 'Seattle' }, status: 'Active' }, available: true },
+      dor: { available: true, entity: { businessName: 'Acme Inc', ubi: '', principalOffice: { city: 'Seattle' }, status: 'Active' } }
+    }, 'Acme', 'WA', '');
+    expect(out).toHaveLength(1);
+    expect(out[0].sources.sort()).toEqual(['DOR', 'L&I']);
+  });
+
+  test('dedupe ranks state match, then city match, then source count', () => {
+    const ranked = PF.dedupeCandidates([
+      { businessName: 'A', state: 'WA', stateMatch: true, cityMatch: false, source: 'SOS' },
+      { businessName: 'B', state: 'WA', stateMatch: true, cityMatch: true, source: 'DOR' },
+      { businessName: 'C', state: 'OR', stateMatch: false, cityMatch: true, source: 'L&I' },
+    ], 'WA');
+    expect(ranked.map(r => r.businessName)).toEqual(['B', 'A', 'C']);
+  });
+
+  test('sourceGapNotes flags unconfigured Places and blocked SOS', () => {
+    const notes = PF.sourceGapNotes({
+      places: { available: false, note: 'Google Places not configured' },
+      sos: { manualSearch: true },
+      state: 'WA',
+    });
+    expect(notes.some(n => /PLACES_API_KEY/.test(n))).toBe(true);
+    expect(notes.some(n => /Secretary of State blocked/.test(n))).toBe(true);
+    expect(PF.gapNoteBanner(notes)).toContain('⚠️');
+    expect(PF.gapNoteBanner([])).toBe('');
   });
 });
 

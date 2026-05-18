@@ -3,6 +3,8 @@
  * Exports: handleLILookup (endpoint), fetchLIPrincipals (helper used by SOS lookups too).
  */
 
+import { buildSoqlNameClause } from './_prospect-name-match.js';
+
 export async function handleLILookup(query) {
   const { name, ubi } = query;
   if (!name && !ubi) {
@@ -68,9 +70,16 @@ async function searchLIContractor(businessName, ubi) {
       const cleanUbi = ubi.replace(/-/g, '');
       params.append('$where', `ubi='${cleanUbi}' OR ubi='${ubi}'`);
     } else {
-      // Sanitize for SoQL: escape single quotes, strip chars that break queries
-      const safeName = businessName.replace(/'/g, "''").replace(/[\\%_]/g, '');
-      params.append('$where', `upper(businessname) LIKE upper('%${safeName}%')`);
+      // Relaxed match: strip entity-suffix/connector noise so "ABC Plumbing
+      // LLC" still finds "ABC PLUMBING INC". Fall back to the raw substring
+      // query when normalization yields no tokens (avoids a bare %% scan).
+      const relaxed = buildSoqlNameClause('businessname', businessName);
+      if (relaxed) {
+        params.append('$where', relaxed);
+      } else {
+        const safeName = businessName.replace(/'/g, "''").replace(/[\\%_]/g, '');
+        params.append('$where', `upper(businessname) LIKE upper('%${safeName}%')`);
+      }
     }
     params.append('$limit', '10');
     params.append('$order', 'licenseexpirationdate DESC');
