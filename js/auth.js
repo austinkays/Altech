@@ -227,6 +227,10 @@ const Auth = (() => {
         if (inviteSection) inviteSection.style.display = _isAdmin ? '' : 'none';
         const adminSection = document.getElementById('authAdminSection');
         if (adminSection) adminSection.style.display = _isAdmin ? '' : 'none';
+        const teamTab = document.getElementById('acctTabTeam');
+        if (teamTab) teamTab.style.display = _isAdmin ? '' : 'none';
+        // Admin revoked while the Team tab is showing → fall back to Profile.
+        if (!_isAdmin && teamTab && teamTab.classList.contains('seg-active')) _acctTab('profile');
     }
 
     function _updateHeaderUI(user) {
@@ -267,7 +271,34 @@ const Auth = (() => {
         modal.querySelectorAll('.auth-view').forEach(v => v.style.display = 'none');
         const view = modal.querySelector(`[data-auth-view="${viewName}"]`);
         if (view) view.style.display = 'block';
+        // The account view is the tabbed settings surface — widen it. Other
+        // views (login/signup/reset) stay at the narrow default width.
+        const card = modal.querySelector('.auth-modal');
+        if (card) card.classList.toggle('auth-modal-wide', viewName === 'account');
         _clearErrors();
+    }
+
+    // Account-modal tab switcher. Replaces the old <details> accordion: shows
+    // one .acct-tab-panel, lights its .seg-btn, and (standing in for the two
+    // removed `ontoggle` lazy-loads) hydrates the glossary / EZLynx inputs the
+    // first time the Preferences tab is opened, without clobbering unsaved edits.
+    function _acctTab(name) {
+        const modal = _getModal();
+        if (!modal) return;
+        modal.querySelectorAll('.acct-tabnav .seg-btn').forEach(b => {
+            b.classList.toggle('seg-active', b.dataset.acctTab === name);
+        });
+        modal.querySelectorAll('.acct-tab-panel').forEach(p => {
+            p.hidden = (p.dataset.acctPanel !== name);
+        });
+        if (name === 'preferences') {
+            try {
+                const t = document.getElementById('agencyGlossaryText');
+                if (t && !t.value) t.value = localStorage.getItem('altech_agency_glossary') || '';
+                const p = document.getElementById('ezlynxXmlPathInput');
+                if (p && !p.value) p.value = localStorage.getItem(STORAGE_KEYS.EZLYNX_XML_PATH) || '';
+            } catch (e) { /* ignore */ }
+        }
     }
 
     function _clearErrors() {
@@ -506,6 +537,10 @@ const Auth = (() => {
                 if (typeof window.Sync !== 'undefined' && window.Sync.refreshUI) window.Sync.refreshUI();
 
                 if (typeof VaultUI !== 'undefined' && VaultUI.refreshSettingsRow) VaultUI.refreshSettingsRow();
+
+                // Always (re)open on the Profile tab with the correct
+                // single-panel visible state, every time the modal is shown.
+                _acctTab('profile');
             } else {
                 _showView('login');
             }
@@ -541,6 +576,11 @@ const Auth = (() => {
 
         switchView(viewName) {
             _showView(viewName);
+        },
+
+        /** Switch the account modal's active settings tab (inline onclick API). */
+        acctTab(name) {
+            _acctTab(name);
         },
 
         async signup(email, password, displayName) {
