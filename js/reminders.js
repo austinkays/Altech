@@ -60,7 +60,7 @@ window.Reminders = (() => {
         _updateBadge();
     }
 
-    function _load() {
+    function _load(opts) {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
             if (raw) {
@@ -69,11 +69,25 @@ window.Reminders = (() => {
                 _state.categories = parsed.categories || [...DEFAULT_CATEGORIES];
                 _state.lastAlertShown = parsed.lastAlertShown || 0;
                 // gracePeriodEnabled removed — tasks always go overdue at midnight PST
-                _reconcileFromLedger();
+                _reconcileFromLedger(opts);
             }
         } catch (e) {
             console.error('[Reminders] Load error:', e);
         }
+    }
+
+    // Re-hydrate in-memory state from localStorage WITHOUT any persist/push/log
+    // side effect. The dashboard reminders widget calls this on every render
+    // (init, 60 s auto-refresh, return-home, ActivityLog) so it always reflects
+    // the current stored/synced state instead of whatever was in memory the
+    // last time the Reminders page was opened. `quiet` skips the ledger
+    // reconcile's _save() (which emits an ActivityLog event + schedules a
+    // push) — keeping this path free of re-entrancy into ActivityLog
+    // subscribers and free of sync churn. The healed state is still applied
+    // in memory so widget counts are correct; persistence happens on the next
+    // real save / page visit.
+    function refreshFromStorage() {
+        _load({ quiet: true });
     }
 
     // ── Completion ledger (local-only, never synced) ──
@@ -133,7 +147,7 @@ window.Reminders = (() => {
      * different device still arrives via the synced blob for tasks this
      * device has never touched (no ledger entry → blob wins).
      */
-    function _reconcileFromLedger() {
+    function _reconcileFromLedger(opts) {
         const led = _ledgerLoad();
         let changed = false;
         for (const task of _state.tasks) {
@@ -148,8 +162,12 @@ window.Reminders = (() => {
             }
         }
         // Persist the healed state so the recovered completion re-propagates
-        // to the cloud on the next push.
-        if (changed) _save();
+        // to the cloud on the next push. Skipped on a quiet refresh (dashboard
+        // widget) — the in-memory heal above already gives correct counts;
+        // _save() here would emit an ActivityLog event + schedule a push,
+        // which on the ActivityLog-subscribed widget path would re-enter
+        // ActivityLog and churn sync.
+        if (changed && !(opts && opts.quiet)) _save();
     }
 
     /**
@@ -1461,6 +1479,7 @@ window.Reminders = (() => {
         setFilter,
         addCategory,
         checkAlerts,
+        refreshFromStorage,
         getCounts,
         getWeeklySummary,
         getUpcomingTasks,
