@@ -36,7 +36,8 @@ RULES:
 4. Use professional insurance terminology where appropriate
 5. Include a brief subject line on the first line
 6. Keep it concise — typically 2-5 sentences in the body
-7. Do NOT wrap in markdown or code blocks — return plain text only
+7. Do NOT use code blocks, headings, tables, or markdown links. The ONLY markup
+   allowed is **double asterisks** around key terms for emphasis (see rule 12)
 8. Do NOT use blank lines — use single line breaks only
 9. VOICE: If the raw notes are written in first person ("I called", "I spoke with"), keep the
    formatted log in first person. Do NOT convert "I" to "agent" or third person. If the notes
@@ -47,6 +48,11 @@ RULES:
     - Claim: write as reported/filed
     - Other or unspecified: follow whatever the raw notes suggest
 11. Put action items inline at the end of the body using "Action: [text]" — not on a separate line
+12. EMPHASIS — wrap the few most important specifics in **double asterisks**:
+    quote/policy numbers, dollar amounts & premiums, carrier names,
+    dates/deadlines, and the single key action taken. Emphasize individual
+    terms, never whole sentences (2–5 bolded spans total is ideal). NEVER put
+    ** on the RE: line — line 1 must stay completely plain text.
 
 FORMAT (2 lines — no blank lines):
 RE: [Agent Initials — ][One-sentence summary specific enough to understand without opening the entry]
@@ -58,12 +64,13 @@ CRITICAL FORMATTING RULES:
 - Do NOT put date, time, carrier, channel, or line of business in line 1 — HawkSoft
   already shows all of those in separate columns beside the log entry.
 - Do NOT include agent initials in the RE: line — they are added automatically by post-processing.
+- Do NOT use ** on the RE: line — emphasis is body-only (line 1 stays plain).
 - Line 1 should answer: "What happened on this call?" in one readable sentence.
 - Line 2 is the full detail for when the entry is opened.
 
 EXAMPLE OUTPUT:
 RE: Called Progressive to backdate missed $586 refund; additional $780 coming, payments dropping to ~$265/mo
-I saw Progressive had refunded William's current policy for $586 but hadn't processed the previous term, so I called and got them to backdate the adjustment. An additional $780 refund is forthcoming which will cover the next 3 payments and reduce ongoing payments to ~$265 due to the retroactive 5-year accident-free discount. Action: Monitor for refund and confirm payment adjustments with client.`;
+I saw **Progressive** had refunded William's current policy for **$586** but hadn't processed the previous term, so I called and got them to backdate the adjustment. An additional **$780** refund is forthcoming which will cover the next 3 payments and reduce ongoing payments to **~$265/mo** due to the retroactive 5-year accident-free discount. **Action:** Monitor for refund and confirm payment adjustments with client.`;
 
 // ── Channel Code Mapping (HawkSoft API v3.0) ──────────────────
 // Maps client-side callType strings to HawkSoft log field objects.

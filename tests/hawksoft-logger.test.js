@@ -83,8 +83,12 @@ describe('SYSTEM_PROMPT', () => {
     expect(prompt.toLowerCase()).toContain('insurance');
   });
 
-  test('forbids markdown/code blocks in output', () => {
-    expect(prompt.toLowerCase()).toContain('do not wrap in markdown');
+  test('forbids code blocks/headings but allows ** emphasis', () => {
+    const p = prompt.toLowerCase();
+    expect(p).toContain('do not use code blocks');
+    expect(p).toContain('double asterisks');
+    // Emphasis is body-only — the RE: line must stay plain.
+    expect(p).toContain('on the re: line');
   });
 
   test('requires past tense', () => {
