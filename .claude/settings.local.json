@@ -36,7 +36,8 @@
       "Bash(Select-String -Path \"plugins/commercial-quoter.html\" -Pattern \"dot|step-dot|progress\")",
       "Bash(Select-String -Path \"C:\\\\Users\\\\austinkays\\\\Documents\\\\App Development\\\\Altech\\\\js\\\\call-logger.js\" -Pattern \"clientName|selectedClient|_renderClient|client-name|clClientName|hawksoftId|clientId\")",
       "Bash(Select-Object LineNumber, Line)",
-      "Bash(Format-Table -AutoSize)"
+      "Bash(Format-Table -AutoSize)",
+      "Bash(mkdir -p /root/.claude/plans && echo \"plans dir ready\")"
     ]
   }
 }

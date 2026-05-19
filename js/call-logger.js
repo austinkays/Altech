@@ -1270,7 +1270,123 @@ window.CallLogger = (() => {
             });
             activitySelect._clWired = true;
         }
+
+        _initRichPreview();
     }
 
-    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType };
+    // ── Rich-format preview (DRY RUN) ─────────────────────────────────
+    // Pure local render of HawkSoftNote.buildHawkSoftNote(). This block is
+    // deliberately isolated: it makes NO API calls, never touches
+    // _pendingLog / _selectedClient / the push handlers, and shares no
+    // state with the logger above. It cannot alter or trigger a HawkSoft
+    // push. Removing it would not affect the live logger in any way.
+
+    const RP_PRESETS = {
+        bold: [
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Policy ' },
+                { type: 'text', text: 'AUTO-12345', bold: true },
+                { type: 'text', text: ' — payment ' },
+                { type: 'text', text: 'received', italic: true },
+                { type: 'text', text: '. Reinstatement ' },
+                { type: 'text', text: 'confirmed', underline: true },
+                { type: 'text', text: '.' },
+            ] },
+        ],
+        list: [
+            { type: 'paragraph', runs: [{ type: 'text', text: 'Renewal review — action items:' }] },
+            { type: 'bullet', items: [
+                [{ type: 'text', text: 'Re-shop ' }, { type: 'text', text: 'home', bold: true }, { type: 'text', text: ' (premium up 18%)' }],
+                [{ type: 'text', text: 'Confirm roof age with insured' }],
+                [{ type: 'text', text: 'Add ' }, { type: 'text', text: 'umbrella', bold: true }, { type: 'text', text: ' quote' }],
+            ] },
+        ],
+        link: [
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Claim ', color: [192, 0, 0] },
+                { type: 'text', text: 'FNOL filed', bold: true, color: [192, 0, 0] },
+                { type: 'text', text: '. Carrier portal: ' },
+                { type: 'link', text: 'progressive.com/claims', href: 'https://www.progressive.com/claims/' },
+            ] },
+        ],
+        mixed: [
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Inbound call — ' },
+                { type: 'text', text: 'coverage question', bold: true },
+                { type: 'text', text: ' on 2022 Honda CR-V.' },
+            ] },
+            { type: 'break' },
+            { type: 'numbered', items: [
+                [{ type: 'text', text: 'Explained collision deductible options' }],
+                [{ type: 'text', text: 'Quoted ' }, { type: 'text', text: '$500 → $1,000', bold: true }, { type: 'text', text: ' = ' }, { type: 'text', text: '-$84/6mo', color: [0, 128, 0] }],
+            ] },
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Action: ', bold: true },
+                { type: 'text', text: 'send revised dec; follow up ' },
+                { type: 'text', text: 'Fri', underline: true },
+                { type: 'text', text: '.' },
+            ] },
+        ],
+    };
+
+    // Pure: JSON string → { ok, html, error }. No DOM, no network.
+    function _rpBuild(jsonStr) {
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonStr);
+        } catch (e) {
+            return { ok: false, error: 'Invalid JSON — ' + e.message };
+        }
+        if (!window.HawkSoftNote || typeof window.HawkSoftNote.buildHawkSoftNote !== 'function') {
+            return { ok: false, error: 'HawkSoftNote builder not loaded' };
+        }
+        return { ok: true, html: window.HawkSoftNote.buildHawkSoftNote(parsed) };
+    }
+
+    function _initRichPreview() {
+        const panel = document.getElementById('clRpPanel');
+        if (!panel || panel._clRpWired) return;
+        panel._clRpWired = true;
+
+        const input = document.getElementById('clRpInput');
+        const htmlOut = document.getElementById('clRpHtml');
+        const renderOut = document.getElementById('clRpRender');
+        const errOut = document.getElementById('clRpError');
+        const genBtn = document.getElementById('clRpGen');
+        const presets = document.getElementById('clRpPresets');
+        if (!input || !htmlOut || !renderOut || !genBtn) return;
+
+        function generate() {
+            const res = _rpBuild(input.value);
+            if (!res.ok) {
+                if (errOut) errOut.textContent = res.error;
+                htmlOut.textContent = '';
+                renderOut.innerHTML = '';
+                return;
+            }
+            if (errOut) errOut.textContent = '';
+            // textContent → tags shown as visible escaped source.
+            htmlOut.textContent = res.html || '';
+            // innerHTML of builder output ONLY. buildHawkSoftNote is the
+            // sanitization boundary (text escaped, href scheme-allowlisted,
+            // fixed tag set), so this is safe and shows the real render.
+            renderOut.innerHTML = res.html || '<em class="cl-rp-empty">(no renderable content)</em>';
+        }
+
+        if (presets) {
+            presets.addEventListener('click', (e) => {
+                const btn = e.target.closest('.cl-rp-preset');
+                if (!btn || !RP_PRESETS[btn.dataset.preset]) return;
+                input.value = JSON.stringify(RP_PRESETS[btn.dataset.preset], null, 2);
+                generate();
+            });
+        }
+        genBtn.addEventListener('click', generate);
+
+        if (!input.value.trim()) {
+            input.value = JSON.stringify(RP_PRESETS.mixed, null, 2);
+        }
+    }
+
+    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType, _rpBuild, _initRichPreview, RP_PRESETS };
 })();

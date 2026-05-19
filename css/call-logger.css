@@ -933,3 +933,188 @@ body.dark-mode .cl-confirm-policy {
     background: rgba(10, 132, 255, 0.15);
     color: var(--apple-blue);
 }
+
+/* ── Rich-format preview (DRY RUN) ── */
+
+.cl-rp {
+    margin-top: 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-card);
+    overflow: hidden;
+}
+
+.cl-rp-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.cl-rp-summary::-webkit-details-marker { display: none; }
+.cl-rp-summary::before {
+    content: '▸';
+    font-size: 11px;
+    color: var(--text-tertiary, #636366);
+}
+.cl-rp[open] .cl-rp-summary::before { content: '▾'; }
+
+.cl-rp-badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background: var(--apple-blue);
+    color: #fff;
+}
+
+.cl-rp-body {
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border);
+}
+
+.cl-rp-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin: 12px 0;
+    line-height: 1.5;
+}
+.cl-rp-hint code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--bg-input);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.cl-rp-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.cl-rp-preset {
+    font-size: 12px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg-input);
+    color: var(--text);
+    cursor: pointer;
+}
+.cl-rp-preset:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+}
+
+.cl-rp-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.cl-rp-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text);
+    resize: vertical;
+}
+.cl-rp-input:focus {
+    outline: none;
+    border-color: var(--apple-blue);
+}
+
+.cl-rp-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 0 14px;
+}
+.cl-rp-gen {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    background: var(--apple-blue);
+    color: #fff;
+    cursor: pointer;
+}
+.cl-rp-gen:hover { filter: brightness(1.07); }
+.cl-rp-error {
+    font-size: 12px;
+    color: #ff3b30;
+}
+
+.cl-rp-outputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+@media (max-width: 720px) {
+    .cl-rp-outputs { grid-template-columns: 1fr; }
+}
+
+.cl-rp-out-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.cl-rp-html {
+    margin: 0;
+    padding: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    min-height: 80px;
+    max-height: 320px;
+    overflow: auto;
+}
+
+.cl-rp-render {
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.55;
+    background: #ffffff;
+    color: #1d1d1f;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    min-height: 80px;
+    max-height: 320px;
+    overflow: auto;
+}
+.cl-rp-render a { color: #0a66c2; }
+.cl-rp-empty { color: #86868b; font-style: italic; }
+
+body.dark-mode .cl-rp-html {
+    background: #1C1C1E;
+    border-color: #38383A;
+}
+/* The rendered preview intentionally stays light — HawkSoft renders the
+   log on a white surface, so this mirrors the real target appearance. */
+body.dark-mode .cl-rp-render {
+    border-color: #38383A;
+}
