@@ -418,12 +418,39 @@ window.SecurityInfo = (() => {
         const tech = o.querySelector('.secinfo-tech');
         const techWasClosed = tech && !tech.open;
         if (tech) tech.open = true;
+
+        // Hoist the overlay to be a DIRECT child of <body> for the print.
+        // The @media print isolation in css/security-info.css uses
+        // `body.secinfo-printing > *:not(#securityInfoOverlay){display:none}`
+        // to collapse every other body child so the PDF only contains the
+        // overlay's content (no trailing blank pages). At runtime the
+        // overlay's static position can end up nested inside an app-shell
+        // wrapper (boot/init wraps overlays into a wrapper div) — when
+        // that happens the @media print rule hides the WRAPPER, which
+        // hides the overlay with it, and the PDF saves blank. Hoisting
+        // here makes the structural selector match the live DOM regardless
+        // of where the overlay was parked.
+        const origParent = o.parentNode;
+        const origNextSibling = o.nextSibling;
+        const needsHoist = origParent && origParent !== document.body;
+        if (needsHoist) document.body.appendChild(o);
+
         document.body.classList.add('secinfo-printing');
         let done = false;
         const cleanup = () => {
             if (done) return;
             done = true;
             document.body.classList.remove('secinfo-printing');
+            // Restore the overlay to its original DOM position before
+            // toggling display, so subsequent open()/close() interact with
+            // the element back in its parked spot.
+            if (needsHoist && origParent) {
+                if (origNextSibling && origNextSibling.parentNode === origParent) {
+                    origParent.insertBefore(o, origNextSibling);
+                } else {
+                    origParent.appendChild(o);
+                }
+            }
             if (wasHidden) o.style.display = 'none';
             if (tech && techWasClosed) tech.open = false;
             window.removeEventListener('afterprint', cleanup);
