@@ -234,11 +234,36 @@ function render() {
     if (!root) return;
     const ops = window.IntakeV2.data.operators || [];
     const cards = ops.map(renderOperatorCard).join('');
+
+    // Focus/caret guard. render() does a blunt innerHTML swap; if the agent
+    // is mid-edit in an operator field (or the synced-applicant path
+    // re-rendered the pool while they typed in Quick Start), recreate the
+    // same element id and put the caret back where it was. IDs are
+    // deterministic (`iv2-${idStem}-${itemId}`), so a same-id node survives
+    // the rebuild. Without this the caret jumps to another field / is lost.
+    const active = document.activeElement;
+    let restoreId = null, selStart = null, selEnd = null;
+    if (active && active.id && root.contains(active)) {
+        restoreId = active.id;
+        try { selStart = active.selectionStart; selEnd = active.selectionEnd; }
+        catch (_) { /* number/email/select don't expose selection — ignore */ }
+    }
+
     root.innerHTML = `
         ${cards}
         <button type="button" class="iv2-add-btn is-ghost" data-add-op title="Press N anywhere in this section to quick-add">+ Add operator <kbd class="iv2-kbd-hint">N</kbd></button>
         <span style="font-size:11px; color:var(--text-secondary); margin-left:8px">All household drivers, boat operators, and RV operators. Applicant + co-applicant auto-sync from above.</span>
     `;
+
+    if (restoreId) {
+        const el = document.getElementById(restoreId);
+        if (el) {
+            el.focus();
+            if (selStart != null) {
+                try { el.setSelectionRange(selStart, selEnd); } catch (_) { /* unsupported input type */ }
+            }
+        }
+    }
 
     // Wire actions
     root.querySelectorAll('[data-add-op]').forEach(btn => btn.addEventListener('click', () => {

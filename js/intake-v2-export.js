@@ -120,6 +120,45 @@ function exportEZLynxXML() {
         }
         if (!window.IntakeV2EZLynxXML) throw new Error('IntakeV2EZLynxXML builders not loaded');
 
+        // Pre-flight: surface anything that would make EZLynx reject the
+        // import BEFORE we hand the agent a file that dies on their screen.
+        // Blocking issues abort the export outright; warnings let the agent
+        // decide (the file is hardened to still import — license-less drivers
+        // export Not Rated, bad VINs export without VIN lookup — but the
+        // agent should know the export is incomplete).
+        if (typeof window.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx === 'function') {
+            const { blocking, warnings } = window.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx(d);
+            if (blocking && blocking.length) {
+                const msg = 'EZLynx export blocked — these will fail the import:\n\n• '
+                    + blocking.join('\n• ')
+                    + '\n\nFix these and export again.';
+                if (typeof window.alert === 'function') window.alert(msg);
+                else if (window.App && window.App.toast) window.App.toast(msg.replace(/\n/g, ' '), { type: 'error', duration: 6000 });
+                if (window.ActivityLog) window.ActivityLog.add({
+                    type: 'error', area: 'intake-v2', ok: false,
+                    message: 'EZLynx export blocked (missing required info)',
+                    detail: blocking.join(' | '),
+                });
+                return;
+            }
+            if (warnings && warnings.length) {
+                const proceed = (typeof window.confirm === 'function')
+                    ? window.confirm('EZLynx export — heads up, missing info:\n\n• '
+                        + warnings.join('\n• ')
+                        + '\n\nThe file will still import, but these fields will be blank or "Not Rated" in EZLynx.\n\nExport anyway?')
+                    : true;
+                if (!proceed) {
+                    if (window.App && window.App.toast) window.App.toast('EZLynx export cancelled — fix the flagged fields and re-export', { type: 'info', duration: 4000 });
+                    if (window.ActivityLog) window.ActivityLog.add({
+                        type: 'export', area: 'intake-v2', ok: false,
+                        message: 'EZLynx export cancelled by agent after missing-info warning',
+                        detail: warnings.join(' | '),
+                    });
+                    return;
+                }
+            }
+        }
+
         const downloads = [];
         if (hasAuto) downloads.push(window.IntakeV2EZLynxXML.buildIntakeV2EZAutoXML(d));
         if (hasHome) downloads.push(window.IntakeV2EZLynxXML.buildIntakeV2EZHomeXML(d));
