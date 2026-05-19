@@ -445,7 +445,7 @@ window.SecurityInfo = (() => {
         // own landscape setup.
         const pageStyle = document.createElement('style');
         pageStyle.id = 'secinfo-print-page';
-        pageStyle.textContent = '@media print { @page { size: letter portrait; margin: 0.5in; } }';
+        pageStyle.textContent = '@media print { @page { size: letter portrait; margin: 0.4in; } }';
         document.head.appendChild(pageStyle);
 
         document.body.classList.add('secinfo-printing');

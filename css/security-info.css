@@ -455,4 +455,30 @@ body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); 
 
     body.secinfo-printing .secinfo-section { break-inside: avoid; }
     body.secinfo-printing .secinfo-tech-body h5 { break-after: avoid; }
+
+    /* Vertical density: the screen layout breathes a little too generously
+       for paper; tightening below absorbs the trailing 2 bullets + footer
+       so the auditor PDF fits in 2 pages instead of 3. */
+    body.secinfo-printing .secinfo-header { padding: 12px 24px 8px !important; }
+    body.secinfo-printing .secinfo-body { padding: 14px 24px 16px !important; }
+    body.secinfo-printing .secinfo-intro { margin: 0 0 12px !important; }
+    body.secinfo-printing .secinfo-section { padding: 8px 0 !important; }
+    body.secinfo-printing .secinfo-section-icon {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 16px !important;
+    }
+    body.secinfo-printing .secinfo-tech { margin-top: 12px !important; }
+    body.secinfo-printing .secinfo-tech > summary { padding: 10px 16px !important; }
+    body.secinfo-printing .secinfo-tech-body { padding: 4px 18px 14px !important; }
+    body.secinfo-printing .secinfo-tech-body h5 { margin: 10px 0 3px !important; }
+    body.secinfo-printing .secinfo-tech-body h5:first-child { margin-top: 4px !important; }
+    body.secinfo-printing .secinfo-tech-body .secinfo-list li {
+        margin-bottom: 3px !important;
+        line-height: 1.45 !important;
+    }
+    body.secinfo-printing .secinfo-footer-note {
+        margin-top: 12px !important;
+        padding-top: 10px !important;
+    }
 }
