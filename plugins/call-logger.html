@@ -156,4 +156,39 @@
             </div>
         </div>
     </div>
+
+    <!-- Rich-format preview — DRY RUN. Pure local render of
+         HawkSoftNote.buildHawkSoftNote(). Makes zero API calls and shares no
+         state with the logger above; it cannot alter or trigger a push. -->
+    <details class="cl-rp" id="clRpPanel">
+        <summary class="cl-rp-summary">
+            <span class="cl-rp-badge">DRY RUN</span>
+            Rich-format preview — nothing is sent to HawkSoft
+        </summary>
+        <div class="cl-rp-body">
+            <p class="cl-rp-hint">Exercises the new <code>buildHawkSoftNote()</code> builder (the future Path B HTML dialect). The live logger above is untouched and still pushes plain text.</p>
+            <div class="cl-rp-presets" id="clRpPresets">
+                <button type="button" class="cl-rp-preset" data-preset="bold">Bold / italic / underline</button>
+                <button type="button" class="cl-rp-preset" data-preset="list">Bulleted list</button>
+                <button type="button" class="cl-rp-preset" data-preset="link">Link + color</button>
+                <button type="button" class="cl-rp-preset" data-preset="mixed">Mixed call log</button>
+            </div>
+            <label class="cl-rp-label" for="clRpInput">Structured note (JSON intermediate representation)</label>
+            <textarea id="clRpInput" class="cl-rp-input" spellcheck="false" rows="9" aria-label="Structured note JSON"></textarea>
+            <div class="cl-rp-actions">
+                <button type="button" id="clRpGen" class="cl-rp-gen">Generate preview</button>
+                <span id="clRpError" class="cl-rp-error" role="alert"></span>
+            </div>
+            <div class="cl-rp-outputs">
+                <div class="cl-rp-out">
+                    <div class="cl-rp-out-label">HawkSoft HTML (exactly what Path B would send)</div>
+                    <pre id="clRpHtml" class="cl-rp-html"></pre>
+                </div>
+                <div class="cl-rp-out">
+                    <div class="cl-rp-out-label">Rendered preview</div>
+                    <div id="clRpRender" class="cl-rp-render"></div>
+                </div>
+            </div>
+        </div>
+    </details>
 </div>

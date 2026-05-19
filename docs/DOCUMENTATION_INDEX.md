@@ -85,6 +85,7 @@
 | [ERROR_CODES.md](ERROR_CODES.md) | Error code reference |
 | [ROADMAP.md](ROADMAP.md) | Product roadmap |
 | [RENTCAST_API.md](RENTCAST_API.md) | Rentcast field schema reference |
+| [HAWKSOFT_API.md](HAWKSOFT_API.md) | HawkSoft API paths, note HTML dialect, channel enums |
 | [WISP.md](WISP.md) | Written Information Security Program |
 
 > Older phase/path implementation docs are in [archive/](archive/).

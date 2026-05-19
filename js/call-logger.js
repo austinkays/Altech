@@ -844,6 +844,78 @@ window.CallLogger = (() => {
         }
     }
 
+    // ── Plain-text log → HawkSoft HTML dialect ───────────────────────
+    // The AI/agent works in reliable plain text (great for review/edit).
+    // On push we deterministically convert that text into the VERIFIED
+    // buildHawkSoftNote() dialect (the sanctioned partner API transmits it
+    // and HawkSoft renders it — confirmed in production). Line 1 stays a
+    // PLAIN paragraph (no spans) so HawkSoft's collapsed log-LIST view
+    // shows a clean "RE: AJK — summary" with no markup.
+
+    function _runsForBody(line) {
+        // Bold a leading "Action:" / "Action items:" label, rest plain.
+        const m = line.match(/^(\s*Action(?:\s+items)?:\s*)(.*)$/i);
+        if (m) {
+            const runs = [{ type: 'text', text: m[1], bold: true }];
+            if (m[2]) runs.push({ type: 'text', text: m[2] });
+            return runs;
+        }
+        return [{ type: 'text', text: line }];
+    }
+
+    function _plainToNoteContent(text) {
+        const lines = String(text == null ? '' : text).replace(/\r\n/g, '\n').split('\n');
+        const blocks = [];
+        let listBuf = null, listType = null, seenFirst = false;
+        const flush = () => {
+            if (listBuf && listBuf.length) blocks.push({ type: listType, items: listBuf });
+            listBuf = null; listType = null;
+        };
+        for (const raw of lines) {
+            const line = raw.replace(/\s+$/, '');
+            const trimmed = line.trim();
+            if (!seenFirst) {
+                if (trimmed === '') continue;
+                // First non-empty line = summary → PLAIN (list-view-safe).
+                blocks.push({ type: 'paragraph', runs: [{ type: 'text', text: line }] });
+                seenFirst = true;
+                continue;
+            }
+            if (trimmed === '') { flush(); blocks.push({ type: 'break' }); continue; }
+            const bul = trimmed.match(/^[-*•]\s+(.*)$/);
+            const num = trimmed.match(/^\d+[.)]\s+(.*)$/);
+            if (bul) {
+                if (listType && listType !== 'bullet') flush();
+                listType = 'bullet'; listBuf = listBuf || [];
+                listBuf.push(_runsForBody(bul[1]));
+                continue;
+            }
+            if (num) {
+                if (listType && listType !== 'numbered') flush();
+                listType = 'numbered'; listBuf = listBuf || [];
+                listBuf.push(_runsForBody(num[1]));
+                continue;
+            }
+            flush();
+            blocks.push({ type: 'paragraph', runs: _runsForBody(line) });
+        }
+        flush();
+        return blocks;
+    }
+
+    // → HawkSoft HTML string, or null to signal "send plain text instead"
+    // (builder missing / threw / produced nothing). Never throws.
+    function _plainToHawkSoftHtml(text) {
+        try {
+            if (!window.HawkSoftNote || typeof window.HawkSoftNote.buildHawkSoftNote !== 'function') return null;
+            const html = window.HawkSoftNote.buildHawkSoftNote(_plainToNoteContent(text));
+            return (html && html.trim()) ? html : null;
+        } catch (e) {
+            console.warn('[HawkSoft Logger] HTML format failed, sending plain text:', e && e.message);
+            return null;
+        }
+    }
+
     // ── Step 2: Confirm & Send to HawkSoft ──
 
     async function _handleConfirm() {
@@ -877,6 +949,13 @@ window.CallLogger = (() => {
                 ? Auth.apiFetch.bind(Auth)
                 : fetch;
 
+            // Convert the reviewed plain text into HawkSoft's HTML dialect
+            // and push it through the SAME sanctioned partner API. Falls
+            // back to the plain text if the builder is unavailable/empty so
+            // a push is never blocked. _pendingLog.formattedLog stays plain
+            // (used by retry/diagnostics/manual-copy).
+            const noteToSend = _plainToHawkSoftHtml(_pendingLog.formattedLog) || _pendingLog.formattedLog;
+
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -885,7 +964,7 @@ window.CallLogger = (() => {
                     clientNumber: _pendingLog.clientNumber,
                     hawksoftPolicyId: _pendingLog.hawksoftPolicyId,
                     callType: _pendingLog.callType,
-                    formattedLog: _pendingLog.formattedLog
+                    formattedLog: noteToSend
                 })
             });
 
@@ -1270,7 +1349,123 @@ window.CallLogger = (() => {
             });
             activitySelect._clWired = true;
         }
+
+        _initRichPreview();
     }
 
-    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType };
+    // ── Rich-format preview (DRY RUN) ─────────────────────────────────
+    // Pure local render of HawkSoftNote.buildHawkSoftNote(). This block is
+    // deliberately isolated: it makes NO API calls, never touches
+    // _pendingLog / _selectedClient / the push handlers, and shares no
+    // state with the logger above. It cannot alter or trigger a HawkSoft
+    // push. Removing it would not affect the live logger in any way.
+
+    const RP_PRESETS = {
+        bold: [
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Policy ' },
+                { type: 'text', text: 'AUTO-12345', bold: true },
+                { type: 'text', text: ' — payment ' },
+                { type: 'text', text: 'received', italic: true },
+                { type: 'text', text: '. Reinstatement ' },
+                { type: 'text', text: 'confirmed', underline: true },
+                { type: 'text', text: '.' },
+            ] },
+        ],
+        list: [
+            { type: 'paragraph', runs: [{ type: 'text', text: 'Renewal review — action items:' }] },
+            { type: 'bullet', items: [
+                [{ type: 'text', text: 'Re-shop ' }, { type: 'text', text: 'home', bold: true }, { type: 'text', text: ' (premium up 18%)' }],
+                [{ type: 'text', text: 'Confirm roof age with insured' }],
+                [{ type: 'text', text: 'Add ' }, { type: 'text', text: 'umbrella', bold: true }, { type: 'text', text: ' quote' }],
+            ] },
+        ],
+        link: [
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Claim ', color: [192, 0, 0] },
+                { type: 'text', text: 'FNOL filed', bold: true, color: [192, 0, 0] },
+                { type: 'text', text: '. Carrier portal: ' },
+                { type: 'link', text: 'progressive.com/claims', href: 'https://www.progressive.com/claims/' },
+            ] },
+        ],
+        mixed: [
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Inbound call — ' },
+                { type: 'text', text: 'coverage question', bold: true },
+                { type: 'text', text: ' on 2022 Honda CR-V.' },
+            ] },
+            { type: 'break' },
+            { type: 'numbered', items: [
+                [{ type: 'text', text: 'Explained collision deductible options' }],
+                [{ type: 'text', text: 'Quoted ' }, { type: 'text', text: '$500 → $1,000', bold: true }, { type: 'text', text: ' = ' }, { type: 'text', text: '-$84/6mo', color: [0, 128, 0] }],
+            ] },
+            { type: 'paragraph', runs: [
+                { type: 'text', text: 'Action: ', bold: true },
+                { type: 'text', text: 'send revised dec; follow up ' },
+                { type: 'text', text: 'Fri', underline: true },
+                { type: 'text', text: '.' },
+            ] },
+        ],
+    };
+
+    // Pure: JSON string → { ok, html, error }. No DOM, no network.
+    function _rpBuild(jsonStr) {
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonStr);
+        } catch (e) {
+            return { ok: false, error: 'Invalid JSON — ' + e.message };
+        }
+        if (!window.HawkSoftNote || typeof window.HawkSoftNote.buildHawkSoftNote !== 'function') {
+            return { ok: false, error: 'HawkSoftNote builder not loaded' };
+        }
+        return { ok: true, html: window.HawkSoftNote.buildHawkSoftNote(parsed) };
+    }
+
+    function _initRichPreview() {
+        const panel = document.getElementById('clRpPanel');
+        if (!panel || panel._clRpWired) return;
+        panel._clRpWired = true;
+
+        const input = document.getElementById('clRpInput');
+        const htmlOut = document.getElementById('clRpHtml');
+        const renderOut = document.getElementById('clRpRender');
+        const errOut = document.getElementById('clRpError');
+        const genBtn = document.getElementById('clRpGen');
+        const presets = document.getElementById('clRpPresets');
+        if (!input || !htmlOut || !renderOut || !genBtn) return;
+
+        function generate() {
+            const res = _rpBuild(input.value);
+            if (!res.ok) {
+                if (errOut) errOut.textContent = res.error;
+                htmlOut.textContent = '';
+                renderOut.innerHTML = '';
+                return;
+            }
+            if (errOut) errOut.textContent = '';
+            // textContent → tags shown as visible escaped source.
+            htmlOut.textContent = res.html || '';
+            // innerHTML of builder output ONLY. buildHawkSoftNote is the
+            // sanitization boundary (text escaped, href scheme-allowlisted,
+            // fixed tag set), so this is safe and shows the real render.
+            renderOut.innerHTML = res.html || '<em class="cl-rp-empty">(no renderable content)</em>';
+        }
+
+        if (presets) {
+            presets.addEventListener('click', (e) => {
+                const btn = e.target.closest('.cl-rp-preset');
+                if (!btn || !RP_PRESETS[btn.dataset.preset]) return;
+                input.value = JSON.stringify(RP_PRESETS[btn.dataset.preset], null, 2);
+                generate();
+            });
+        }
+        genBtn.addEventListener('click', generate);
+
+        if (!input.value.trim()) {
+            input.value = JSON.stringify(RP_PRESETS.mixed, null, 2);
+        }
+    }
+
+    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType, _rpBuild, _initRichPreview, RP_PRESETS, _plainToNoteContent, _plainToHawkSoftHtml };
 })();
