@@ -217,6 +217,30 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         expect(window.document.getElementById('secinfo-print-page')).toBeNull();
     });
 
+    test('incident-response bullet present (suspected-breach → principal + RCW 19.255)', () => {
+        // Closes one of the two governance gaps the auditor reviews flagged:
+        // a single, accurate line under "Data handling & your control" so
+        // there's a documented escalation path for a suspected breach.
+        expect(overlay).toMatch(/Incident response/i);
+        expect(overlay).toMatch(/principal is notified/i);
+        expect(overlay).toMatch(/RCW\s*19\.255/);
+    });
+
+    test('docs/internal-tools-acknowledgment.html exists and names the right principal', () => {
+        // The other half of the governance close-out: a one-page memo the
+        // principal signs once and the agency files. Lives outside the SPA
+        // so it can be printed/signed/scanned independently.
+        const ack = readSrc('docs/internal-tools-acknowledgment.html');
+        expect(ack).toMatch(/Internal Tools Acknowledgment/);
+        expect(ack).toMatch(/Altech Insurance Agency/);
+        expect(ack).toMatch(/Neil Worland/);
+        expect(ack).toMatch(/Austin Kays/);
+        expect(ack).toMatch(/March\s*2026/);
+        // Print-friendly: portrait Letter @page + a real signature line.
+        expect(ack).toMatch(/@page\s*\{[^}]*size:\s*letter\s+portrait/);
+        expect(ack).toMatch(/sig-line/);
+    });
+
     test('print isolation collapses siblings (no blank pages) + scoped + survives task-sheet', () => {
         expect(css).toMatch(/@media print/);
         const printBlock = css.slice(css.indexOf('@media print'));
