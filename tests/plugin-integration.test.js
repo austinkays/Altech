@@ -549,32 +549,42 @@ describe('SSE EventSource Vercel Safety', () => {
 // Cache Validation — allPolicies Required
 // ────────────────────────────────────────────────────
 
-describe('Cache validation requires allPolicies (personal lines support)', () => {
+describe('Cache validation — allPolicies handling', () => {
   let cglSource;
 
   beforeAll(() => {
     cglSource = fs.readFileSync(path.join(ROOT, 'js/compliance-dashboard.js'), 'utf8');
   });
 
-  test('_loadFromAnyCache disk source requires allPolicies', () => {
-    // Disk cache validation must reject data without allPolicies
-    expect(cglSource).toContain('Disk cache has policies but missing allPolicies');
+  // CONTRACT CHANGE (CGL "no manual Refresh" fix): a policies-only cache
+  // (missing allPolicies) is no longer REJECTED (returned null → cold open
+  // stalled on the slow server API). _loadFromAnyCache now flags it
+  // _partialCache and RETURNS it so rows render instantly; _showCachedData
+  // background-refreshes to fill allPolicies. Behavioral coverage of the
+  // actual return value lives in tests/cgl-sync-reload.test.js.
+
+  test('_loadFromAnyCache disk source returns a partial (no-allPolicies) cache', () => {
+    expect(cglSource).toContain('Disk partial — show now, bg-refresh');
   });
 
-  test('_loadFromAnyCache IDB source requires allPolicies', () => {
-    expect(cglSource).toContain('IDB cache has policies but missing allPolicies');
+  test('_loadFromAnyCache IDB source returns a partial (no-allPolicies) cache', () => {
+    expect(cglSource).toContain('IDB partial — show now, bg-refresh');
   });
 
-  test('_loadFromAnyCache localStorage source requires allPolicies', () => {
-    expect(cglSource).toContain('localStorage cache has policies but missing allPolicies');
+  test('_loadFromAnyCache localStorage source returns a partial (no-allPolicies) cache', () => {
+    expect(cglSource).toContain('localStorage partial — show now, bg-refresh');
   });
 
-  test('_loadFromAnyCache KV source requires allPolicies', () => {
-    expect(cglSource).toContain('KV cache has policies but missing allPolicies');
+  test('_loadFromAnyCache KV source returns a partial (no-allPolicies) cache', () => {
+    expect(cglSource).toContain('KV partial — show now, bg-refresh');
   });
 
-  test('loadFromCache also requires allPolicies on all tiers', () => {
-    // The loadFromCache method (IDB → localStorage → disk) must also check allPolicies
+  test('a partial cache triggers a background refresh in _showCachedData', () => {
+    expect(cglSource).toContain('cached._partialCache === true');
+  });
+
+  test('loadFromCache (separate IDB → localStorage → disk loader) still requires allPolicies', () => {
+    // Unchanged by the fix — only _loadFromAnyCache was softened.
     const loadFromCacheSection = cglSource.slice(cglSource.indexOf('async loadFromCache()'));
     expect(loadFromCacheSection).toContain('allPolicies?.length > 0');
   });

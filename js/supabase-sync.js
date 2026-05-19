@@ -46,6 +46,7 @@ window.SupabaseSync = (() => {
         intakeV2Draft:    STORAGE_KEYS.INTAKE_V2,
         intakeV2Quotes:   STORAGE_KEYS.INTAKE_V2_QUOTES,
         agencyDefaults:   STORAGE_KEYS.AGENCY_DEFAULTS,
+        hawksoftInitials: STORAGE_KEYS.HAWKSOFT_INITIALS,
     });
 
     // Per-browser device id used for audit attribution on writes.

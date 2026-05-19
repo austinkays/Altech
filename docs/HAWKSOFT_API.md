@@ -170,6 +170,7 @@ status yields `false` rather than throwing.
 - [x] DRY-RUN preview panel in the HawkSoft Logger (presets → IR → HTML + live render)
 - [x] **VERIFIED Path A renders the HTML dialect in production** (log Row #234) — the "plain-text only" assumption is disproven
 - [x] **Wired into the live logger**: `_plainToHawkSoftHtml()` converts the reviewed plain text → `buildHawkSoftNote()` HTML on Confirm & Push, list-view-safe (plain line 1), human-gated, plain-text fallback — [`js/call-logger.js`](../js/call-logger.js), [`tests/call-logger-html-format.test.js`](../tests/call-logger-html-format.test.js)
+- [x] **Path A attribution interim — agent initials are now a per-user, cloud-synced setting.** `STORAGE_KEYS.HAWKSOFT_INITIALS` (synced via `DOC_LOCAL_KEYS.hawksoftInitials`) is captured once in onboarding step 2 and editable under Settings → Preferences → "🪪 HawkSoft Initials". `js/call-logger.js` `_load()` prefills `#clAgentInitials` from it (form value still wins; corrections in the logger mirror back to the setting). Still **verbatim user input — never derived from the display name** (AJK ≠ AK). This makes the `RE:`-line attribution reliable + zero-retype across devices; HawkSoft still *owns* the log as the integration user (true ownership is Path B below).
 
 ### Next — richer formatting (Path A, sanctioned, lower risk)
 
@@ -182,11 +183,30 @@ Formatting no longer needs Path B. Path B is only worth pursuing for true
 `created_by` per-user attribution (Path A logs as the generic integration
 user). Still requires a live HawkSoft session + designated test client:
 
-- [ ] Capture the real `cs.hawksoft.app` create-log request/response shape + missing channel/action codes + the agency options dictionary
-- [ ] Extension manifest `host_permissions` + HawkSoft bridge/content script + `createHawkSoftLog()` (ambient-cookie `fetch`) for attribution
-- [ ] Kill switch + response-shape watchdog for internal-API drift
+**Hard prerequisites — MUST be captured in a live HawkSoft 6 DevTools session
+against the designated test client first (cannot be done from CI / cloud):**
+
+- [ ] Capture the real `POST cs.hawksoft.app/api/client/{clientId}/log` request **and response** shape (confirm the uploaded guide's body: `created_by`, `actions:[85]`, `note` HTML, `channel`, `from_to_type`, `from_to_text`, `policy`, `appendIfLogExists`, `created`)
+- [ ] Determine the stable, read-only way to acquire the current user's UUID for `created_by` (guide §"Acquiring the Current User UUID": IndexedDB cache vs `/me`-style call vs DOM/global)
+- [ ] Capture + persist the agency options dictionary (`agencyapi.hawksoft.app/agency/settings/list/options`) into the `pathB_internalApi` `"TBD"`s in [`hawksoft-dictionary.json`](hawksoft-dictionary.json); confirm missing channel/action codes
+
+**Build (only after the captures) — verified current extension state (2026-05):
+target is `chrome-extension-v3/` v3.0.0; it has ONLY ezlynx+altech `host_permissions`,
+NO service worker, NO `externally_connectable`, NO HawkSoft code, and talks to the
+SPA solely via `window.postMessage` through `chrome-extension-v3/altech-bridge.js`:**
+
+- [ ] Add `https://cs.hawksoft.app/*` (+ `agencyapi.hawksoft.app`) to `chrome-extension-v3/manifest.json` `host_permissions`
+- [ ] Add a background service worker + new bridge message type (e.g. `ALTECH_HAWKSOFT_LOG`) extending `altech-bridge.js`; worker does `fetch(cs.hawksoft.app, { credentials:'include' })` — **never read/store the `hstoken`/`cms` cookies**
+- [ ] Build the note via the shipped `HawkSoftNote.buildHawkSoftNote()` (HTML dialect) — **never** into the Path-A plain-text `note` field
+- [ ] `js/call-logger.js` Confirm & Push: route via Path B (real `created_by`) when extension+session present; otherwise fall back to today's Path A push
+- [ ] Kill switch (instant revert to Path A) + response-shape watchdog for internal-API drift
 - [ ] A Node-safe `escapeHTML` if the builder is ever called server-side (it currently needs a DOM via `Utils.escapeHTML`)
 - [ ] Decide whether multi-line text runs should auto-convert `\n` → `<br>` (currently literal)
+- [ ] Formal TOS review before any production use
+
+**Parallel sanctioned escape hatch:** one focused HawkSoft-rep conversation —
+can the partner API add `created_by`? If yes, Path B is unnecessary and the
+Path A interim above becomes true attribution with zero TOS risk.
 
 ### Pending — needs a live HawkSoft session + designated test client
 
