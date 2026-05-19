@@ -7,6 +7,11 @@
     "status": "confirmed",
     "endpoint": "POST https://integration.hawksoft.app/vendor/agency/{agencyId}/client/{clientId}/log?version=3.0",
     "auth": "HTTP Basic — base64(HAWKSOFT_CLIENT_ID:HAWKSOFT_CLIENT_SECRET)",
+    "noteFormat": {
+      "_doc": "VERIFIED 2026-05-18 (production log Row #234): the `note` field accepts the buildHawkSoftNote() HTML dialect and HawkSoft renders it (bold, ul/ol, rgb color, underline) — the guide's 'plain text only' claim is FALSE. The live logger converts plain text → HTML via js/call-logger.js _plainToHawkSoftHtml() on Confirm & Push.",
+      "accepts": "HTML (buildHawkSoftNote dialect)",
+      "verified": "2026-05-18 / log Row #234"
+    },
     "logActionEnum": {
       "_doc": "LogAction codes 1-56 = group base + offset. Group base: Phone 1, Mail 9, Walk In 17, Online 25, Email 33, Text 41, Chat 49. Offset within group: To Insured +0, To Carrier +1, To Agency Staff +2, To 3rd Party +3, From Insured +4, From Carrier +5, From Agency Staff +6, From 3rd Party +7.",
       "groups": { "Phone": 1, "Mail": 9, "WalkIn": 17, "Online": 25, "Email": 33, "Text": 41, "Chat": 49 },

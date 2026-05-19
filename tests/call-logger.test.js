@@ -570,8 +570,14 @@ describe('Two-Step Workflow', () => {
     expect(source).toContain('formatOnly: true');
   });
 
-  test('sends pre-formatted log in Step 2', () => {
-    expect(source).toContain('formattedLog: _pendingLog.formattedLog');
+  test('Step 2 sends the converted HawkSoft-HTML note with a plain-text fallback', () => {
+    // The reviewed plain text is converted to the verified buildHawkSoftNote()
+    // dialect and pushed via the same sanctioned partner API; falls back to
+    // the plain text if the builder is unavailable/empty.
+    expect(source).toContain('const noteToSend = _plainToHawkSoftHtml(_pendingLog.formattedLog) || _pendingLog.formattedLog;');
+    expect(source).toContain('formattedLog: noteToSend');
+    // _pendingLog.formattedLog must stay plain (retry/diagnostics/manual-copy).
+    expect(source).not.toMatch(/_pendingLog\.formattedLog\s*=\s*(noteToSend|_plainToHawkSoftHtml)/);
   });
 
   test('shows confirmation section with policy info', () => {
