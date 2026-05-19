@@ -96,13 +96,14 @@ window.Onboarding = (() => {
     }
 
     function next() {
-        // On step 2, save the name
+        // On step 2, save the name + HawkSoft initials
         if (_currentStep === 2) {
             const nameInput = document.getElementById('onboardingName');
             const name = nameInput?.value?.trim();
             if (name) {
                 localStorage.setItem(NAME_KEY, name);
             }
+            _saveInitials();
         }
 
         // On step 3, save agency profile
@@ -124,12 +125,13 @@ window.Onboarding = (() => {
     }
 
     function finish() {
-        // Save name one more time in case
+        // Save name + initials one more time in case
         const nameInput = document.getElementById('onboardingName');
         const name = nameInput?.value?.trim();
         if (name) {
             localStorage.setItem(NAME_KEY, name);
         }
+        _saveInitials();
 
         // Mark onboarding complete
         localStorage.setItem(STORAGE_KEY, Date.now().toString());
@@ -358,6 +360,30 @@ window.Onboarding = (() => {
     }
 
     /**
+     * Save the agent's HawkSoft initials from onboarding step 2.
+     * Per-user, cloud-synced (DOC_LOCAL_KEYS.hawksoftInitials) so it's
+     * entered once and auto-prefills the HawkSoft Logger on every device.
+     * Stored verbatim (uppercased) — never derived from the display name,
+     * because middle initials (AJK ≠ AK) would put the wrong ID in shared
+     * logs.
+     */
+    function _saveInitials() {
+        const el = document.getElementById('onboardingInitials');
+        const initials = (el?.value || '').trim().toUpperCase();
+        if (initials) {
+            localStorage.setItem(STORAGE_KEYS.HAWKSOFT_INITIALS, initials);
+            if (window.Sync && window.Sync.schedulePush) window.Sync.schedulePush();
+        }
+    }
+
+    /**
+     * Get saved HawkSoft initials (consumed by the HawkSoft Logger + settings)
+     */
+    function getInitials() {
+        return (localStorage.getItem(STORAGE_KEYS.HAWKSOFT_INITIALS) || '').trim().toUpperCase();
+    }
+
+    /**
      * Skip onboarding and open the sign-in modal for returning users.
      */
     function signInExisting() {
@@ -402,6 +428,7 @@ window.Onboarding = (() => {
         signInExisting,
         getUserName,
         getAgencyProfile,
+        getInitials,
         isValidCode: (code) => _isValidCode((code || '').toUpperCase().replace(/\s+/g, '')),
         getValidCodes: () => [...LEGACY_CODES],  // Legacy compat — auth.js fallback
         isComplete,

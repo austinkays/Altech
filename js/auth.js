@@ -295,6 +295,8 @@ const Auth = (() => {
             try {
                 const t = document.getElementById('agencyGlossaryText');
                 if (t && !t.value) t.value = localStorage.getItem('altech_agency_glossary') || '';
+                const hi = document.getElementById('hawksoftInitialsInput');
+                if (hi && !hi.value) hi.value = (localStorage.getItem(STORAGE_KEYS.HAWKSOFT_INITIALS) || '').trim().toUpperCase();
                 const p = document.getElementById('ezlynxXmlPathInput');
                 if (p && !p.value) p.value = localStorage.getItem(STORAGE_KEYS.EZLYNX_XML_PATH) || '';
             } catch (e) { /* ignore */ }

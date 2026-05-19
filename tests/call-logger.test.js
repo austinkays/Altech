@@ -1630,9 +1630,23 @@ describe("agent initials prefix in HawkSoft log (the `AJK — ` on RE: line)", (
     expect(source).not.toMatch(/STORAGE_KEYS\.USER_NAME[\s\S]{0,400}initialsEl\.value\s*=/);
   });
 
-  test("_load restores saved initials when they exist", () => {
-    const block = source.slice(source.indexOf('function _load'));
-    expect(block.slice(0, 1500)).toMatch(/if\s*\(initialsEl\s*&&\s*saved\.agentInitials\)\s*initialsEl\.value\s*=\s*saved\.agentInitials/);
+  test("_load resolves initials form-value-first, then the per-user synced setting", () => {
+    // New behavior: the form's last value still wins, but when it's empty
+    // _load prefills from STORAGE_KEYS.HAWKSOFT_INITIALS (the per-user,
+    // cloud-synced setting entered once in onboarding/settings) so the
+    // agent never has to retype it on a new device.
+    const block = source.slice(source.indexOf('function _load'), source.indexOf('function _load') + 1800);
+    expect(block).toContain('saved.agentInitials');
+    expect(block).toContain('STORAGE_KEYS.HAWKSOFT_INITIALS');
+    expect(block).toMatch(/fromForm\s*\|\|\s*fromSetting/);
+    expect(block).toMatch(/initialsEl\.value\s*=\s*resolved/);
+  });
+
+  test("the synced fallback is the stored setting, NOT derived from the name", () => {
+    // Same safety rule as before: the value is always verbatim user input.
+    // Deriving from a display name would drop middle initials (AJK ≠ AK).
+    const block = source.slice(source.indexOf('function _load'), source.indexOf('function _load') + 1800);
+    expect(block).not.toMatch(/USER_NAME[\s\S]{0,200}initialsEl\.value/);
   });
 
   test("_wireEvents persists initials on every keystroke (no waiting for Format & Preview)", () => {
@@ -1651,9 +1665,16 @@ describe("agent initials prefix in HawkSoft log (the `AJK — ` on RE: line)", (
     // It reads STORAGE_KEY, mutates only agentInitials, writes back —
     // so policyId / callType / channel survive the partial update.
     const block = source.slice(source.indexOf('function _persistInitialsOnly'));
-    expect(block.slice(0, 800)).toMatch(/localStorage\.getItem\(STORAGE_KEY\)/);
-    expect(block.slice(0, 800)).toContain('cur.agentInitials =');
-    expect(block.slice(0, 800)).toContain('localStorage.setItem(STORAGE_KEY');
+    expect(block.slice(0, 900)).toMatch(/localStorage\.getItem\(STORAGE_KEY\)/);
+    expect(block.slice(0, 900)).toContain('cur.agentInitials =');
+    expect(block.slice(0, 900)).toContain('localStorage.setItem(STORAGE_KEY');
+  });
+
+  test("_persistInitialsOnly mirrors a correction into the per-user synced setting", () => {
+    // Fixing initials in the logger should propagate to every device + the
+    // onboarding/settings field — so write-through to HAWKSOFT_INITIALS too.
+    const block = source.slice(source.indexOf('function _persistInitialsOnly'), source.indexOf('function _persistInitialsOnly') + 900);
+    expect(block).toContain('STORAGE_KEYS.HAWKSOFT_INITIALS');
   });
 
   test("_handleFormat blocks submit when initials are empty + focuses the input", () => {

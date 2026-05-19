@@ -56,6 +56,7 @@ window.STORAGE_KEYS = Object.freeze({
     INTAKE_ASSIST:          'altech_intake_assist',
     HAWKSOFT_SETTINGS:      'altech_hawksoft_settings',
     HAWKSOFT_HISTORY:       'altech_hawksoft_history',
+    HAWKSOFT_INITIALS:      'altech_hawksoft_initials',  // per-user agent initials for the HawkSoft Logger RE: prefix — cloud-synced (entered once)
     EZLYNX_FORMDATA:        'altech_ezlynx_formdata',
     EZLYNX_INCIDENTS:       'altech_ezlynx_incidents',
     EZLYNX_EXT_CONFIRMED:  'altech_ezlynx_ext_confirmed',

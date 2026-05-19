@@ -41,15 +41,21 @@ window.CallLogger = (() => {
             if (policyEl && saved.policyId) policyEl.value = saved.policyId;
             if (saved.channelType) { _selectedChannel = saved.channelType; _applyChannelUI(); }
             if (saved.activityType) { _selectedActivityType = saved.activityType; _applyActivityUI(); }
-            // Restore saved initials. We deliberately don't derive from
-            // USER_NAME here — many agencies use middle initials (e.g. AJK
-            // for Austin J. Kays) and the stored full name typically lacks
-            // them, so any auto-fill would silently insert the WRONG ID into
-            // every shared log. The Format & Preview path requires the field
-            // to be non-empty (see _handleFormat) so the agent is forced to
-            // enter it exactly once; the input listener below persists it
-            // immediately so it survives every reload after that.
-            if (initialsEl && saved.agentInitials) initialsEl.value = saved.agentInitials;
+            // Restore initials. Priority: this form's last value → the
+            // per-user HawkSoft initials setting (entered once in onboarding
+            // or settings, cloud-synced via DOC_LOCAL_KEYS.hawksoftInitials).
+            // We still NEVER derive from USER_NAME — many agencies use middle
+            // initials (e.g. AJK for Austin J. Kays) and the stored full name
+            // typically lacks them, so any auto-fill from the name would
+            // silently insert the WRONG ID into every shared log. The setting
+            // is always verbatim user input, so prefilling from it is safe and
+            // means the agent no longer has to retype it on every device.
+            if (initialsEl) {
+                const fromForm = (saved.agentInitials || '').trim();
+                const fromSetting = (localStorage.getItem(STORAGE_KEYS.HAWKSOFT_INITIALS) || '').trim().toUpperCase();
+                const resolved = fromForm || fromSetting;
+                if (resolved) initialsEl.value = resolved;
+            }
         } catch (e) {
             console.warn('[CallLogger] Load error:', e);
         }
@@ -61,9 +67,13 @@ window.CallLogger = (() => {
         // format time. The input listener fires on every keystroke so we
         // never lose initials to a refresh-mid-typing.
         try {
+            const v = (value || '').trim().toUpperCase();
             const cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-            cur.agentInitials = (value || '').trim().toUpperCase();
+            cur.agentInitials = v;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(cur));
+            // Mirror into the per-user setting so correcting initials here
+            // propagates to every device + the onboarding/settings field.
+            if (v) localStorage.setItem(STORAGE_KEYS.HAWKSOFT_INITIALS, v);
             if (window.Sync && window.Sync.schedulePush) window.Sync.schedulePush();
         } catch (_) { /* best-effort */ }
     }

@@ -168,6 +168,11 @@
                     <input type="text" id="onboardingName" placeholder="e.g. Austin" autocomplete="given-name" maxlength="30">
                     <div class="onboarding-hint">This shows in the dashboard greeting</div>
                 </div>
+                <div class="onboarding-input-group">
+                    <label for="onboardingInitials">Your initials in HawkSoft</label>
+                    <input type="text" id="onboardingInitials" placeholder="e.g. AJK" autocomplete="off" maxlength="5" style="text-transform:uppercase;letter-spacing:1px;width:120px">
+                    <div class="onboarding-hint">Prefixes every HawkSoft log so it's clear who handled it — enter exactly as it appears in HawkSoft (middle initial included)</div>
+                </div>
                 <div class="onboarding-actions">
                     <button class="onboarding-btn onboarding-btn-secondary" onclick="Onboarding.prev()">Back</button>
                     <button class="onboarding-btn onboarding-btn-primary" onclick="Onboarding.next()">Continue</button>
@@ -637,6 +642,14 @@
                             </select>
                         </div>
                         <p style="margin:0.5rem 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Aurora is an animated dark theme with northern-lights effects and frosted-glass cards.</p>
+
+                        <h4 class="acct-tab-h" style="margin-top:1.5rem">🪪 HawkSoft Initials</h4>
+                        <div class="auth-field">
+                            <label for="hawksoftInitialsInput">Your initials in HawkSoft</label>
+                            <input type="text" id="hawksoftInitialsInput" maxlength="5" placeholder="AJK" style="text-transform:uppercase;letter-spacing:1px;width:120px">
+                            <p style="margin:6px 0 0;font-size:11px;color:var(--text-secondary);line-height:1.4">Auto-prefixes every HawkSoft log so it's clear who handled the call. Enter exactly as it appears in HawkSoft (middle initial included). Synced across your devices — set once.</p>
+                        </div>
+                        <button class="btn-auth btn-auth-small btn-auth-primary" onclick="(function(){ var i=document.getElementById('hawksoftInitialsInput'); if(i){ var v=(i.value||'').trim().toUpperCase(); i.value=v; localStorage.setItem(STORAGE_KEYS.HAWKSOFT_INITIALS, v); if(window.Sync&&window.Sync.schedulePush) window.Sync.schedulePush(); if(typeof App!=='undefined'&&App.toast) App.toast('HawkSoft initials saved','success'); } })()" style="margin-top:0">Save Initials</button>
 
                         <h4 class="acct-tab-h" style="margin-top:1.5rem">📖 Agency Glossary</h4>
                         <div class="auth-field">

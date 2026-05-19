@@ -847,8 +847,40 @@ const ComplianceDashboard = {
             console.error('[CGL] UI setup error (non-fatal):', e);
         }
 
+        this._wireSyncReload();  // re-render on cloud restore / cross-tab — no manual Refresh
+
         // ── ALWAYS load policies — this must run no matter what ──
         await this.fetchPolicies();
+    },
+
+    // Re-render when a cloud restore / cross-tab write lands so the page
+    // isn't blank until a manual Refresh. Mirrors dashboard-widgets.js.
+    _wireSyncReload() {
+        if (this._syncReloadWired) return;
+        this._syncReloadWired = true;
+        const reload = (typeof Utils !== 'undefined' && Utils.debounce)
+            ? Utils.debounce(() => this._applySyncedReload(), 250)
+            : () => this._applySyncedReload();
+        if (window.ActivityLog && window.ActivityLog.subscribe) {
+            // Only the restore event ({type:'sync'}). Our own saves are
+            // {type:'save',area:'cgl'} and would loop; evt is null on clear().
+            window.ActivityLog.subscribe(e => { if (e && e.type === 'sync') reload(); });
+        }
+        if (typeof window !== 'undefined' && window.addEventListener) {
+            window.addEventListener('storage', e => {
+                if (this._stateLoaded && e && (e.key === STORAGE_KEY || e.key === CGL_CACHE_KEY)) reload();
+            });
+        }
+    },
+
+    // Debounced: re-read via the existing loadState(), repaint, or pull once if empty.
+    async _applySyncedReload() {
+        if (!document.getElementById('cglTableContainer')) return; // not mounted
+        try {
+            this.loadState();
+            if (this.policies && this.policies.length > 0) { this.renderPolicies(); this.updateStats(); }
+            else { this.fetchPolicies(); }
+        } catch (e) { console.warn('[CGL] Synced reload skipped:', e && e.message); }
     },
 
     // --- Data fetching ---
@@ -896,7 +928,7 @@ const ComplianceDashboard = {
                         console.log('[CGL] ✅ Disk cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                         return data;
                     } else if (data?.policies?.length > 0) {
-                        console.log('[CGL] ⚠️ Disk cache has policies but missing allPolicies — treating as stale');
+                        data._partialCache = true; return data;  // Disk partial — show now, bg-refresh
                     }
                 }
             } catch (e) {
@@ -916,7 +948,7 @@ const ComplianceDashboard = {
                     console.log('[CGL] ✅ IDB cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                     return data;
                 } else if (data?.cachedAt && data?.policies?.length > 0) {
-                    console.log('[CGL] ⚠️ IDB cache has policies but missing allPolicies — treating as stale');
+                    data._partialCache = true; return data;  // IDB partial — show now, bg-refresh
                 }
             } catch (e) {
                 console.warn('[CGL] IDB cache failed:', e.message);
@@ -934,7 +966,7 @@ const ComplianceDashboard = {
                         console.log('[CGL] ✅ localStorage cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                         return data;
                     } else if (data?.cachedAt && data?.policies?.length > 0) {
-                        console.log('[CGL] ⚠️ localStorage cache has policies but missing allPolicies — treating as stale');
+                        data._partialCache = true; return data;  // localStorage partial — show now, bg-refresh
                     }
                 }
             } catch (e) {}
@@ -949,7 +981,7 @@ const ComplianceDashboard = {
                     console.log('[CGL] ✅ KV cache:', data.policies.length, 'CGL +', data.allPolicies.length, 'total policies');
                     return data;
                 } else if (data?.cachedAt && data?.policies?.length > 0) {
-                    console.log('[CGL] ⚠️ KV cache has policies but missing allPolicies — treating as stale');
+                    data._partialCache = true; return data;  // KV partial — show now, bg-refresh
                 }
             } catch (e) {}
             return null;
@@ -1011,15 +1043,12 @@ const ComplianceDashboard = {
         CglIDB.set(IDB_POLICY_KEY, cached).catch(() => {});
         try { localStorage.setItem(CGL_CACHE_KEY, JSON.stringify(cached)); } catch (e) {}
 
-        // If cache is stale AND we're NOT on localhost, refresh in background
-        // (On localhost, HawkSoft API is never reachable — skip to avoid console errors)
+        // Background-refresh when the cache is stale OR partial (policies-only,
+        // no allPolicies — _loadFromAnyCache returns these now so rows show
+        // instantly and self-correct here). Skipped on localhost (no API).
         const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-        if (cacheAge > CGL_CACHE_TTL && !isLocal) {
-            console.log('[CGL] Cache stale — refreshing in background...');
-            this.fetchPoliciesFromAPI(true);
-        } else if (cacheAge > CGL_CACHE_TTL) {
-            console.log('[CGL] Cache is ' + ageMin + 'm old (stale) — skipping background refresh on localhost');
-        }
+        const needsRefresh = cacheAge > CGL_CACHE_TTL || cached._partialCache === true;
+        if (needsRefresh && !isLocal) this.fetchPoliciesFromAPI(true);
     },
 
     async fetchPoliciesFromAPI(isBackground = false, bypassServerCache = false) {
