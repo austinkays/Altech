@@ -152,6 +152,20 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         expect(m).toMatch(/origParent\.appendChild\(o\)/);
     });
 
+    test('print() injects a portrait @page rule and removes it on cleanup', () => {
+        // css/task-sheet.css ships an unscoped `@page { size: letter
+        // landscape }` that bleeds into every print job. Our print must
+        // inject a later @page so portrait wins for this print only, then
+        // remove it so task-sheet's print keeps its own landscape.
+        const mod = bootJs.match(/window\.SecurityInfo = \(\(\) => \{[\s\S]*?\}\)\(\);/);
+        const m = mod[0];
+        expect(m).toMatch(/createElement\(['"]style['"]\)/);
+        expect(m).toMatch(/@page\s*\{[^}]*size:\s*letter\s+portrait/);
+        expect(m).toMatch(/document\.head\.appendChild\([a-zA-Z]+\)/);
+        // Cleanup must remove the injected style.
+        expect(m).toMatch(/removeChild\([a-zA-Z]+\)/);
+    });
+
     test('behavioral: print() with overlay nested under a wrapper hoists + restores', () => {
         // Build a JSDOM that mirrors the live DOM (overlay nested inside a
         // wrapper, NOT a direct body child) and prove the hoist/restore
@@ -187,14 +201,20 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         expect(o.parentElement).toBe(window.document.body);
         expect(window.document.body.classList.contains('secinfo-printing')).toBe(true);
         expect(printCalled).toBe(1);
+        // Mid-print: a portrait @page <style> must be live in <head>
+        // (overriding task-sheet's landscape @page).
+        const pageStyle = window.document.getElementById('secinfo-print-page');
+        expect(pageStyle).not.toBeNull();
+        expect(pageStyle.textContent).toMatch(/size:\s*letter\s+portrait/);
 
         // Fire afterprint to simulate the dialog closing.
         window.dispatchEvent(new window.Event('afterprint'));
 
-        // Post-print: overlay restored under its original wrapper and
-        // body.secinfo-printing cleared.
+        // Post-print: overlay restored, class cleared, and the @page style
+        // removed (so task-sheet's print keeps its own landscape).
         expect(o.parentElement).toBe(wrapper);
         expect(window.document.body.classList.contains('secinfo-printing')).toBe(false);
+        expect(window.document.getElementById('secinfo-print-page')).toBeNull();
     });
 
     test('print isolation collapses siblings (no blank pages) + scoped + survives task-sheet', () => {

@@ -435,6 +435,19 @@ window.SecurityInfo = (() => {
         const needsHoist = origParent && origParent !== document.body;
         if (needsHoist) document.body.appendChild(o);
 
+        // Force portrait + reasonable margins for THIS print only.
+        // css/task-sheet.css ships `@page { size: letter landscape }`
+        // inside its @media print, and @page can't be selector-scoped — so
+        // that landscape bleeds into every print in the app (including
+        // ours). Appending a <style> here puts a later @page declaration
+        // last in source order → portrait wins for this print, and the
+        // style is removed in cleanup so the Task Sheet print keeps its
+        // own landscape setup.
+        const pageStyle = document.createElement('style');
+        pageStyle.id = 'secinfo-print-page';
+        pageStyle.textContent = '@media print { @page { size: letter portrait; margin: 0.5in; } }';
+        document.head.appendChild(pageStyle);
+
         document.body.classList.add('secinfo-printing');
         let done = false;
         const cleanup = () => {
@@ -451,6 +464,7 @@ window.SecurityInfo = (() => {
                     origParent.appendChild(o);
                 }
             }
+            if (pageStyle.parentNode) pageStyle.parentNode.removeChild(pageStyle);
             if (wasHidden) o.style.display = 'none';
             if (tech && techWasClosed) tech.open = false;
             window.removeEventListener('afterprint', cleanup);
