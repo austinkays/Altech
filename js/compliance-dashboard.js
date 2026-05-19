@@ -373,64 +373,12 @@ const ComplianceDashboard = {
 
     // ── Nuclear Option: Full backup download ──
 
-    downloadFullBackup() {
-        const snapshot = this._getStateSnapshot();
-        const backup = {
-            _meta: {
-                version: '3.0',
-                format: 'altech_cgl_backup',
-                exportedAt: new Date().toISOString(),
-                counts: {
-                    verified: Object.keys(this.verifiedPolicies).length,
-                    dismissed: Object.keys(this.dismissedPolicies).length,
-                    notes: Object.keys(this.policyNotes).length
-                }
-            },
-            ...snapshot
-        };
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-        a.href = url;
-        a.download = `CGL_Backup_${dateStr}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        console.log('[CGL] 💾 Full backup downloaded:', backup._meta.counts);
-    },
+    // Disk-file + JSON/CSV backup I/O extracted to js/cgl-backup.js
+    // (window.CglBackup) — these forwarders keep all this.x() call sites and
+    // the two plugins/compliance.html onclick/onchange bindings unchanged.
+    downloadFullBackup() { return CglBackup.downloadFullBackup(this); },
 
-    async restoreFullBackup(fileInput) {
-        const file = fileInput.files[0];
-        if (!file) return;
-        try {
-            const text = await file.text();
-            const backup = JSON.parse(text);
-            // Validate format
-            if (!backup.verifiedPolicies && !backup.dismissedPolicies && !backup.policyNotes) {
-                if (typeof App !== 'undefined' && App.toast) App.toast('Invalid backup file — missing annotation data.', 'error');
-                return;
-            }
-            const counts = {
-                v: Object.keys(backup.verifiedPolicies || {}).length,
-                d: Object.keys(backup.dismissedPolicies || {}).length,
-                n: Object.keys(backup.policyNotes || {}).length
-            };
-            if (!confirm(`Restore backup?\n\nVerified: ${counts.v}\nDismissed: ${counts.d}\nNotes: ${counts.n}\n\nThis will MERGE with existing data (nothing will be deleted).`)) {
-                return;
-            }
-            // Smart merge — never delete existing annotations
-            this.verifiedPolicies = CglUtil._smartMergeDict(this.verifiedPolicies, backup.verifiedPolicies);
-            this.dismissedPolicies = CglUtil._smartMergeDict(this.dismissedPolicies, backup.dismissedPolicies);
-            this.policyNotes = CglUtil._smartMergeDict(this.policyNotes, backup.policyNotes);
-            this.saveState();
-            this.filterPolicies();
-            this.updateStats();
-            if (typeof App !== 'undefined' && App.toast) App.toast(`Backup restored! Merged ${counts.v} verified, ${counts.d} dismissed, ${counts.n} notes.`, 'success');
-        } catch (e) {
-            if (typeof App !== 'undefined' && App.toast) App.toast('Failed to parse backup file: ' + e.message, 'error');
-        }
-        fileInput.value = '';
-    },
+    restoreFullBackup(fileInput) { return CglBackup.restoreFullBackup(this, fileInput); },
 
     // ── Save status indicator ──
 
@@ -485,234 +433,21 @@ const ComplianceDashboard = {
 
     // --- File System Access API (Desktop) ---
 
-    renderFileToolbar() {
-        // File toolbar removed — auto-save to localStorage + disk handles persistence
-    },
+    renderFileToolbar() { return CglBackup.renderFileToolbar(this); },
 
-    updateFileStatus() {
-        const statusEl = document.getElementById('cglFileStatus');
-        if (!statusEl) return;
+    updateFileStatus() { return CglBackup.updateFileStatus(this); },
 
-        if (this.fileHandle) {
-            const name = this.fileHandle.name || 'file';
-            statusEl.innerHTML = `<span class="linked">Linked: ${Utils.escapeHTML(name)}</span>`;
-        } else {
-            statusEl.innerHTML = `<span class="field-mode">No file linked</span>`;
-        }
+    openDiskFile() { return CglBackup.openDiskFile(this); },
 
-        // Update reminder button text
-        const reminderBtn = document.getElementById('cglReminderAction');
-        if (reminderBtn) {
-            reminderBtn.textContent = this.fileHandle ? 'Save to disk' : 'Backup now';
-        }
-    },
+    saveDiskFile() { return CglBackup.saveDiskFile(this); },
 
-    async openDiskFile() {
-        try {
-            const [handle] = await window.showOpenFilePicker({
-                startIn: 'documents',
-                types: [{
-                    description: 'JSON Files',
-                    accept: { 'application/json': ['.json'] }
-                }]
-            });
-
-            const file = await handle.getFile();
-            const text = await file.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch (parseErr) {
-                if (typeof App !== 'undefined' && App.toast) App.toast('Invalid JSON file. Please select a valid CGL state export.', 'error');
-                return;
-            }
-
-            // Support v2.0 format (meta + state) and flat format
-            const stateData = data.state || data;
-
-            // Load dismissed policies - convert arrays to objects if needed
-            if (Array.isArray(stateData.dismissedPolicies)) {
-                this.dismissedPolicies = {};
-                stateData.dismissedPolicies.forEach(pn => {
-                    this.dismissedPolicies[pn] = { dismissedAt: data.meta?.lastSaved || new Date().toISOString() };
-                });
-            } else if (stateData.dismissedPolicies && typeof stateData.dismissedPolicies === 'object') {
-                this.dismissedPolicies = stateData.dismissedPolicies;
-            }
-
-            // Load verified policies - convert arrays to objects if needed
-            if (Array.isArray(stateData.verifiedPolicies)) {
-                this.verifiedPolicies = {};
-                stateData.verifiedPolicies.forEach(pn => {
-                    this.verifiedPolicies[pn] = { updatedAt: data.meta?.lastSaved || new Date().toISOString(), updatedBy: 'file' };
-                });
-            } else if (stateData.verifiedPolicies && typeof stateData.verifiedPolicies === 'object') {
-                this.verifiedPolicies = stateData.verifiedPolicies;
-            }
-
-            this.fileHandle = handle;
-
-            // Sync to localStorage as backup
-            this._safeLSWrite(STORAGE_KEY, JSON.stringify({
-                verifiedPolicies: this.verifiedPolicies,
-                dismissedPolicies: this.dismissedPolicies,
-                lastSaved: new Date().toISOString()
-            }));
-
-            this.updateFileStatus();
-            this.filterPolicies();
-            this.updateStats();
-
-            console.log('[CGL] Opened file:', handle.name, '| Verified:', Object.keys(this.verifiedPolicies).length, '| Dismissed:', Object.keys(this.dismissedPolicies).length);
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error('[CGL] Error opening file:', err);
-                if (typeof App !== 'undefined' && App.toast) App.toast('Failed to open file: ' + err.message, 'error');
-            }
-        }
-    },
-
-    async saveDiskFile() {
-        try {
-            if (!this.fileHandle) {
-                return this.saveDiskFileAs();
-            }
-
-            const jsonData = {
-                meta: {
-                    version: '2.0',
-                    lastSaved: new Date().toISOString(),
-                    savedBy: 'Altech Desktop App'
-                },
-                state: {
-                    dismissedPolicies: this.dismissedPolicies,
-                    verifiedPolicies: this.verifiedPolicies,
-                    policyNotes: this.policyNotes
-                }
-            };
-
-            const writable = await this.fileHandle.createWritable();
-            await writable.write(JSON.stringify(jsonData, null, 2));
-            await writable.close();
-
-            // Flash "Saved" indicator
-            const flash = document.getElementById('cglSaveFlash');
-            if (flash) {
-                flash.classList.add('visible');
-                setTimeout(() => flash.classList.remove('visible'), 1500);
-            }
-
-            // Reset session counter
-            this.sessionChanges = 0;
-            this.reminderDismissed = false;
-            const reminder = document.getElementById('cglBackupReminder');
-            if (reminder) reminder.style.display = 'none';
-            const countEl = document.getElementById('cglSessionCount');
-            if (countEl) countEl.textContent = '0';
-
-            console.log('[CGL] Saved to disk:', this.fileHandle.name);
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error('[CGL] Error saving file:', err);
-                if (typeof App !== 'undefined' && App.toast) App.toast('Failed to save file: ' + err.message, 'error');
-            }
-        }
-    },
-
-    async saveDiskFileAs() {
-        try {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: 'Altech_CGL_Master.json',
-                startIn: 'documents',
-                types: [{
-                    description: 'JSON Files',
-                    accept: { 'application/json': ['.json'] }
-                }]
-            });
-
-            this.fileHandle = handle;
-            this.updateFileStatus();
-            await this.saveDiskFile();
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error('[CGL] Error saving file as:', err);
-                if (typeof App !== 'undefined' && App.toast) App.toast('Failed to save file: ' + err.message, 'error');
-            }
-        }
-    },
+    saveDiskFileAs() { return CglBackup.saveDiskFileAs(this); },
 
     // --- CSV Export / Import ---
 
-    exportBackup() {
-        const rows = ['PolicyNumber,Status,Date'];
-        for (const [pn, data] of Object.entries(this.verifiedPolicies)) {
-            rows.push(`${pn},verified,${data.updatedAt || ''}`);
-        }
-        for (const [pn, data] of Object.entries(this.dismissedPolicies)) {
-            rows.push(`${pn},dismissed,${data.dismissedAt || ''}`);
-        }
+    exportBackup() { return CglBackup.exportBackup(this); },
 
-        if (rows.length === 1) {
-            if (typeof App !== 'undefined' && App.toast) App.toast('Nothing to export yet. Verify or dismiss some policies first.', 'error');
-            return;
-        }
-
-        const csv = rows.join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const dateStr = new Date().toISOString().split('T')[0];
-        a.href = url;
-        a.download = `CGL_Work_Backup_${dateStr}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-
-        // Reset session counter after backup
-        this.sessionChanges = 0;
-        this.reminderDismissed = false;
-        const reminder = document.getElementById('cglBackupReminder');
-        if (reminder) reminder.style.display = 'none';
-        const countEl = document.getElementById('cglSessionCount');
-        if (countEl) countEl.textContent = '0';
-    },
-
-    importBackup(fileInput) {
-        const file = fileInput.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const text = e.target.result;
-            const lines = text.trim().split('\n');
-
-            // Skip header row
-            let imported = 0;
-            for (let i = 1; i < lines.length; i++) {
-                const parts = lines[i].split(',');
-                if (parts.length < 2) continue;
-                const policyNumber = parts[0].trim();
-                const status = parts[1].trim().toLowerCase();
-                const date = parts[2] ? parts[2].trim() : new Date().toISOString();
-
-                if (!policyNumber) continue;
-
-                if (status === 'verified') {
-                    this.verifiedPolicies[policyNumber] = { updatedAt: date, updatedBy: 'import' };
-                    imported++;
-                } else if (status === 'dismissed') {
-                    this.dismissedPolicies[policyNumber] = { dismissedAt: date };
-                    imported++;
-                }
-            }
-
-            this.saveState();
-            this.filterPolicies();
-            this.updateStats();
-            if (typeof App !== 'undefined' && App.toast) App.toast(`Restored ${imported} policy markers from backup.`, 'success');
-        };
-        reader.readAsText(file);
-        fileInput.value = '';
-    },
+    importBackup(fileInput) { return CglBackup.importBackup(this, fileInput); },
 
     // --- Init ---
 

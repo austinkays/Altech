@@ -187,11 +187,20 @@ describe('IntakeV2 — carrier bindability', () => {
         const auto = w.IntakeV2.addItem('autos', { year: 2021, make: 'Toyota', model: 'Tacoma', vin: '5TFCZ5AN0MX' + '123456' });
         // Apply applicant→primary operator sync
         w.IntakeV2.syncApplicantOperators();
-        auto.primaryOperatorId = w.IntakeV2.data.operators[0].id;
+        const op = w.IntakeV2.data.operators[0];
+        auto.primaryOperatorId = op.id;
+        // syncApplicantOperators copies name/DOB but NOT the licence
+        // (OP_SYNC_PATHS excludes dl.*). dl.num + dl.state are bindable for
+        // every auto carrier — you can't bind auto without a driver licence —
+        // so a genuinely bindable quote must supply them. Set the minimal
+        // realistic set (this assertion previously only accounted for VIN).
+        op.dl = op.dl || {};
+        op.dl.num = 'WDL1234567';
+        op.dl.state = 'WA';
         w.IntakeV2.save({ silent: true });
 
         const b = w.IntakeV2Bindability.computeBindability({ data: w.IntakeV2.data });
-        // Progressive needs VIN, so it should be ok
+        // Progressive needs auto VIN + operator name/DOB/DL — all set above.
         expect(b.progressive.ok).toBe(true);
     });
 

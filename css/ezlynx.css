@@ -411,11 +411,11 @@
     border-color: rgba(52, 199, 89, 0.6);
     box-shadow: 0 0 10px rgba(52, 199, 89, 0.15);
 }
-.dark-mode .ez-toolbar-btn.send-hero {
+body.dark-mode .ez-toolbar-btn.send-hero {
     color: #32D74B;
     border-color: rgba(50, 215, 75, 0.4);
 }
-.dark-mode .ez-toolbar-btn.send-hero:hover {
+body.dark-mode .ez-toolbar-btn.send-hero:hover {
     background: rgba(50, 215, 75, 0.1);
     border-color: rgba(50, 215, 75, 0.6);
     box-shadow: 0 0 10px rgba(50, 215, 75, 0.15);

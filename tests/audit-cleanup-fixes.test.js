@@ -238,11 +238,15 @@ describe('compliance-dashboard guards', () => {
         expect(src).toMatch(/QuotaExceededError/);
         // Shows a one-time toast.
         expect(src).toMatch(/_quotaToastShown/);
-        // The four user-state write sites should go through the helper —
-        // the master saveState site (#1 of 4) plus the merge-back + file-open
-        // + annotations-promote sites.
+        // All user-state write sites must go through the quota-safe helper.
+        // The file-open site moved to js/cgl-backup.js in the May-2026
+        // backup-I/O extraction, so the contract now spans both files:
+        // 3 in the dashboard (saveState master + merge-back +
+        // annotations-promote) and the file-open one in cgl-backup.js.
         const matches = src.match(/this\._safeLSWrite\(STORAGE_KEY,/g) || [];
-        expect(matches.length).toBeGreaterThanOrEqual(4);
+        expect(matches.length).toBeGreaterThanOrEqual(3);
+        const backupSrc = readSrc('js/cgl-backup.js');
+        expect(backupSrc).toMatch(/d\._safeLSWrite\(STORAGE_KEYS\.CGL_STATE,/);
     });
 });
 

@@ -211,7 +211,17 @@
             this._lastSaveAt = 0;
             this._unlockPromptedThisSession = false;
             this.lastEntries = [];
-            try { await this.save({ silent: true }); } catch (_) {}
+            let _resetSaveOk = true;
+            try {
+                await this.save({ silent: true });
+            } catch (e) {
+                // Persisting the now-empty draft failed. Don't block the
+                // reset UX (applyData below still clears the in-memory form),
+                // but never report a false success — a swallowed error here
+                // means a reload could resurrect the old draft.
+                _resetSaveOk = false;
+                console.warn('[IntakeV2] reset-draft save failed:', e && e.message);
+            }
             // Re-apply the now-empty data to every form input + collection
             // renderer. applyData() also fires requestRerender() so the
             // operators/homes/autos/boats/rvs cards rebuild as empty lists.
@@ -223,9 +233,12 @@
                 this._layout.renderJumpBadges();
             }
             if (window.ActivityLog) {
-                window.ActivityLog.add({
+                window.ActivityLog.add(_resetSaveOk ? {
                     type: 'save', area: 'intake-v2', ok: true,
                     message: 'Started a new intake v2 draft',
+                } : {
+                    type: 'error', area: 'intake-v2', ok: false,
+                    message: 'New draft started but save failed — a reload may show the old draft',
                 });
             }
         },

@@ -56,6 +56,7 @@ function loadDashboard() {
 
     window.eval(fs.readFileSync(path.join(ROOT, 'js/cgl-utils.js'), 'utf8'));
     window.eval(fs.readFileSync(path.join(ROOT, 'js/cgl-renderers.js'), 'utf8'));
+    window.eval(fs.readFileSync(path.join(ROOT, 'js/cgl-backup.js'), 'utf8'));
     window.eval(fs.readFileSync(path.join(ROOT, 'js/compliance-dashboard.js'), 'utf8'));
 
     const CD = window.ComplianceDashboard;

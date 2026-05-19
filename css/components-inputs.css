@@ -213,7 +213,7 @@ body.dark-mode .non-owners-notice {
 .carrier-ac-item mark {
     background: transparent; color: inherit; font-weight: 700;
 }
-.dark-mode .carrier-ac-list { box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
+body.dark-mode .carrier-ac-list { box-shadow: 0 6px 20px rgba(0,0,0,0.35); }
 .same-carrier-row {
     display: flex; align-items: center; gap: 8px;
     margin: 8px 0 4px; font-size: 13px; color: var(--text-secondary);
@@ -237,8 +237,8 @@ body.dark-mode .non-owners-notice {
 .ch-meta { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ch-actions { display: flex; gap: 6px; margin-left: 12px; flex-shrink: 0; }
 .btn-sm { font-size: 12px !important; padding: 5px 10px !important; min-height: 28px !important; flex: 0 0 auto !important; }
-.dark-mode .ch-row { background: var(--bg-card); border-color: var(--border); }
-.dark-mode .ch-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+body.dark-mode .ch-row { background: var(--bg-card); border-color: var(--border); }
+body.dark-mode .ch-row:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 .ch-delete-btn {
     background: none;
     border: none;
@@ -366,7 +366,7 @@ body.dark-mode .ch-view-all-btn:hover {
     background: rgba(0, 122, 255, 0.08);
     color: var(--text);
 }
-.dark-mode .seg-btn.seg-active {
+body.dark-mode .seg-btn.seg-active {
     background: var(--apple-blue);
 }
 
@@ -420,10 +420,10 @@ body.dark-mode .ch-view-all-btn:hover {
 .toggle-switch input:checked + .toggle-slider::before {
     transform: translateX(20px);
 }
-.dark-mode .toggle-slider {
+body.dark-mode .toggle-slider {
     background: #39393d;
 }
-.dark-mode .toggle-switch input:checked + .toggle-slider {
+body.dark-mode .toggle-switch input:checked + .toggle-slider {
     background: #30d158;
 }
 

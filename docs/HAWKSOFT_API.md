@@ -174,8 +174,9 @@ status yields `false` rather than throwing.
 
 ### Next — richer formatting (Path A, sanctioned, lower risk)
 
-- [ ] Let the AI emit structured `NoteContent` (or richer markers) so key figures/quote numbers can be bolded/colored — currently the converter is deliberately conservative (structure + `Action:` + lists only)
-- [ ] Sanity-check the **collapsed log-LIST** view on real pushes (opened view verified; list view kept plain-line-1 as mitigation)
+- [x] **AI-marked bold emphasis** — shipped in #165: the prompt allows the single marker `**…**`, `js/call-logger.js` `_parseEmphasis()`/`_runsForBody()` convert paired markers to bold runs (RE: line stripped + span-free, stray `**` removed), all through the `buildHawkSoftNote()` escape boundary, plus a Plain⇄Formatted preview toggle.
+- [ ] **Color** emphasis is the remaining richer-formatting nicety (bold is done). Lower value than bold; `buildHawkSoftNote()` already validates/clamps rgb, so it's a small converter+prompt extension — but the *rendered* result is unverifiable without a live HawkSoft push, so treat it as live-session-gated like the list-view check below.
+- [ ] Sanity-check the **collapsed log-LIST** view on real pushes (opened view verified; list view kept plain-line-1 as mitigation) — requires a live HawkSoft session, cannot be done from CI/cloud.
 
 ### Pending — Path B (now ATTRIBUTION-ONLY, lower priority)
 
