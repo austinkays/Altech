@@ -7,6 +7,7 @@
  */
 
 import { fetchLIPrincipals } from './_prospect-li.js';
+import { buildSoqlNameClause, relaxedSearchValue } from './_prospect-name-match.js';
 
 const STATE_SOS_ENDPOINTS = {
   'WA': {
@@ -43,6 +44,41 @@ export async function handleSOSLookup(query) {
 
   console.log('[SOS Lookup] Searching:', { name, ubi, state });
   return await searchSOSEntity(name, ubi, state);
+}
+
+/**
+ * WA Department of Revenue lookup exposed as a first-class source.
+ *
+ * DOR covers *every* WA business with a tax registration (restaurants,
+ * retail, services, medical, ...) — not just licensed contractors — so it
+ * fills the biggest Phase-1 discovery gap for non-contractor prospects.
+ * Previously DOR ran only as a CCFS-blocked fallback inside the WA SOS path.
+ * Response is shaped like the SOS response (entity / multipleResults) so the
+ * client can collect candidates with the same logic.
+ */
+export async function handleDORLookup(query) {
+  const { name, ubi, state } = query;
+  const source = 'WA Department of Revenue';
+  if (state && state !== 'WA') {
+    return { success: true, available: false, source, state, note: 'WA Department of Revenue is Washington-only' };
+  }
+  if (!name && !ubi) {
+    return { success: false, available: false, source, error: 'Missing required parameters: name or ubi' };
+  }
+
+  try {
+    const data = await tryWADORLookup(name, ubi);
+    if (!data) {
+      return { success: false, available: true, source, state: 'WA', error: 'No business found in WA Department of Revenue' };
+    }
+    if (data.multipleResults) {
+      return { success: true, available: true, source, state: 'WA', multipleResults: true, count: data.count, results: data.results };
+    }
+    return { success: true, available: true, source, state: 'WA', entity: data };
+  } catch (error) {
+    console.error('[WA DOR] handleDORLookup error:', error);
+    return { success: false, available: false, source, error: `WA DOR lookup failed: ${error.message}` };
+  }
 }
 
 async function searchSOSEntity(businessName, ubi, state) {
@@ -126,12 +162,17 @@ async function scrapeWASOS(businessName, ubi) {
           SearchValue: ubi.replace(/[\s-]/g, ''),
           SearchCriteria: 'Contains', IsSearch: true, PageID: 1, PageCount: 25
         }
-      : {
-          Type: 'BusinessName', SearchType: 'BusinessName',
-          SearchEntityName: businessName, SortType: 'ASC', SortBy: 'Entity Name',
-          SearchValue: businessName, SearchCriteria: 'Contains',
-          IsSearch: true, PageID: 1, PageCount: 25
-        };
+      : (() => {
+          // Relax the name so CCFS "Contains" isn't defeated by an entity
+          // suffix the user typed but the registered name lacks (or vice versa).
+          const sv = relaxedSearchValue(businessName);
+          return {
+            Type: 'BusinessName', SearchType: 'BusinessName',
+            SearchEntityName: sv, SortType: 'ASC', SortBy: 'Entity Name',
+            SearchValue: sv, SearchCriteria: 'Contains',
+            IsSearch: true, PageID: 1, PageCount: 25
+          };
+        })();
 
     console.log('[WA SOS] API payload:', JSON.stringify(searchPayload));
 
@@ -258,7 +299,7 @@ async function scrapeWASOS(businessName, ubi) {
 async function tryWADORLookup(businessName, ubi) {
   try {
     if (!businessName && !ubi) return null;
-    const searchTerm = ubi || businessName;
+    const searchTerm = ubi || relaxedSearchValue(businessName);
     console.log('[WA DOR] Attempting DOR lookup for:', searchTerm);
 
     const dorUrl = `https://secure.dor.wa.gov/gteunauth/_/GetBusinesses?searchBy=${ubi ? 'UBI' : 'BN'}&searchValue=${encodeURIComponent(searchTerm)}&pageNumber=1&sortOrder=ASC&sortColumn=0`;
@@ -354,12 +395,13 @@ async function scrapeORSOS(businessName, ubi) {
     console.log('[OR SOS] Querying Oregon Socrata API for:', businessName || ubi);
 
     const baseUrl = 'https://data.oregon.gov/resource/tckn-sxa6.json';
-    const safeName = (businessName || '').replace(/'/g, "''");
     const params = new URLSearchParams();
     if (ubi) {
       params.append('$where', `registry_number='${ubi}'`);
     } else {
-      params.append('$where', `upper(business_name) like upper('%${safeName}%')`);
+      const relaxed = buildSoqlNameClause('business_name', businessName);
+      const safeName = (businessName || '').replace(/'/g, "''");
+      params.append('$where', relaxed || `upper(business_name) like upper('%${safeName}%')`);
     }
     params.append('$limit', '50');
 

@@ -622,6 +622,7 @@
                     liabilityE:'', medPayF:'',
                     deductible:'', windHailDeductible:'',
                     replacementType:'',
+                    earthquake:false, earthquakeDeductible:'', earthquakeZone:'',
                 },
                 // Common HO endorsements
                 endorsements:{
@@ -775,8 +776,22 @@
                 const itemId = rest.slice(0, dot);
                 const fieldPath = rest.slice(dot + 1);
                 this.setItemField(collKey, itemId, fieldPath, value);
-                // Operator-pool changes ripple to product cards (chip names)
-                if (collKey === 'operators') this.requestRerender('operators');
+                // Operator edits ripple to product-card chip names + the
+                // operator card header (name / age / bindability dot), so the
+                // pool needs a re-render. But re-rendering on every `input`
+                // event rebuilt the whole operators region (render() does a
+                // blunt root.innerHTML swap) and destroyed the very field
+                // being typed in — the caret jumped after every character
+                // (reported on DL Number; affected every operator field).
+                // setItemField above already persisted the value, so data /
+                // export / bindability stay correct per keystroke. Defer the
+                // visual fan-out to `change` (commit/blur): <select> and
+                // checkbox operator fields still update instantly (their
+                // `change` fires immediately), text fields update when focus
+                // leaves. The operators renderer also restores focus+caret as
+                // a safety net for the synced-applicant path that still
+                // re-renders the pool mid-typing.
+                if (collKey === 'operators' && e.type === 'change') this.requestRerender('operators');
             }
         };
         root.addEventListener('input',  handler);

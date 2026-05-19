@@ -525,3 +525,198 @@ describe('IntakeV2 — mutation API smoke', () => {
         expect(w.IntakeV2.data.operators.find(o => o.id === extra.id)).toBeUndefined();
     });
 });
+
+// ─── Operator field focus stability ───────────────────────────────────────
+// Regression: typing in an operator card field (reported on DL Number, but
+// every operator field was affected) lost the caret after each character —
+// the delegated `input` handler fired requestRerender('operators') on every
+// keystroke and render() blunt-swaps root.innerHTML, destroying the focused
+// <input>. Fix: gate the operator fan-out on `change` (not `input`); the
+// operators renderer also restores focus+caret as a safety net.
+describe('IntakeV2 — operator field focus stability', () => {
+    let w;
+    beforeAll(async () => { w = bootDom(); await activate(w); });
+
+    const dlEl = (opId) => w.document.getElementById(`iv2-op-dl-num-${opId}`);
+
+    test('typing (input) in DL Number does NOT rebuild the pool — node + focus survive', () => {
+        const op = w.IntakeV2.addItem('operators', { firstName: 'Jane', lastName: 'Doe' });
+        const el = dlEl(op.id);
+        expect(el).not.toBeNull();
+        el.focus();
+        expect(w.document.activeElement).toBe(el);
+
+        el.value = '5';
+        el.dispatchEvent(new w.Event('input', { bubbles: true }));
+
+        // Value persisted per keystroke (setItemField runs on input)…
+        expect(w.IntakeV2.getItem('operators', op.id).dl.num).toBe('5');
+        // …but the operators region was NOT rebuilt: same DOM node, still focused.
+        expect(dlEl(op.id)).toBe(el);
+        expect(w.document.activeElement).toBe(el);
+    });
+
+    test('input on a second operator field also keeps focus (not just DL Number)', () => {
+        const op = w.IntakeV2.data.operators.find(o => o.firstName === 'Jane');
+        const el = w.document.getElementById(`iv2-op-dl-state-${op.id}`)
+                || dlEl(op.id);
+        el.focus();
+        const tag = el;
+        el.value = el.tagName === 'SELECT' ? el.value : 'WA';
+        el.dispatchEvent(new w.Event('input', { bubbles: true }));
+        expect(w.document.activeElement).toBe(tag);
+    });
+
+    test('change rebuilds the pool but restores focus + caret to the same field', () => {
+        const op = w.IntakeV2.data.operators.find(o => o.firstName === 'Jane');
+        const el = dlEl(op.id);
+        el.focus();
+        el.value = '5DABC';
+        try { el.setSelectionRange(5, 5); } catch (_) { /* jsdom text input supports this */ }
+        el.dispatchEvent(new w.Event('change', { bubbles: true }));
+
+        const after = dlEl(op.id);
+        expect(after).not.toBeNull();
+        // Region was rebuilt by the fan-out, yet focus landed back on the
+        // same field id (caret restored) rather than being lost.
+        expect(w.document.activeElement).toBe(after);
+        expect(after.value).toBe('5DABC');
+    });
+});
+
+// ─── V2 export parity (HIGH gaps) ─────────────────────────────────────────
+// Locks the V1→V2 parity fixes the audit surfaced: the real requested
+// effective date must survive both exporters (CMSMTF previously hardcoded
+// "(today)", EZAUTO emitted no <Effective>); policy term must flow; and
+// earthquake must reach CMSMTF (gen_bEarthquake/gen_sEQDeduct/zone) AND the
+// EZHOME <Earthquake> block (V2 previously had no EQ input at all). Without
+// this test these divergences are unguarded — every other ezlynx/cmsmtf
+// contract test exercises only the V1 builders.
+describe('IntakeV2 — export parity (effective date, term, earthquake)', () => {
+    let w, cmsmtf, ezAuto, ezHome;
+    beforeAll(async () => {
+        w = bootDom();
+        await activate(w);
+        Object.assign(w.IntakeV2.data.applicant, { firstName: 'PARITY', lastName: 'CHECK', dob: '1980-01-01' });
+        Object.assign(w.IntakeV2.data.address, { street: '9 Parity St', city: 'Tacoma', state: 'WA', zip: '98402', county: 'Pierce' });
+        Object.assign(w.IntakeV2.data.priorInsurance, {
+            effectiveDate: '2026-09-01', policyTerm: '12 Month', priorPolicyStatus: 'Non-Renewed',
+        });
+        const home = w.IntakeV2.addItem('homes', { yrBuilt: 1990, sqFt: 1800, dwellingType: 'One Family' });
+        home.coverages.dwellingA = 400000;
+        home.coverages.earthquake = true;
+        home.coverages.earthquakeDeductible = '10%';
+        home.coverages.earthquakeZone = '4';
+        w.IntakeV2.syncApplicantOperators();
+        const auto = w.IntakeV2.addItem('autos', { year: 2021, make: 'Honda', model: 'CR-V', vin: 'PARITYVIN00001234' });
+        auto.primaryOperatorId = w.IntakeV2.data.operators[0].id;
+
+        const cap = [];
+        const orig = w.App.downloadFile;
+        w.App.downloadFile = (content, name) => { cap.push({ content, name }); };
+        try { w.IntakeV2.exportCMSMTF(); w.IntakeV2.exportEZLynxXML(); }
+        finally { w.App.downloadFile = orig; }
+        cmsmtf = (cap.find(c => /\.cmsmtf$/i.test(c.name) || /Lead_/.test(c.name)) || {}).content || '';
+        ezAuto = (cap.find(c => /^EZLynx_Import_/.test(c.name)) || {}).content || '';
+        ezHome = (cap.find(c => /^EZLynx_Home_Import_/.test(c.name)) || {}).content || '';
+    });
+
+    test('CMSMTF emits the real effective date, not the (today) placeholder', () => {
+        expect(cmsmtf).toContain('gen_tEffectiveDate = 09/01/2026');
+        expect(cmsmtf).not.toContain('gen_tEffectiveDate = (today)');
+        expect(cmsmtf).toContain('gen_nTerm = 12');
+        expect(cmsmtf).toContain('Prior Policy Status: Non-Renewed');
+    });
+
+    test('CMSMTF emits the earthquake tags (V1 parity)', () => {
+        expect(cmsmtf).toContain('gen_bEarthquake = Y');
+        expect(cmsmtf).toContain('gen_sEQDeduct = 10%');
+        expect(cmsmtf).toContain('hpm_sEarthquakeZone = 4');
+    });
+
+    test('EZLynx EZAUTO carries the effective date + policy term', () => {
+        expect(ezAuto).toContain('<Effective>2026-09-01</Effective>');
+        expect(ezAuto).toContain('<PolicyTerm>12 Month</PolicyTerm>');
+    });
+
+    test('EZLynx EZHOME emits the <Earthquake> block (was missing in V2)', () => {
+        expect(ezHome).toContain('<Earthquake><Earthquake>Yes</Earthquake></Earthquake>');
+        expect(ezHome).toContain('endorsements_earthquake_common');
+        expect(ezHome).toContain('<Effective>2026-09-01</Effective>');
+    });
+});
+
+// ─── EZLynx import safety ──────────────────────────────────────────────────
+// "I never want to see the import fail — I'd rather see an error that my
+// export is missing info." Locks the builder hardening (license-less driver
+// → Not Rated, bad VIN → no VIN lookup, junk gender → Not Specified) and the
+// pre-export validator that surfaces blocking/warning lists.
+describe('IntakeV2 — EZLynx import safety', () => {
+    let w;
+    beforeAll(async () => { w = bootDom(); await activate(w); });
+
+    function freshAuto(extra) {
+        // Reset to a clean, importable baseline each test.
+        w.IntakeV2.data.operators = [];
+        w.IntakeV2.data.autos = [];
+        w.IntakeV2.data.homes = [];
+        Object.assign(w.IntakeV2.data.applicant, { firstName: 'Eze', lastName: 'Safe', dob: '1980-01-01' });
+        Object.assign(w.IntakeV2.data.address, { street: '1 A St', city: 'Olympia', state: 'WA', zip: '98501' });
+        return extra && extra();
+    }
+
+    test('license-less driver exports as Not Rated; licensed driver stays Rated', () => {
+        freshAuto();
+        const lic = w.IntakeV2.addItem('operators', { firstName: 'Licensed', lastName: 'Driver', gender: 'Nonbinary' });
+        lic.dl.num = 'D1234567'; lic.dl.state = 'WA';
+        const nolic = w.IntakeV2.addItem('operators', { firstName: 'Nolic', lastName: 'Driver' });
+        const auto = w.IntakeV2.addItem('autos', { year: 2018, make: 'Honda', model: 'Civic', vin: '1HGCM82633A004352' });
+        auto.primaryOperatorId = lic.id;
+        auto.additionalOperatorIds = [nolic.id];
+
+        const xml = w.IntakeV2EZLynxXML.buildIntakeV2EZAutoXML(w.IntakeV2.data).content;
+        expect(xml).toContain('<Rated>Rated</Rated>');       // licensed driver
+        expect(xml).toContain('<Rated>Not Rated</Rated>');   // license-less driver
+        // Junk gender never passes through raw (would fail V200 deserialize)
+        expect(xml).toContain('<Gender>Not Specified</Gender>');
+        expect(xml).not.toContain('<Gender>Nonbinary</Gender>');
+        // Valid VIN → lookup on + VIN emitted
+        expect(xml).toContain('<UseVinLookup>Yes</UseVinLookup>');
+        expect(xml).toContain('<Vin>1HGCM82633A004352</Vin>');
+    });
+
+    test('invalid VIN → UseVinLookup No and no <Vin> element', () => {
+        freshAuto();
+        const op = w.IntakeV2.addItem('operators', { firstName: 'A', lastName: 'B' });
+        op.dl.num = 'X1'; op.dl.state = 'WA';
+        const auto = w.IntakeV2.addItem('autos', { year: 2015, make: 'Ford', model: 'F150', vin: 'NOTAVALIDVIN' });
+        auto.primaryOperatorId = op.id;
+        const xml = w.IntakeV2EZLynxXML.buildIntakeV2EZAutoXML(w.IntakeV2.data).content;
+        expect(xml).toContain('<UseVinLookup>No</UseVinLookup>');
+        expect(xml).not.toContain('<Vin>');
+        expect(xml).toContain('<Make>Ford</Make>'); // still identifiable via YMM
+    });
+
+    test('validator: clean auto has no blocking, warns on missing DL', () => {
+        freshAuto();
+        const op = w.IntakeV2.addItem('operators', { firstName: 'No', lastName: 'License' });
+        const auto = w.IntakeV2.addItem('autos', { year: 2020, make: 'Toyota', model: 'Camry', vin: '4T1BF1FK5GU260000' });
+        auto.primaryOperatorId = op.id;
+        const r = w.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx(w.IntakeV2.data);
+        expect(r.blocking).toEqual([]);
+        expect(r.warnings.some(s => /no DL number/i.test(s))).toBe(true);
+    });
+
+    test('validator: blocks no-named-insured and unidentifiable vehicle', () => {
+        freshAuto();
+        w.IntakeV2.data.applicant.firstName = '';
+        w.IntakeV2.data.applicant.lastName = '';
+        const op = w.IntakeV2.addItem('operators', { firstName: 'X', lastName: 'Y' });
+        op.dl.num = 'D9'; op.dl.state = 'WA';
+        const auto = w.IntakeV2.addItem('autos', { vin: 'BADVIN' }); // no year/make/model, bad VIN
+        auto.primaryOperatorId = op.id;
+        const r = w.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx(w.IntakeV2.data);
+        expect(r.blocking.some(s => /named insured/i.test(s))).toBe(true);
+        expect(r.blocking.some(s => /not identifiable/i.test(s))).toBe(true);
+    });
+});

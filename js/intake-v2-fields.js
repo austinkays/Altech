@@ -206,6 +206,14 @@ const SCALAR = [
     // ── Coverage section (universal coverages — per-product details live in collection fields) ──
     { id: 'iv2-priorContinuous',       path: 'priorInsurance.continuous',       label: 'Continuous Coverage', type: 'select', options: ['', 'Yes', 'No'], section: 'coverage', mode: 'quick' },
     { id: 'iv2-priorContinuousMonths', path: 'priorInsurance.continuousMonths', label: 'Months Continuous',   type: 'number', section: 'coverage', mode: 'full' },
+    // Policy-level binding context. effectiveDate is the requested *new*
+    // policy effective/bind date — both exporters previously hardcoded it
+    // ((today) in CMSMTF, absent in EZLynx EZAUTO), silently losing the real
+    // date. policyTerm + priorPolicyStatus are EZLynx Personal-Lines fields
+    // (non-renewed / cancelled is a carrier underwriting signal).
+    { id: 'iv2-effectiveDate',         path: 'priorInsurance.effectiveDate',    label: 'Requested Effective Date', type: 'date', section: 'coverage', mode: 'quick' },
+    { id: 'iv2-policyTerm',            path: 'priorInsurance.policyTerm',       label: 'Policy Term',         type: 'select', options: ['', '6 Month', '12 Month'], section: 'coverage', mode: 'full' },
+    { id: 'iv2-priorPolicyStatus',     path: 'priorInsurance.priorPolicyStatus',label: 'Prior Policy Status', type: 'select', options: ['', 'Active', 'Non-Renewed', 'Cancelled', 'Lapsed', 'New Business'], section: 'coverage', mode: 'full' },
 
     { id: 'iv2-priorHomeCarrier',  path: 'priorInsurance.home.carrier',  label: 'Prior Home Carrier',  type: 'text', section: 'coverage', mode: 'full' },
     { id: 'iv2-priorHomeExp',      path: 'priorInsurance.home.exp',      label: 'Prior Home Expiration', type: 'date', section: 'coverage', mode: 'full' },
@@ -350,6 +358,13 @@ const COLLECTIONS = {
             { idStem: 'home-cov-deductible',     path: 'coverages.deductible',        label: 'All-Peril Deductible',      type: 'select', options: ['', '500', '1,000', '1,500', '2,500', '5,000', '10,000'], mode: 'quick' },
             { idStem: 'home-cov-windHail',       path: 'coverages.windHailDeductible',label: 'Wind/Hail Deductible',      type: 'select', options: ['', 'Same as AOP', '1%', '2%', '5%', '$1,000', '$2,500', '$5,000'], mode: 'full' },
             { idStem: 'home-cov-replType',       path: 'coverages.replacementType',   label: 'Settlement Type',           type: 'select', options: ['', 'Replacement Cost', 'Actual Cash Value (ACV)', 'Modified RC'], mode: 'full' },
+            // Earthquake — V1 carried gen_bEarthquake / gen_sEQDeduct /
+            // hpm_sEarthquakeZone (CMSMTF) and an <Earthquake> EZHOME block;
+            // V2 had no input at all, so CEA / earthquake quoting silently
+            // lost the signal across both exports.
+            { idStem: 'home-cov-earthquake',     path: 'coverages.earthquake',        label: 'Earthquake coverage',       type: 'checkbox', mode: 'full' },
+            { idStem: 'home-cov-eqDeductible',   path: 'coverages.earthquakeDeductible', label: 'Earthquake Deductible',  type: 'select', options: ['', '5%', '10%', '15%', '20%', '25%'], mode: 'full' },
+            { idStem: 'home-cov-eqZone',         path: 'coverages.earthquakeZone',    label: 'Earthquake Zone',           type: 'text',   mode: 'full' },
             // Endorsements — most-requested, all checkboxes
             { idStem: 'home-end-header',         path: '__header.endorsements',       label: 'Endorsements', type: 'header', mode: 'full' },
             { idStem: 'home-end-waterBackup',    path: 'endorsements.waterBackup',    label: 'Water/Sewer Backup',          type: 'checkbox', mode: 'full' },

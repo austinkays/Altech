@@ -242,7 +242,7 @@ const SIZE_GRANDFATHER = {
     'intake-assist.js':        3025,
     'intake-v2-export-pdf.js': 2625,
     'app-scan.js':             2500,
-    'prospect.js':             1975,
+    'prospect.js':             1875,
     'app-core.js':             1925,
 };
 

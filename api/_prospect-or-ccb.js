@@ -3,6 +3,8 @@
  * Socrata dataset g77e-6bhs.
  */
 
+import { buildSoqlNameClause } from './_prospect-name-match.js';
+
 export async function handleORCCBLookup(query) {
   const { name, license } = query;
   if (!name && !license) {
@@ -21,7 +23,8 @@ async function searchORCCBContractor(businessName, licenseNumber) {
     if (licenseNumber) {
       params.append('$where', `license_number='${licenseNumber}'`);
     } else {
-      params.append('$where', `upper(full_name) LIKE upper('%${businessName}%')`);
+      const relaxed = buildSoqlNameClause('full_name', businessName);
+      params.append('$where', relaxed || `upper(full_name) LIKE upper('%${businessName.replace(/'/g, "''")}%')`);
     }
     params.append('$limit', '10');
     params.append('$order', 'lic_exp_date DESC');

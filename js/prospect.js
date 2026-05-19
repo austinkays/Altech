@@ -13,6 +13,7 @@ const ProspectInvestigator = (() => {
     let currentData = null;
     let aiAnalysis = null;
     let _discoveredCandidates = [];
+    let _lastGapNotes = [];
     const STORAGE_KEY = STORAGE_KEYS.SAVED_PROSPECTS;
 
     // ── Public API ──────────────────────────────────────────────
@@ -40,20 +41,27 @@ const ProspectInvestigator = (() => {
         _hideResults();
 
         try {
-            // Phase 1: Quick discovery search — L&I, SOS, and Places (discover mode)
-            const [liData, sosData, placesData] = await Promise.all([
+            // Phase 1: Quick discovery — L&I, SOS, DOR (WA, broad/non-contractor)
+            // and Places (discover mode), all in parallel.
+            const [liData, sosData, placesData, dorData] = await Promise.all([
                 _searchLI(businessName, ubi, state),
                 _searchSOS(businessName, ubi, state),
-                _searchPlacesDiscover(businessName, city, state)
+                _searchPlacesDiscover(businessName, city, state),
+                _searchDOR(businessName, ubi, state)
             ]);
 
-            // Collect all candidate businesses from every source
-            const candidates = _collectCandidates(liData, sosData, placesData, businessName, state);
+            const sources = { li: liData, sos: sosData, places: placesData, dor: dorData };
+            const candidates = ProspectFormatters.collectCandidates(sources, businessName, state, city);
             _discoveredCandidates = candidates;
+            _lastGapNotes = ProspectFormatters.sourceGapNotes({ ...sources, state });
 
             if (candidates.length === 0) {
-                _hideLoading();
-                _toast('No businesses found. Try a different name or state.');
+                // No record match anywhere — don't dead-end. The AI dossier
+                // (Google Search grounded) can research almost any business by
+                // name + city + state, so fall straight through to it. Await
+                // so search()'s finally doesn't yank investigateManual's loader.
+                _toast('No public-records match — running AI research…');
+                await investigateManual();
                 return;
             }
 
@@ -845,6 +853,18 @@ ${ai.underwritingNotes || 'N/A'}`;
         }
     }
 
+    /** WA Department of Revenue — broad non-contractor entity source (Phase 1) */
+    async function _searchDOR(businessName, ubi, state) {
+        if (state !== 'WA') return { available: false, note: 'Washington-only' };
+        try {
+            const res = await fetch(`/api/prospect-lookup?type=dor&name=${encodeURIComponent(businessName)}&ubi=${encodeURIComponent(ubi || '')}&state=${state}`);
+            return await res.json();
+        } catch (e) {
+            console.error('[Prospect] DOR error:', e);
+            return { available: false };
+        }
+    }
+
     /** Discovery mode: return multiple Places candidates (Phase 1) */
     async function _searchPlacesDiscover(businessName, city, state) {
         try {
@@ -906,6 +926,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                 body: JSON.stringify({
                     businessName: currentData.displayName || currentData.businessName,
                     state: currentData.state,
+                    city: currentData.city,
                     li: currentData.li,
                     sos: currentData.sos,
                     osha: currentData.osha,
@@ -1204,134 +1225,10 @@ ${ai.underwritingNotes || 'N/A'}`;
 
     // ── Multi-result Selection ──────────────────────────────────
 
-    /** Collect candidate businesses from all Phase 1 discovery sources */
-    function _collectCandidates(liData, sosData, placesData, searchName, searchState) {
-        const candidates = [];
-
-        // From L&I — multiple results
-        if (liData?.multipleResults && liData.results) {
-            for (const r of liData.results) {
-                candidates.push({
-                    businessName: r.businessName || searchName,
-                    ubi: r.ubi || '',
-                    city: r.city || '',
-                    state: searchState,
-                    entityType: r.licenseType || 'Contractor',
-                    status: r.status || '',
-                    source: 'L&I',
-                    licenseNumber: r.licenseNumber || '',
-                    stateMatch: true
-                });
-            }
-        } else if (liData?.contractor && liData.available !== false && !liData.error) {
-            // Single L&I result
-            const c = liData.contractor;
-            candidates.push({
-                businessName: c.businessName || searchName,
-                ubi: c.ubi || '',
-                city: c.address?.city || '',
-                state: searchState,
-                entityType: c.licenseType || 'Contractor',
-                status: c.status || '',
-                source: 'L&I',
-                licenseNumber: c.licenseNumber || '',
-                stateMatch: true
-            });
-        }
-
-        // From SOS — multiple results
-        if (sosData?.multipleResults && sosData.results) {
-            for (const r of sosData.results) {
-                candidates.push({
-                    businessName: r.businessName || searchName,
-                    ubi: r.ubi || '',
-                    city: r.city || '',
-                    state: searchState,
-                    entityType: r.entityType || 'Business Entity',
-                    status: r.status || '',
-                    source: 'SOS',
-                    stateMatch: true
-                });
-            }
-        } else if (sosData?.entity && !sosData.entity?.multipleResults && sosData.available !== false && !sosData.error) {
-            // Single SOS result
-            const e = sosData.entity;
-            candidates.push({
-                businessName: e.businessName || searchName,
-                ubi: e.ubi || '',
-                city: e.principalOffice?.city || '',
-                state: searchState,
-                entityType: e.entityType || 'Business Entity',
-                status: e.status || '',
-                source: 'SOS',
-                stateMatch: true
-            });
-        }
-
-        // From Places — discover mode returns multiple
-        if (placesData?.multipleResults && placesData.results) {
-            for (const r of placesData.results) {
-                candidates.push({
-                    businessName: r.name || searchName,
-                    city: r.city || '',
-                    state: r.state || '',
-                    address: r.address || '',
-                    placeId: r.placeId || '',
-                    source: 'Google',
-                    rating: r.rating || null,
-                    totalReviews: r.totalReviews || 0,
-                    stateMatch: r.stateMatch === true
-                });
-            }
-        }
-
-        // Deduplicate: merge candidates that look like the same business
-        return _deduplicateCandidates(candidates, searchState);
-    }
-
-    /** Merge candidates with very similar names from the same state/city */
-    function _deduplicateCandidates(candidates, searchState) {
-        const result = [];
-        const seen = new Set();
-
-        for (const c of candidates) {
-            // Normalize key: lowercase name + state
-            const normName = (c.businessName || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-            const key = normName + '|' + (c.state || searchState);
-
-            if (seen.has(key)) {
-                // Merge source into existing entry
-                const existing = result.find(r =>
-                    (r.businessName || '').toUpperCase().replace(/[^A-Z0-9]/g, '') === normName &&
-                    (r.state || searchState) === (c.state || searchState)
-                );
-                if (existing) {
-                    existing.sources = existing.sources || [existing.source];
-                    if (!existing.sources.includes(c.source)) existing.sources.push(c.source);
-                    // Prefer more specific data
-                    if (!existing.ubi && c.ubi) existing.ubi = c.ubi;
-                    if (!existing.placeId && c.placeId) existing.placeId = c.placeId;
-                    if (!existing.address && c.address) existing.address = c.address;
-                    if (!existing.rating && c.rating) existing.rating = c.rating;
-                    if (!existing.licenseNumber && c.licenseNumber) existing.licenseNumber = c.licenseNumber;
-                }
-                continue;
-            }
-
-            seen.add(key);
-            c.sources = [c.source];
-            result.push(c);
-        }
-
-        // Sort: state-matching first, then by number of sources (more = better)
-        result.sort((a, b) => {
-            if (a.stateMatch && !b.stateMatch) return -1;
-            if (!a.stateMatch && b.stateMatch) return 1;
-            return (b.sources?.length || 1) - (a.sources?.length || 1);
-        });
-
-        return result;
-    }
+    // Candidate collection + dedupe + source-gap notes now live in
+    // js/prospect-formatters.js (window.ProspectFormatters) — pure, size-
+    // ceilinged out of this file. Use ProspectFormatters.collectCandidates({
+    // li, sos, places, dor }, name, state, city) / .sourceGapNotes(...).
 
     function _showBusinessSelection(candidates, businessName, city, state) {
         _hideLoading();
@@ -1364,6 +1261,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                     ${mismatchCount > 0 ? ` \u2014 <span style="color: var(--danger);">${mismatchCount} outside ${_esc(stateNames[state] || state)}</span>` : ''}
                 </p>
             </div>
+            ${ProspectFormatters.gapNoteBanner(_lastGapNotes)}
             <div style="display: grid; gap: 12px;">
                 ${candidates.map((b, i) => {
                     const isWrongState = !b.stateMatch;
@@ -1372,6 +1270,7 @@ ${ai.underwritingNotes || 'N/A'}`;
                     const sourceBadges = (b.sources || [b.source]).map(s => {
                         const colors = { 'L&I': { bg: 'rgba(52,199,89,0.15)', fg: 'var(--success)' },
                                           'SOS': { bg: 'rgba(0,122,255,0.1)', fg: 'var(--apple-blue)' },
+                                          'DOR': { bg: 'rgba(88,86,214,0.14)', fg: '#5856D6' },
                                           'Google': { bg: 'rgba(251,188,4,0.15)', fg: '#B8860B' } };
                         const c = colors[s] || { bg: 'rgba(0,0,0,0.05)', fg: 'var(--text-secondary)' };
                         return `<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:${c.bg};color:${c.fg};font-weight:600;">${_esc(s)}</span>`;
