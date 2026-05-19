@@ -1702,6 +1702,39 @@ body.iv2-modal-open {
     gap: 4px;
 }
 
+/* Label row for fields that want a small inline action on the right (e.g.
+ * Property Address + "Same as mailing" shortcut). Mirrors the bare-label
+ * line height so the row doesn't grow taller than the default. */
+.iv2-field-label-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+/* "Same as mailing" shortcut — sits next to the Property Address label
+ * and copies the formatted mailing address into the field when clicked.
+ * Subtle text-link styling so it doesn't compete with the Smart Scan
+ * button to its right. */
+.iv2-same-as-mailing-btn {
+    background: none;
+    border: none;
+    color: var(--apple-blue);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    white-space: nowrap;
+}
+.iv2-same-as-mailing-btn:hover { text-decoration: underline; }
+.iv2-same-as-mailing-btn:focus-visible {
+    outline: 2px solid var(--apple-blue);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
 /* Rentcast budget pill — always-visible chip under the Smart Scan
  * button. Colors flip via [data-tone]: ok (green), low (amber),
  * over (red). Empty content state stays display:none. */

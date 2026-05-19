@@ -15,6 +15,24 @@
 const esc     = (s) => (window.Utils && window.Utils.escapeHTML) ? window.Utils.escapeHTML(String(s ?? '')) : String(s ?? '');
 const escAttr = (s) => (window.Utils && window.Utils.escapeAttr) ? window.Utils.escapeAttr(String(s ?? '')) : String(s ?? '').replace(/"/g, '&quot;');
 
+// Build the comma-formatted single-string version of the mailing address
+// (IntakeV2.data.address.{street,city,state,zip}) used by the home card's
+// "Same as mailing" shortcut and by the auto-fill on first-home add in
+// intake-v2-layout.js. Returns null when the mailing address is too sparse
+// to produce a parseable string — smart-fill's parseAddress() requires at
+// least three comma-separated parts (street, city, state-zip), so we gate
+// on street+city+state. ZIP joins the state with a space to match the
+// USPS one-line format and the input's placeholder.
+function _mailingAddressString() {
+    const a = (window.IntakeV2 && window.IntakeV2.data && window.IntakeV2.data.address) || {};
+    const street = (a.street || '').trim();
+    const city   = (a.city   || '').trim();
+    const state  = (a.state  || '').trim();
+    const zip    = (a.zip    || '').trim();
+    if (!street || !city || !state) return null;
+    return zip ? `${street}, ${city}, ${state} ${zip}` : `${street}, ${city}, ${state}`;
+}
+
 // Year-built advisories. Surface inline cues an underwriter would
 // otherwise have to compute mentally — "1952 home with no electrical
 // year? Probably knob-and-tube. Flag it before the carrier asks."
@@ -96,10 +114,23 @@ function advisoriesHeader(home) {
 }
 
 function addressHeader(home) {
+    // "Same as mailing" shortcut — only rendered when the mailing address
+    // has enough captured to produce a parseable string AND it doesn't
+    // already match this home's address (no point offering a no-op).
+    // Case-insensitive compare so a casing-only difference doesn't keep
+    // a redundant button visible.
+    const mailing  = _mailingAddressString();
+    const homeAddr = (home.address || '').trim();
+    const sameAsBtn = (mailing && homeAddr.toLowerCase() !== mailing.toLowerCase())
+        ? `<button type="button" class="iv2-same-as-mailing-btn" data-iv2-same-as-mailing data-home-id="${escAttr(home.id)}" title="Copy the mailing address (${escAttr(mailing)}) into the Property Address field">Same as mailing</button>`
+        : '';
+    const labelRow = sameAsBtn
+        ? `<div class="iv2-field-label-row"><label for="iv2-home-address-${escAttr(home.id)}">Property Address</label>${sameAsBtn}</div>`
+        : `<label for="iv2-home-address-${escAttr(home.id)}">Property Address</label>`;
     return `
         <div class="iv2-field-grid" style="margin-bottom:8px">
             <div class="iv2-field" data-field-wrap="homes#${escAttr(home.id)}.address" style="grid-column: span 2;">
-                <label for="iv2-home-address-${escAttr(home.id)}">Property Address</label>
+                ${labelRow}
                 <div class="iv2-input-wrap">
                     <input type="text" id="iv2-home-address-${escAttr(home.id)}" data-collection="homes" data-item-id="${escAttr(home.id)}" data-field-path="address" value="${escAttr(home.address || '')}" placeholder="123 Main St, Anytown, WA 98101">
                     <button type="button" class="iv2-speller-btn" data-speller-mode="general" tabindex="-1" aria-label="Phonetic speller (Alt+P)" title="Phonetic speller (Alt+P)">🔤</button>
@@ -165,6 +196,28 @@ function renderHomes() {
                 btn.disabled = false;
                 btn.classList.remove('is-loading');
                 btn.innerHTML = original;
+            }
+        });
+    });
+
+    // Wire "Same as mailing" shortcuts. Each click writes the formatted
+    // mailing address into the input's .value and dispatches an `input`
+    // event so the delegated save listener in intake-v2-core.js fires
+    // exactly as if the agent typed it. No re-render here — keeping
+    // the click cheap (no map re-attach, no DOM swap). The button
+    // disappears on the next natural re-render once home.address ===
+    // mailing.
+    root.querySelectorAll('[data-iv2-same-as-mailing]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const homeId = btn.getAttribute('data-home-id');
+            const mailing = _mailingAddressString();
+            if (!mailing) return;
+            const input = document.getElementById(`iv2-home-address-${homeId}`);
+            if (!input) return;
+            input.value = mailing;
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            if (window.App && window.App.toast) {
+                window.App.toast('Copied mailing address', { type: 'success', duration: 2000 });
             }
         });
     });

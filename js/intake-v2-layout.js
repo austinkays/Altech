@@ -16,6 +16,21 @@
 const esc      = (s) => (window.Utils && window.Utils.escapeHTML) ? window.Utils.escapeHTML(String(s ?? '')) : String(s ?? '');
 const escAttr  = (s) => (window.Utils && window.Utils.escapeAttr) ? window.Utils.escapeAttr(String(s ?? '')) : String(s ?? '').replace(/"/g, '&quot;');
 
+// Mirror of _mailingAddressString in intake-v2-property.js — duplicated to
+// keep this module self-contained (intake-v2-layout.js loads BEFORE
+// intake-v2-property.js, so we can't depend on a helper exposed from there
+// at script-load time). Used by the "+ Home" button to pre-fill the first
+// home's address from the mailing fields.
+function _mailingAddrString() {
+    const a = (window.IntakeV2 && window.IntakeV2.data && window.IntakeV2.data.address) || {};
+    const street = (a.street || '').trim();
+    const city   = (a.city   || '').trim();
+    const state  = (a.state  || '').trim();
+    const zip    = (a.zip    || '').trim();
+    if (!street || !city || !state) return null;
+    return zip ? `${street}, ${city}, ${state} ${zip}` : `${street}, ${city}, ${state}`;
+}
+
 const SECTION_ORDER = ['iv2-quick','iv2-household','iv2-properties','iv2-coverage','iv2-history','iv2-review'];
 
 function renderQuickSection() {
@@ -778,7 +793,19 @@ function wireTopbarHandlers() {
             const map = { home: 'homes', auto: 'autos', boat: 'boats', rv: 'rvs' };
             const collKey = map[which];
             if (!collKey) return;
-            const item = window.IntakeV2.addItem(collKey, {});
+            // Pre-fill the FIRST home's address from the mailing fields when
+            // the mailing address is complete enough to parse. The
+            // overwhelmingly common case is "insure the home I live in" —
+            // saving the agent from typing the same street/city/state/zip
+            // twice. Second/third home (vacation, rental) gets the default
+            // empty address because it lives at a different location by
+            // definition.
+            let partial = {};
+            if (collKey === 'homes' && (window.IntakeV2.data.homes || []).length === 0) {
+                const mailing = _mailingAddrString();
+                if (mailing) partial = { address: mailing };
+            }
+            const item = window.IntakeV2.addItem(collKey, partial);
             // Focus the new card's first input after render
             setTimeout(() => {
                 const first = document.querySelector(`[data-card-of="${collKey}"][data-item-id="${item.id}"] input, [data-card-of="${collKey}"][data-item-id="${item.id}"] select`);
