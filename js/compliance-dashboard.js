@@ -613,8 +613,13 @@ const ComplianceDashboard = {
         if (!document.getElementById('cglTableContainer')) return; // not mounted
         try {
             this.loadState();
-            if (this.policies && this.policies.length > 0) { this.renderPolicies(); this.updateStats(); }
-            else { this.fetchPolicies(); }
+            if (this.policies && this.policies.length > 0) {
+                // Repaint AND reveal — a boot sync event repainting into a
+                // still-hidden table is the "stuck on Loading…" bug.
+                this.renderPolicies();
+                this.updateStats();
+                this._revealTable();
+            } else { this.fetchPolicies(); }
         } catch (e) { console.warn('[CGL] Synced reload skipped:', e && e.message); }
     },
 
@@ -748,12 +753,20 @@ const ComplianceDashboard = {
         return null;
     },
 
+    // Single source of truth for the "data is ready" view swap (idempotent):
+    // hide #cglLoading, show #cglTableContainer, clear #cglError. Fixes the
+    // "stuck on Loading… until Refresh" bug (rows rendered into a hidden table).
+    _revealTable() {
+        const loading = document.getElementById('cglLoading');
+        const tableContainer = document.getElementById('cglTableContainer');
+        const error = document.getElementById('cglError');
+        if (loading) loading.style.display = 'none';
+        if (tableContainer) tableContainer.style.display = 'block';
+        if (error) error.style.display = 'none';
+    },
+
     /** Show cached data and optionally kick off background refresh */
     _showCachedData(cached) {
-        const loading = document.getElementById('cglLoading');
-        const error = document.getElementById('cglError');
-        const tableContainer = document.getElementById('cglTableContainer');
-
         this.policies = cached.policies || [];
         this._normalizePolicyKeys();
         const cacheAge = Date.now() - (cached.cachedAt || 0);
@@ -764,12 +777,15 @@ const ComplianceDashboard = {
 
         this.renderLastSynced(cached.last_synced_time || cached.metadata?.fetchedAt);
 
-        if (loading) loading.style.display = 'none';
-        if (tableContainer) tableContainer.style.display = 'block';
-        if (error) error.style.display = 'none';
-        this.deduplicateRenewals();
-        this.checkForRenewals();
-        this.verifyAllClients();
+        // Reveal before the heavy steps so a throw can't strand the overlay.
+        this._revealTable();
+        try {
+            this.deduplicateRenewals();
+            this.checkForRenewals();
+            this.verifyAllClients();
+        } catch (e) {
+            console.error('[CGL] _showCachedData renewal/verify failed (non-fatal):', e);
+        }
         this.renderTypeToggles();
         this.renderPolicies();
         this.updateStats();
@@ -784,6 +800,11 @@ const ComplianceDashboard = {
         const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
         const needsRefresh = cacheAge > CGL_CACHE_TTL || cached._partialCache === true;
         if (needsRefresh && !isLocal) this.fetchPoliciesFromAPI(true);
+
+        // Re-assert last: a concurrent boot-time _applySyncedReload() or a
+        // re-entrant no-cache fetchPolicies() can re-hide the table after the
+        // early reveal. init()'s await must resolve with it visible.
+        this._revealTable();
     },
 
     async fetchPoliciesFromAPI(isBackground = false, bypassServerCache = false) {
