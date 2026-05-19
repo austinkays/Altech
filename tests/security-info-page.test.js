@@ -136,6 +136,67 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         expect(overlay).toMatch(/onclick="SecurityInfo\.print\(\)"/);
     });
 
+    test('print() hoists a nested overlay to <body> for isolation, then restores', () => {
+        // Source-string regression: the print rule
+        // `body.secinfo-printing > *:not(#securityInfoOverlay){display:none}`
+        // only works if #securityInfoOverlay is a direct body child. At
+        // runtime the overlay lives inside an app-shell wrapper, so print()
+        // must hoist it to <body> for the print and put it back after.
+        const mod = bootJs.match(/window\.SecurityInfo = \(\(\) => \{[\s\S]*?\}\)\(\);/);
+        const m = mod[0];
+        expect(m).toMatch(/origParent\s*=\s*o\.parentNode/);
+        expect(m).toMatch(/origParent\s*!==\s*document\.body/);
+        expect(m).toMatch(/document\.body\.appendChild\(o\)/);
+        // Restore must use the original next sibling so order is preserved.
+        expect(m).toMatch(/origParent\.insertBefore\(o,\s*origNextSibling\)/);
+        expect(m).toMatch(/origParent\.appendChild\(o\)/);
+    });
+
+    test('behavioral: print() with overlay nested under a wrapper hoists + restores', () => {
+        // Build a JSDOM that mirrors the live DOM (overlay nested inside a
+        // wrapper, NOT a direct body child) and prove the hoist/restore
+        // round-trip actually executes against a real DOM.
+        const { JSDOM } = require('jsdom');
+        const dom = new JSDOM(
+            '<!DOCTYPE html><html><body>' +
+            '<div id="wrapper">' +
+            '<div id="securityInfoOverlay" style="display:flex">' +
+            '<div class="secinfo-modal">content</div>' +
+            '</div>' +
+            '</div>' +
+            '</body></html>',
+            { url: 'http://localhost/', runScripts: 'outside-only' }
+        );
+        const { window } = dom;
+        let printCalled = 0;
+        window.print = () => { printCalled++; };
+        // Eval JUST the SecurityInfo IIFE inside the test window.
+        const iife = bootJs.match(/window\.SecurityInfo = \(\(\) => \{[\s\S]*?\}\)\(\);/)[0];
+        window.eval(iife);
+
+        const o = window.document.getElementById('securityInfoOverlay');
+        const wrapper = window.document.getElementById('wrapper');
+
+        // Pre-print: overlay is nested inside the wrapper, not body.
+        expect(o.parentElement).toBe(wrapper);
+
+        window.SecurityInfo.print();
+
+        // Mid-print: overlay must be a direct body child so the @media
+        // print isolation actually applies to it (not its wrapper).
+        expect(o.parentElement).toBe(window.document.body);
+        expect(window.document.body.classList.contains('secinfo-printing')).toBe(true);
+        expect(printCalled).toBe(1);
+
+        // Fire afterprint to simulate the dialog closing.
+        window.dispatchEvent(new window.Event('afterprint'));
+
+        // Post-print: overlay restored under its original wrapper and
+        // body.secinfo-printing cleared.
+        expect(o.parentElement).toBe(wrapper);
+        expect(window.document.body.classList.contains('secinfo-printing')).toBe(false);
+    });
+
     test('print isolation collapses siblings (no blank pages) + scoped + survives task-sheet', () => {
         expect(css).toMatch(/@media print/);
         const printBlock = css.slice(css.indexOf('@media print'));
