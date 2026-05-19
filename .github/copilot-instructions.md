@@ -20,7 +20,7 @@ known bugs, and rules. Do not write any code until you have read it.
 
 ```bash
 npm run dev          # Local server
-npm test             # 72 test suites, ~2,600 tests (Jest + JSDOM)
+npm test             # 73 test suites, ~2,600 tests (Jest + JSDOM)
 npx jest --no-coverage  # Faster (skip coverage)
 ```
 
@@ -155,7 +155,7 @@ Every `<input id="fieldName">` auto-syncs to `App.data.fieldName` via `localStor
 ## Testing
 
 ```bash
-npm test                    # All 72 suites, ~2,600 tests
+npm test                    # All 73 suites, ~2,600 tests
 npx jest --no-coverage      # Faster (skip coverage)
 npx jest tests/app.test.js  # Single suite
 ```

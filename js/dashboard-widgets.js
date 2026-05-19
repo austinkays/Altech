@@ -1028,6 +1028,9 @@ window.DashboardWidgets = (() => {
                     <button class="sidebar-footer-btn" onclick="App.toggleDarkMode()" title="Toggle dark mode" aria-label="Toggle dark mode">
                         ${icon('moon', 18)}
                     </button>
+                    <button class="sidebar-footer-btn" onclick="SecurityInfo.open()" title="Security & data protection" aria-label="Security and data protection">
+                        ${icon('lock', 18)}
+                    </button>
                     <button class="sidebar-footer-btn" onclick="Auth.showModal()" title="Account" aria-label="Account">
                         ${icon('user', 18)}
                     </button>

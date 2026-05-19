@@ -35,7 +35,7 @@
     background: var(--bg-card);
     border-radius: 18px;
     width: 100%;
-    max-width: 520px;
+    max-width: 720px;
     max-height: 85vh;
     display: flex;
     flex-direction: column;
@@ -232,4 +232,198 @@ body.dark-mode .secinfo-section-icon {
     .secinfo-header h3 { font-size: 16px; }
     .secinfo-section-content h4 { font-size: 13px; }
     .secinfo-section-content p { font-size: 12px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   Header toolbar (Print / Save PDF + Close)
+   ═══════════════════════════════════════════════════════ */
+
+.secinfo-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.secinfo-print-btn {
+    background: var(--apple-blue);
+    color: #fff;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 7px 12px;
+    border-radius: 8px;
+    line-height: 1;
+    white-space: nowrap;
+    transition: filter 0.15s;
+}
+
+.secinfo-print-btn:hover { filter: brightness(1.08); }
+
+/* Group heading ("In plain language") */
+.secinfo-group-title {
+    margin: 4px 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Collapsible technical detail
+   ═══════════════════════════════════════════════════════ */
+
+.secinfo-tech {
+    margin-top: 20px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.secinfo-tech > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 14px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    background: rgba(0, 122, 255, 0.06);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.secinfo-tech > summary::-webkit-details-marker { display: none; }
+
+.secinfo-tech-chevron {
+    display: inline-block;
+    transition: transform 0.18s ease;
+    color: var(--apple-blue);
+    font-size: 12px;
+}
+
+.secinfo-tech[open] .secinfo-tech-chevron { transform: rotate(90deg); }
+
+.secinfo-tech-body {
+    padding: 6px 18px 18px;
+}
+
+.secinfo-tech-body h5 {
+    margin: 18px 0 6px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.1px;
+}
+
+.secinfo-tech-body h5:first-child { margin-top: 8px; }
+
+.secinfo-tech-body .secinfo-list { margin-top: 0; }
+
+.secinfo-tech-body .secinfo-list li {
+    font-size: 12.5px;
+    line-height: 1.65;
+    padding-left: 16px;
+    margin-bottom: 5px;
+}
+
+.secinfo-tech-body code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11.5px;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--text);
+    padding: 1px 5px;
+    border-radius: 4px;
+    word-break: break-word;
+}
+
+body.dark-mode .secinfo-tech > summary { background: rgba(10, 132, 255, 0.12); }
+body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); }
+
+@media (max-width: 480px) {
+    .secinfo-print-btn { padding: 6px 9px; font-size: 11px; }
+    .secinfo-tech-body { padding: 4px 14px 14px; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Print / Save as PDF  (scoped by body.secinfo-printing)
+   Toner-friendly: white surface, black text, full document,
+   no app chrome, technical section forced open by SecurityInfo.print().
+   ═══════════════════════════════════════════════════════ */
+
+@media print {
+    body.secinfo-printing > *:not(#securityInfoOverlay):not(script):not(noscript) {
+        display: none !important;
+    }
+
+    body.secinfo-printing #securityInfoOverlay {
+        position: static !important;
+        display: block !important;
+        inset: auto !important;
+        background: #fff !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        padding: 0 !important;
+        animation: none !important;
+    }
+
+    body.secinfo-printing .secinfo-modal {
+        max-width: 100% !important;
+        max-height: none !important;
+        width: 100% !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        animation: none !important;
+        overflow: visible !important;
+    }
+
+    body.secinfo-printing .secinfo-body {
+        overflow: visible !important;
+        max-height: none !important;
+    }
+
+    /* Hide interactive chrome that makes no sense on paper */
+    body.secinfo-printing .secinfo-toolbar,
+    body.secinfo-printing .secinfo-tech-chevron {
+        display: none !important;
+    }
+
+    /* Force readable black-on-white regardless of dark mode */
+    body.secinfo-printing #securityInfoOverlay,
+    body.secinfo-printing #securityInfoOverlay h3,
+    body.secinfo-printing #securityInfoOverlay h4,
+    body.secinfo-printing #securityInfoOverlay h5,
+    body.secinfo-printing #securityInfoOverlay p,
+    body.secinfo-printing #securityInfoOverlay li,
+    body.secinfo-printing #securityInfoOverlay strong,
+    body.secinfo-printing #securityInfoOverlay em,
+    body.secinfo-printing #securityInfoOverlay summary {
+        color: #000 !important;
+    }
+
+    body.secinfo-printing .secinfo-section-icon {
+        background: #eee !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body.secinfo-printing .secinfo-tech,
+    body.secinfo-printing .secinfo-tech > summary,
+    body.secinfo-printing .secinfo-tech-body code {
+        background: #f4f4f4 !important;
+        border-color: #ccc !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Ensure the technical section prints even if the UA collapses it */
+    body.secinfo-printing .secinfo-tech .secinfo-tech-body { display: block !important; }
+
+    body.secinfo-printing .secinfo-section { break-inside: avoid; }
+    body.secinfo-printing .secinfo-tech-body h5 { break-after: avoid; }
 }

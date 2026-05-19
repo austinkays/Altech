@@ -393,12 +393,41 @@ window.onload = async () => {
 
 // ── Security & Privacy Info Modal ──
 window.SecurityInfo = (() => {
-    const open = () => { document.getElementById('securityInfoOverlay').style.display = 'flex'; };
-    const close = () => { document.getElementById('securityInfoOverlay').style.display = 'none'; };
+    const el = () => document.getElementById('securityInfoOverlay');
+    const open = () => { const o = el(); if (o) o.style.display = 'flex'; };
+    const close = () => { const o = el(); if (o) o.style.display = 'none'; };
+    // Print / Save as PDF — open the page if needed, scope the print to it
+    // via body.secinfo-printing (see @media print in css/security-info.css),
+    // then restore. afterprint is the primary restore path; the timeout is a
+    // fallback for browsers that don't fire it reliably.
+    const print = () => {
+        const o = el();
+        if (!o) return;
+        const wasHidden = o.style.display !== 'flex';
+        if (wasHidden) o.style.display = 'flex';
+        // Force the collapsed technical section open so the full document
+        // prints, then restore its prior state afterward.
+        const tech = o.querySelector('.secinfo-tech');
+        const techWasClosed = tech && !tech.open;
+        if (tech) tech.open = true;
+        document.body.classList.add('secinfo-printing');
+        const cleanup = () => {
+            document.body.classList.remove('secinfo-printing');
+            if (wasHidden) o.style.display = 'none';
+            if (tech && techWasClosed) tech.open = false;
+            window.removeEventListener('afterprint', cleanup);
+        };
+        window.addEventListener('afterprint', cleanup);
+        setTimeout(() => {
+            if (document.body.classList.contains('secinfo-printing')) cleanup();
+        }, 2000);
+        window.print();
+    };
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && document.getElementById('securityInfoOverlay').style.display === 'flex') close();
+        const o = el();
+        if (e.key === 'Escape' && o && o.style.display === 'flex') close();
     });
-    return { open, close };
+    return { open, close, print };
 })();
 
 // ── 3D Tilt Effect for Tool Cards ──
