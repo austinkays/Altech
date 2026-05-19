@@ -570,8 +570,12 @@ body.dark-mode .ts-header-btn-outline:hover {
         margin: 0.4in 0.35in 0.35in;
     }
 
-    /* Hide all non-content chrome */
-    body > *:not(.app-shell),
+    /* Hide all non-content chrome.
+       NOTE: this @media print block is intentionally NOT body-class-scoped
+       (task-sheet prints via a plain window.print()), so it applies to
+       EVERY print in the app. #securityInfoOverlay is excluded so the
+       Security & Data Protection page's own print isn't blanked by it. */
+    body > *:not(.app-shell):not(#securityInfoOverlay),
     .sidebar,
     .mobile-bottom-nav,
     #mobileBottomNav,
