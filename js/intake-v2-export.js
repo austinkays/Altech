@@ -123,9 +123,10 @@ function exportEZLynxXML() {
         // Pre-flight: surface anything that would make EZLynx reject the
         // import BEFORE we hand the agent a file that dies on their screen.
         // Blocking issues abort the export outright; warnings let the agent
-        // decide (the file is hardened to still import — license-less drivers
-        // export Not Rated, bad VINs export without VIN lookup — but the
-        // agent should know the export is incomplete).
+        // decide (the file is hardened to still import — bad VINs export
+        // without VIN lookup, junk gender → Not Specified, structural
+        // cross-refs match the known-good V200 sample — but the agent should
+        // know the export is incomplete).
         if (typeof window.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx === 'function') {
             const { blocking, warnings } = window.IntakeV2EZLynxXML.validateIntakeV2ForEZLynx(d);
             if (blocking && blocking.length) {
@@ -145,7 +146,7 @@ function exportEZLynxXML() {
                 const proceed = (typeof window.confirm === 'function')
                     ? window.confirm('EZLynx export — heads up, missing info:\n\n• '
                         + warnings.join('\n• ')
-                        + '\n\nThe file will still import, but these fields will be blank or "Not Rated" in EZLynx.\n\nExport anyway?')
+                        + '\n\nThe file will still import, but these fields will be blank or unrated in EZLynx until you fill them.\n\nExport anyway?')
                     : true;
                 if (!proceed) {
                     if (window.App && window.App.toast) window.App.toast('EZLynx export cancelled — fix the flagged fields and re-export', { type: 'info', duration: 4000 });
