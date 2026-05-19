@@ -844,6 +844,78 @@ window.CallLogger = (() => {
         }
     }
 
+    // ── Plain-text log → HawkSoft HTML dialect ───────────────────────
+    // The AI/agent works in reliable plain text (great for review/edit).
+    // On push we deterministically convert that text into the VERIFIED
+    // buildHawkSoftNote() dialect (the sanctioned partner API transmits it
+    // and HawkSoft renders it — confirmed in production). Line 1 stays a
+    // PLAIN paragraph (no spans) so HawkSoft's collapsed log-LIST view
+    // shows a clean "RE: AJK — summary" with no markup.
+
+    function _runsForBody(line) {
+        // Bold a leading "Action:" / "Action items:" label, rest plain.
+        const m = line.match(/^(\s*Action(?:\s+items)?:\s*)(.*)$/i);
+        if (m) {
+            const runs = [{ type: 'text', text: m[1], bold: true }];
+            if (m[2]) runs.push({ type: 'text', text: m[2] });
+            return runs;
+        }
+        return [{ type: 'text', text: line }];
+    }
+
+    function _plainToNoteContent(text) {
+        const lines = String(text == null ? '' : text).replace(/\r\n/g, '\n').split('\n');
+        const blocks = [];
+        let listBuf = null, listType = null, seenFirst = false;
+        const flush = () => {
+            if (listBuf && listBuf.length) blocks.push({ type: listType, items: listBuf });
+            listBuf = null; listType = null;
+        };
+        for (const raw of lines) {
+            const line = raw.replace(/\s+$/, '');
+            const trimmed = line.trim();
+            if (!seenFirst) {
+                if (trimmed === '') continue;
+                // First non-empty line = summary → PLAIN (list-view-safe).
+                blocks.push({ type: 'paragraph', runs: [{ type: 'text', text: line }] });
+                seenFirst = true;
+                continue;
+            }
+            if (trimmed === '') { flush(); blocks.push({ type: 'break' }); continue; }
+            const bul = trimmed.match(/^[-*•]\s+(.*)$/);
+            const num = trimmed.match(/^\d+[.)]\s+(.*)$/);
+            if (bul) {
+                if (listType && listType !== 'bullet') flush();
+                listType = 'bullet'; listBuf = listBuf || [];
+                listBuf.push(_runsForBody(bul[1]));
+                continue;
+            }
+            if (num) {
+                if (listType && listType !== 'numbered') flush();
+                listType = 'numbered'; listBuf = listBuf || [];
+                listBuf.push(_runsForBody(num[1]));
+                continue;
+            }
+            flush();
+            blocks.push({ type: 'paragraph', runs: _runsForBody(line) });
+        }
+        flush();
+        return blocks;
+    }
+
+    // → HawkSoft HTML string, or null to signal "send plain text instead"
+    // (builder missing / threw / produced nothing). Never throws.
+    function _plainToHawkSoftHtml(text) {
+        try {
+            if (!window.HawkSoftNote || typeof window.HawkSoftNote.buildHawkSoftNote !== 'function') return null;
+            const html = window.HawkSoftNote.buildHawkSoftNote(_plainToNoteContent(text));
+            return (html && html.trim()) ? html : null;
+        } catch (e) {
+            console.warn('[HawkSoft Logger] HTML format failed, sending plain text:', e && e.message);
+            return null;
+        }
+    }
+
     // ── Step 2: Confirm & Send to HawkSoft ──
 
     async function _handleConfirm() {
@@ -877,6 +949,13 @@ window.CallLogger = (() => {
                 ? Auth.apiFetch.bind(Auth)
                 : fetch;
 
+            // Convert the reviewed plain text into HawkSoft's HTML dialect
+            // and push it through the SAME sanctioned partner API. Falls
+            // back to the plain text if the builder is unavailable/empty so
+            // a push is never blocked. _pendingLog.formattedLog stays plain
+            // (used by retry/diagnostics/manual-copy).
+            const noteToSend = _plainToHawkSoftHtml(_pendingLog.formattedLog) || _pendingLog.formattedLog;
+
             const res = await fetchFn('/api/hawksoft-logger', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -885,7 +964,7 @@ window.CallLogger = (() => {
                     clientNumber: _pendingLog.clientNumber,
                     hawksoftPolicyId: _pendingLog.hawksoftPolicyId,
                     callType: _pendingLog.callType,
-                    formattedLog: _pendingLog.formattedLog
+                    formattedLog: noteToSend
                 })
             });
 
@@ -1388,5 +1467,5 @@ window.CallLogger = (() => {
         }
     }
 
-    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType, _rpBuild, _initRichPreview, RP_PRESETS };
+    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType, _rpBuild, _initRichPreview, RP_PRESETS, _plainToNoteContent, _plainToHawkSoftHtml };
 })();

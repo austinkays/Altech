@@ -13,12 +13,25 @@
 | **A — Partner API** | `integration.hawksoft.app` | HTTP Basic (agency credentials) | ✅ Yes — official | ✅ Yes — the live logger |
 | **B — Internal API** | `cs.hawksoft.app` | Ambient session cookies (browser) | ❌ No — undocumented, gray-area TOS | ❌ No — foundation only |
 
-**Why both exist:** Path A is supported but limited (plain-text notes,
-generic-user attribution). Path B is what HawkSoft's own Vue frontend uses —
-it accepts HTML notes, attributes to the real user, and exposes channels/
-directions/tags — but it is undocumented, unsanctioned, and HawkSoft will not
-support issues arising from it. **This round builds only the path-agnostic
-foundation; Path B is deliberately not wired.** See *Status & Roadmap* below.
+> ### ✅ VERIFIED 2026-05-18 — Path A renders the HTML dialect
+>
+> The exploration guide claimed the partner API is plain-text only. **This is
+> false.** A `buildHawkSoftNote()` payload was pushed through the sanctioned
+> partner API (`api/hawksoft-logger.js` → `integration.hawksoft.app`,
+> "Confirm & Push") and HawkSoft rendered it correctly — **bold, numbered
+> list, `rgb()` color, underline, and the Phone › From › Insured channel**
+> all came through (production log **Row #234**). **Path B is therefore NOT
+> required for rich formatting** — the sanctioned, already-wired path does it.
+> Path B remains relevant only for *real-user attribution* (Path A still logs
+> as the generic integration user).
+
+**Why both still matter:** Path A (sanctioned) now covers formatting **and**
+channels — its only remaining gap is `created_by` attribution (logs show the
+generic integration user; the logger works around this by prefixing agent
+initials to the `RE:` line). Path B (internal `cs.hawksoft.app`, undocumented/
+unsanctioned) would add true per-user attribution but is **not wired** and
+needs a live session + test client to verify. The formatting win is shipped on
+Path A; Path B is now a lower-priority attribution-only follow-up.
 
 ---
 
@@ -33,7 +46,7 @@ The "HawkSoft Logger" the agency uses today.
 | Auth | `Authorization: Basic base64(HAWKSOFT_CLIENT_ID:HAWKSOFT_CLIENT_SECRET)` — env vars; `HAWKSOFT_AGENCY_ID` in the URL |
 | Flow | Two-step: `formatOnly:true` (AI cleans shorthand → preview) → confirm (`formattedLog` pushed) |
 | Attribution | Generic integration user. Worked around by prepending **agent initials to the `RE:` line** so the truncated log-list view still identifies the agent. |
-| Note format | **Plain text only.** The AI system prompt forbids markdown/HTML and blank lines. |
+| Note format | **HTML (verified).** The AI still emits plain text; on Confirm & Push `js/call-logger.js` `_plainToHawkSoftHtml()` deterministically converts it via `buildHawkSoftNote()` and pushes the HTML through this same API. Line 1 is kept a plain `<div>` (no spans) so the collapsed log-list stays clean; body gets reliable paragraph breaks, bolded `Action:`, and real `<ul>/<ol>`. Falls back to plain text if the builder is unavailable. |
 
 **Request body** (`api/hawksoft-logger.js` `_pushToHawkSoft`):
 
@@ -148,14 +161,32 @@ status yields `false` rather than throwing.
 
 ## Status & Roadmap
 
-### Done — this round (foundation, path-agnostic, fully unit-tested)
+### Done — shipped
 
 - [x] `buildHawkSoftNote()` IR → HawkSoft-HTML builder — [`js/hawksoft-note.js`](../js/hawksoft-note.js)
 - [x] `HawkSoftAPIError` with `isAuthError` / `isNotFound` / `isServerError`
 - [x] ~70-case unit suite — [`tests/hawksoft-note.test.js`](../tests/hawksoft-note.test.js) (XSS, scheme rejection, color clamp, degenerate inputs, error truth table)
-- [x] [`hawksoft-dictionary.json`](hawksoft-dictionary.json) scaffold — Path A code-mirror + Path B confirmed-vs-`TBD`
-- [x] This reference doc; corrected the guide's outdated "Path A can't set channels" claim
-- [x] Builder loaded globally (`window.HawkSoftNote`) — **no live consumer yet, by design**
+- [x] [`hawksoft-dictionary.json`](hawksoft-dictionary.json) — Path A code-mirror + Path B confirmed-vs-`TBD`
+- [x] DRY-RUN preview panel in the HawkSoft Logger (presets → IR → HTML + live render)
+- [x] **VERIFIED Path A renders the HTML dialect in production** (log Row #234) — the "plain-text only" assumption is disproven
+- [x] **Wired into the live logger**: `_plainToHawkSoftHtml()` converts the reviewed plain text → `buildHawkSoftNote()` HTML on Confirm & Push, list-view-safe (plain line 1), human-gated, plain-text fallback — [`js/call-logger.js`](../js/call-logger.js), [`tests/call-logger-html-format.test.js`](../tests/call-logger-html-format.test.js)
+
+### Next — richer formatting (Path A, sanctioned, lower risk)
+
+- [ ] Let the AI emit structured `NoteContent` (or richer markers) so key figures/quote numbers can be bolded/colored — currently the converter is deliberately conservative (structure + `Action:` + lists only)
+- [ ] Sanity-check the **collapsed log-LIST** view on real pushes (opened view verified; list view kept plain-line-1 as mitigation)
+
+### Pending — Path B (now ATTRIBUTION-ONLY, lower priority)
+
+Formatting no longer needs Path B. Path B is only worth pursuing for true
+`created_by` per-user attribution (Path A logs as the generic integration
+user). Still requires a live HawkSoft session + designated test client:
+
+- [ ] Capture the real `cs.hawksoft.app` create-log request/response shape + missing channel/action codes + the agency options dictionary
+- [ ] Extension manifest `host_permissions` + HawkSoft bridge/content script + `createHawkSoftLog()` (ambient-cookie `fetch`) for attribution
+- [ ] Kill switch + response-shape watchdog for internal-API drift
+- [ ] A Node-safe `escapeHTML` if the builder is ever called server-side (it currently needs a DOM via `Utils.escapeHTML`)
+- [ ] Decide whether multi-line text runs should auto-convert `\n` → `<br>` (currently literal)
 
 ### Pending — needs a live HawkSoft session + designated test client
 
