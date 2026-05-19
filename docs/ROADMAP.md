@@ -1,5 +1,11 @@
 # Altech Development Roadmap - Phases 6-10
 
+> ⚠️ **STALE (pre-Phase-D).** Last revised Feb 4 2026 — **predates the May 2026
+> Phase-D Firebase removal**. Any Firebase / Firestore / Firebase-Auth item
+> below is **obsolete** (Supabase is the sole auth + sync backend now), and the
+> phase dates have lapsed. Treat the *feature* ideas as candidates only; the
+> live backlog is code + `CHANGELOG.md` + `docs/HAWKSOFT_API.md`, not this file.
+
 **Document Date**: February 4, 2026
 **Current Status**: Phases 1-5 Complete (6-layer property intelligence system live)
 **Testing Infrastructure**: IN PROGRESS (Phase 5.5)

@@ -234,11 +234,12 @@ const SIZE_BUDGET = 1800; // any NEW js/ file over this fails the audit
 // (a small margin above its then-size absorbs routine maintenance, not new
 // features). When you shrink one, LOWER its number here. Never raise a ceiling
 // or add a new entry to "make the audit pass" — split the file instead
-// (js/cgl-utils.js ← compliance-dashboard.js and
-// js/hawksoft-renderers.js ← hawksoft-export.js are the precedents). The goal
-// is for every entry to trend down and eventually drop off this list.
+// (js/cgl-utils.js / js/cgl-renderers.js / js/cgl-backup.js ←
+// compliance-dashboard.js and js/hawksoft-renderers.js ← hawksoft-export.js
+// are the precedents). The goal is for every entry to trend down and
+// eventually drop off this list.
 const SIZE_GRANDFATHER = {
-    'compliance-dashboard.js': 3275,
+    'compliance-dashboard.js': 3040,
     'intake-assist.js':        3025,
     'intake-v2-export-pdf.js': 2625,
     'app-scan.js':             2500,

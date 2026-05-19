@@ -1,5 +1,11 @@
 # Altech SaaS Commercialization Roadmap
 
+> ⚠️ **STALE (pre-Phase-D).** Last updated Feb 2026 — **predates the May 2026
+> Phase-D Firebase removal**. The entire Firebase Auth / Firestore / hardcoded-
+> Firebase-config security track below is **obsolete**: Supabase (RLS + AES-GCM
+> AAD envelopes + MFA) is the sole auth + sync backend. Architectural/UX ideas
+> may still have merit; verify against current code before acting.
+
 > **Role:** Principal Cloud Architect & Enterprise SaaS Expert  
 > **Objective:** Transition Altech from a single-user internal tool into a commercial, multi-tenant SaaS for P&C insurance agents.  
 > **Audience:** Lead developer + founders

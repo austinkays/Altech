@@ -52,11 +52,13 @@ function loadDashboard() {
     window.App = { toast: () => {} };
     window.AbortSignal = window.AbortSignal || { timeout: () => undefined };
 
-    // Pure helpers / renderers were extracted to cgl-utils.js (window.CglUtil)
-    // and cgl-renderers.js (window.CglRenderers); both must load before
+    // Pure helpers / renderers / backup-I/O were extracted to cgl-utils.js
+    // (window.CglUtil), cgl-renderers.js (window.CglRenderers) and
+    // cgl-backup.js (window.CglBackup); all must load before
     // compliance-dashboard.js, same order as index.html.
     window.eval(fs.readFileSync(path.join(ROOT, 'js/cgl-utils.js'), 'utf8'));
     window.eval(fs.readFileSync(path.join(ROOT, 'js/cgl-renderers.js'), 'utf8'));
+    window.eval(fs.readFileSync(path.join(ROOT, 'js/cgl-backup.js'), 'utf8'));
 
     // Run the dashboard source
     const src = fs.readFileSync(path.join(ROOT, 'js/compliance-dashboard.js'), 'utf8');
