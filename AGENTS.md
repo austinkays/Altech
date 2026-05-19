@@ -16,7 +16,7 @@
 |-----------|-------|
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
-| **CSS** | 51 files in `css/` (~26,392 lines total) |
+| **CSS** | 51 files in `css/` (~26,600 lines total) |
 | **JS** | 109 modules in `js/` (~64,600 lines total) |
 | **Plugins** | 19 HTML templates in `plugins/` (~6,785 lines total, + `tools/broadform.html`) |
 | **APIs** | 13 routable serverless functions + ~22 `_`-prefixed helpers in `api/` (~8,600 lines total) |

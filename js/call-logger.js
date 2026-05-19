@@ -852,15 +852,42 @@ window.CallLogger = (() => {
     // PLAIN paragraph (no spans) so HawkSoft's collapsed log-LIST view
     // shows a clean "RE: AJK — summary" with no markup.
 
-    function _runsForBody(line) {
-        // Bold a leading "Action:" / "Action items:" label, rest plain.
-        const m = line.match(/^(\s*Action(?:\s+items)?:\s*)(.*)$/i);
-        if (m) {
-            const runs = [{ type: 'text', text: m[1], bold: true }];
-            if (m[2]) runs.push({ type: 'text', text: m[2] });
-            return runs;
+    // Parse AI **double-asterisk** emphasis → runs. Unpaired/stray ** is
+    // stripped so literal asterisks never reach HawkSoft. Escaping happens
+    // later in buildHawkSoftNote — this only decides which spans are bold.
+    function _parseEmphasis(text) {
+        const s = String(text == null ? '' : text);
+        const runs = [];
+        const re = /\*\*([^*]+?)\*\*/g;
+        let last = 0, m;
+        while ((m = re.exec(s)) !== null) {
+            if (m.index > last) {
+                const plain = s.slice(last, m.index).replace(/\*\*/g, '');
+                if (plain) runs.push({ type: 'text', text: plain });
+            }
+            if (m[1].trim()) runs.push({ type: 'text', text: m[1], bold: true });
+            last = re.lastIndex;
         }
-        return [{ type: 'text', text: line }];
+        if (last < s.length) {
+            const tail = s.slice(last).replace(/\*\*/g, '');
+            if (tail) runs.push({ type: 'text', text: tail });
+        }
+        return runs.length ? runs : [{ type: 'text', text: s.replace(/\*\*/g, '') }];
+    }
+
+    function _runsForBody(line) {
+        const runs = _parseEmphasis(line);
+        // Fallback: if the AI bolded nothing and this is the Action line,
+        // bold the "Action:" label deterministically (legacy behaviour).
+        if (runs.length === 1 && !runs[0].bold) {
+            const m = runs[0].text.match(/^(\s*Action(?:\s+items)?:\s*)(.*)$/i);
+            if (m) {
+                const out = [{ type: 'text', text: m[1], bold: true }];
+                if (m[2]) out.push({ type: 'text', text: m[2] });
+                return out;
+            }
+        }
+        return runs;
     }
 
     function _plainToNoteContent(text) {
@@ -877,7 +904,9 @@ window.CallLogger = (() => {
             if (!seenFirst) {
                 if (trimmed === '') continue;
                 // First non-empty line = summary → PLAIN (list-view-safe).
-                blocks.push({ type: 'paragraph', runs: [{ type: 'text', text: line }] });
+                // Strip any stray ** so the RE: line never shows literal
+                // asterisks and stays span-free in the collapsed list view.
+                blocks.push({ type: 'paragraph', runs: [{ type: 'text', text: line.replace(/\*\*/g, '') }] });
                 seenFirst = true;
                 continue;
             }
@@ -913,6 +942,34 @@ window.CallLogger = (() => {
         } catch (e) {
             console.warn('[HawkSoft Logger] HTML format failed, sending plain text:', e && e.message);
             return null;
+        }
+    }
+
+    // ── Preview view: plain text ⇄ rendered (what HawkSoft will show) ──
+    // Read-only render of the SAME bytes Confirm & Push will send (via
+    // _plainToHawkSoftHtml — the builder sanitization boundary). Editing
+    // stays in plain text; this is just a faithful "see before you send".
+
+    function _setPreviewView(mode) {
+        const pre = document.getElementById('clPreviewText');
+        const render = document.getElementById('clPreviewRender');
+        const toggle = document.getElementById('clPvToggle');
+        if (!pre || !render) return;
+        // Can't render while the plain-text edit box is open.
+        if (document.querySelector('.cl-edit-textarea')) mode = 'plain';
+        const rich = mode === 'rich';
+        if (rich) {
+            const text = (_pendingLog && _pendingLog.formattedLog) || pre.textContent || '';
+            render.innerHTML = _plainToHawkSoftHtml(text) || '<em class="cl-rp-empty">(nothing to format yet)</em>';
+        }
+        pre.style.display = rich ? 'none' : '';
+        render.style.display = rich ? '' : 'none';
+        if (toggle) {
+            toggle.querySelectorAll('.cl-pv-tab').forEach(b => {
+                const on = b.dataset.pv === (rich ? 'rich' : 'plain');
+                b.classList.toggle('cl-pv-active', on);
+                b.setAttribute('aria-pressed', on ? 'true' : 'false');
+            });
         }
     }
 
@@ -1054,7 +1111,9 @@ window.CallLogger = (() => {
             return;
         }
 
-        // Enter edit mode — show textarea with formatted text
+        // Enter edit mode — show textarea with formatted text.
+        // Force the plain view first so the rendered pane isn't left open.
+        _setPreviewView('plain');
         const textarea = document.createElement('textarea');
         textarea.className = 'cl-edit-textarea';
         textarea.value = _pendingLog.formattedLog;
@@ -1350,6 +1409,16 @@ window.CallLogger = (() => {
             activitySelect._clWired = true;
         }
 
+        // Preview view toggle (Plain ⇄ Formatted)
+        const pvToggle = document.getElementById('clPvToggle');
+        if (pvToggle && !pvToggle._clWired) {
+            pvToggle.addEventListener('click', (e) => {
+                const tab = e.target.closest('.cl-pv-tab');
+                if (tab && tab.dataset.pv) _setPreviewView(tab.dataset.pv);
+            });
+            pvToggle._clWired = true;
+        }
+
         _initRichPreview();
     }
 
@@ -1467,5 +1536,5 @@ window.CallLogger = (() => {
         }
     }
 
-    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType, _rpBuild, _initRichPreview, RP_PRESETS, _plainToNoteContent, _plainToHawkSoftHtml };
+    return { init, render, resetForm: _resetForm, _getClients, _policyTypeLabel, _policyTypeIcon, _selectClient, _selectPolicy, _handleClientSearch, _buildClientLink, _ensurePoliciesLoaded, _updateStatusBar, _refreshPolicies, _handleChannelSelect, _handleActivitySelect, getSelectedPolicy: () => _selectedPolicy, getSelectedChannel: () => _selectedChannel, getSelectedActivityType: () => _selectedActivityType, _rpBuild, _initRichPreview, RP_PRESETS, _plainToNoteContent, _plainToHawkSoftHtml, _parseEmphasis, _setPreviewView };
 })();
