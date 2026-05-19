@@ -112,21 +112,26 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         expect(iUser).toBeGreaterThan(iLock);
     });
 
-    test('SecurityInfo print cleanup is afterprint-driven, NOT a premature timer', () => {
+    test('SecurityInfo print cleanup is afterprint-ONLY (no early-fire backstop)', () => {
         const mod = bootJs.match(/window\.SecurityInfo = \(\(\) => \{[\s\S]*?\}\)\(\);/);
         expect(mod).not.toBeNull();
         const m = mod[0];
         expect(m).toMatch(/return \{ open, close, print \};/);
         expect(m).toMatch(/secinfo-printing/);
         expect(m).toMatch(/tech\.open = true/);
+        // afterprint is the ONLY cleanup signal — it's the only event that
+        // fires AFTER the PDF rasterizes.
         expect(m).toMatch(/addEventListener\('afterprint'/);
-        // Regression: the old setTimeout(…, 2000) fallback stripped the print
-        // class while a "Save as PDF" dialog was still open (those take
-        // >2 s) → blank page. There must be no short timer racing the dialog.
-        expect(m).not.toMatch(/setTimeout\([^)]*,\s*\d{3,4}\s*\)/);
-        // A window-focus backstop is allowed (only fires once the dialog
-        // closes, never while it is open).
-        expect(m).toMatch(/addEventListener\('focus'/);
+        // Regression guards: every "fire early" backstop blanked the export
+        // by stripping body.secinfo-printing before rasterization.
+        //  - the 2 s setTimeout ("Save as PDF" stays open >2 s)
+        //  - the window `focus` listener (focus returns when the print
+        //    PREVIEW opens, well before "Save as PDF" writes the file)
+        // Strip comments first so the rationale above (which names the
+        // banned patterns) doesn't trip these.
+        const codeOnly = m.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+        expect(codeOnly).not.toMatch(/setTimeout\s*\(/);
+        expect(codeOnly).not.toMatch(/addEventListener\(\s*['"]focus['"]/);
         // The print button must call it.
         expect(overlay).toMatch(/onclick="SecurityInfo\.print\(\)"/);
     });

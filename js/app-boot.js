@@ -398,11 +398,16 @@ window.SecurityInfo = (() => {
     const close = () => { const o = el(); if (o) o.style.display = 'none'; };
     // Print / Save as PDF — open the page if needed, scope the print to it
     // via body.secinfo-printing (see @media print in css/security-info.css),
-    // then restore. Cleanup runs on `afterprint` (reliable across modern
-    // browsers) with a window-`focus` backstop. There is deliberately NO
-    // setTimeout fallback: the old 2 s timer stripped body.secinfo-printing
-    // while a "Save as PDF" dialog was still open (those routinely take
-    // >2 s), so the print CSS stopped applying and the page came out blank.
+    // then restore. Cleanup is `afterprint`-ONLY by design. Every "fire
+    // early" backstop we tried stripped body.secinfo-printing BEFORE the PDF
+    // rasterized, so the page saved blank: first a 2 s setTimeout (a "Save
+    // as PDF" dialog stays open longer than 2 s), then a window `focus`
+    // listener (focus returns to the window the moment the print PREVIEW
+    // opens — well before "Save as PDF" actually writes the file — so
+    // `setTimeout(cleanup,0)` ran mid-preview and blanked the output).
+    // `afterprint` is the only event that fires AFTER rasterization. If a
+    // browser somehow never fires it the class just lingers — it only has
+    // any effect inside @media print, and the overlay closes via Esc/✕.
     const print = () => {
         const o = el();
         if (!o) return;
@@ -422,13 +427,8 @@ window.SecurityInfo = (() => {
             if (wasHidden) o.style.display = 'none';
             if (tech && techWasClosed) tech.open = false;
             window.removeEventListener('afterprint', cleanup);
-            window.removeEventListener('focus', onFocus);
         };
-        // focus returns to the window only when the print dialog/preview
-        // closes — never while it is open — so this can't fire early.
-        const onFocus = () => setTimeout(cleanup, 0);
         window.addEventListener('afterprint', cleanup);
-        window.addEventListener('focus', onFocus);
         window.print();
     };
     document.addEventListener('keydown', e => {
