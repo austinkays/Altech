@@ -355,35 +355,34 @@ body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); 
    ═══════════════════════════════════════════════════════ */
 
 @media print {
-    /* Robust "print only this subtree" isolation.
-       display:none on siblings is NOT enough here: css/task-sheet.css
-       ships an UNSCOPED @media print rule
-       `body > *:not(.app-shell){display:none!important}` that loads
-       after this file and hides #securityInfoOverlay on EVERY print.
-       visibility (unlike display) can't be collapsed away by a foreign
-       rule, so we blank everything with visibility:hidden and re-show
-       only the overlay subtree. We still must beat task-sheet's
-       display:none on the overlay element itself —
-       `body.secinfo-printing #securityInfoOverlay` carries an id, so it
-       out-specifies `body > *:not(.app-shell)` and the overlay stays
-       rendered. */
-    body.secinfo-printing * { visibility: hidden !important; }
-
-    body.secinfo-printing #securityInfoOverlay,
-    body.secinfo-printing #securityInfoOverlay * {
-        visibility: visible !important;
+    /* "Print only this subtree" isolation that also paginates cleanly.
+       Two non-obvious constraints:
+       (1) Siblings MUST be display:none, not just visibility:hidden —
+           visibility:hidden keeps the layout box, so the whole app's
+           height (dashboard, sidebar, ~20 tool containers) spilled ~6
+           BLANK trailing pages after the content. display:none collapses
+           them to zero height.
+       (2) display:none on siblings is safe now: css/task-sheet.css's
+           unscoped print rule was deconflicted to exclude
+           #securityInfoOverlay and the premature print-class timer was
+           removed, so nothing fights this. The overlay also carries an id
+           so its display:block out-specifies any stray `body > *` rule.
+       The overlay is position:static so its content flows and paginates
+       normally (absolute/fixed content mis-paginates or clips in print).
+       visibility is layered on only as a cheap backstop. */
+    body.secinfo-printing > *:not(#securityInfoOverlay):not(script):not(noscript) {
+        display: none !important;
+        visibility: hidden !important;
     }
 
     body.secinfo-printing #securityInfoOverlay {
         display: block !important;
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        right: auto !important;
-        bottom: auto !important;
+        visibility: visible !important;
+        position: static !important;
         inset: auto !important;
         width: 100% !important;
         height: auto !important;
+        max-height: none !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
@@ -391,6 +390,10 @@ body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); 
         -webkit-backdrop-filter: none !important;
         animation: none !important;
         overflow: visible !important;
+    }
+
+    body.secinfo-printing #securityInfoOverlay * {
+        visibility: visible !important;
     }
 
     body.secinfo-printing .secinfo-modal {
