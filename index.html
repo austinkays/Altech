@@ -291,7 +291,7 @@
                 </div>
             </div>
             <div class="secinfo-body">
-                <p class="secinfo-intro">This page explains how the Altech toolkit stores, encrypts, and protects the information you enter. It describes how the application itself is engineered &mdash; in plain language first, with the precise technical controls below. It is a description of the build, not an independent audit or a compliance certification.</p>
+                <p class="secinfo-intro">This page explains how the Altech toolkit stores, encrypts, and protects the information you enter. It describes how the application itself is engineered, in plain language first, with the precise technical controls below. It is a description of the build, not an independent audit or a compliance certification.</p>
 
                 <h4 class="secinfo-group-title">In plain language</h4>
 
@@ -299,7 +299,7 @@
                     <div class="secinfo-section-icon">🔐</div>
                     <div class="secinfo-section-content">
                         <h4>Your data is encrypted</h4>
-                        <p>Every record you save is encrypted with <strong>AES-256-GCM</strong> &mdash; the same 256-bit standard used to protect sensitive financial and government data &mdash; <em>before</em> it is written to storage or sent to the cloud.</p>
+                        <p>The client information you enter is encrypted with <strong>AES-256-GCM</strong> (the same 256-bit standard used to protect sensitive financial and government data) <em>before</em> it is synced to the cloud, and sensitive data is encrypted at rest on this device as well.</p>
                     </div>
                 </div>
 
@@ -307,7 +307,7 @@
                     <div class="secinfo-section-icon">🔑</div>
                     <div class="secinfo-section-content">
                         <h4>Only you can unlock it</h4>
-                        <p>With the secure vault enabled, your data is sealed with a key derived from <strong>your passphrase, which never leaves your device</strong>. The encryption key is never sent to the server &mdash; so neither we nor anyone with database access can read your data.</p>
+                        <p>With the secure vault enabled, your data is sealed with a key derived from <strong>your passphrase, which never leaves your device</strong>. The encryption key is never sent to the server, so neither we nor anyone with database access can read your data.</p>
                     </div>
                 </div>
 
@@ -315,7 +315,7 @@
                     <div class="secinfo-section-icon">🧱</div>
                     <div class="secinfo-section-content">
                         <h4>Each account is walled off</h4>
-                        <p>The database enforces <strong>per-account isolation at the row level</strong>. A signed-in user can never read another user's data &mdash; this is enforced by the database itself, not just by app code.</p>
+                        <p>The database enforces <strong>per-account isolation at the row level</strong>. A signed-in user can never read another user's data; this is enforced by the database itself, not just by app code.</p>
                     </div>
                 </div>
 
@@ -323,7 +323,7 @@
                     <div class="secinfo-section-icon">🛡️</div>
                     <div class="secinfo-section-content">
                         <h4>Strong sign-in</h4>
-                        <p>Email and password sign-in with optional <strong>two-factor authentication</strong> (authenticator app or passkey/security key). Turning on cloud sync prompts &mdash; and ultimately requires &mdash; two-factor.</p>
+                        <p>Email and password sign-in with optional <strong>two-factor authentication</strong> (authenticator app or passkey/security key). Turning on cloud sync prompts for, and ultimately requires, two-factor.</p>
                     </div>
                 </div>
 
@@ -331,7 +331,7 @@
                     <div class="secinfo-section-icon">💻</div>
                     <div class="secinfo-section-content">
                         <h4>Works offline, stays local</h4>
-                        <p>When you're offline your work stays in your browser. Certain secrets (encryption salts, device passkeys, the activity log) are marked <strong>never-sync</strong> and never leave the device. Exported files (PDF, EZLynx, HawkSoft) are produced <strong>in your browser</strong> &mdash; the plaintext never passes through our servers.</p>
+                        <p>When you're offline your work stays in your browser. Certain secrets (encryption salts, device passkeys, the activity log) are marked <strong>never-sync</strong> and never leave the device. Exported files (PDF, EZLynx, HawkSoft) are produced <strong>in your browser</strong>; the plaintext never passes through our servers.</p>
                     </div>
                 </div>
 
@@ -350,13 +350,13 @@
                         <h5>Encryption &amp; key management</h5>
                         <ul class="secinfo-list">
                             <li><strong>Cipher:</strong> AES-256-GCM (256-bit, authenticated) via the browser's Web&nbsp;Crypto API, with a fresh 96-bit (12-byte) random IV per record.</li>
-                            <li><strong>Authenticated envelopes:</strong> cloud records use a versioned envelope whose GCM authentication tag is cryptographically bound (AAD) to the <em>(table, row id, user id)</em> &mdash; the server cannot move, swap, or relabel a ciphertext.</li>
-                            <li><strong>Per-user master key:</strong> a random 256-bit key generated once per user, <strong>never sent to the server</strong>. It is wrapped (encrypted) twice &mdash; once with your passphrase, once with a one-time recovery key. Changing your passphrase only re-wraps the key; your data is not re-encrypted or exposed.</li>
+                            <li><strong>Authenticated envelopes:</strong> cloud records use a versioned envelope whose GCM authentication tag is cryptographically bound (AAD) to the <em>(table, row id, user id)</em>, so the server cannot move, swap, or relabel a ciphertext.</li>
+                            <li><strong>Per-user master key:</strong> a random 256-bit key generated once per user, <strong>never sent to the server</strong>. It is wrapped (encrypted) twice: once with your passphrase, once with a one-time recovery key. Changing your passphrase only re-wraps the key; your data is not re-encrypted or exposed.</li>
                             <li><strong>Key derivation:</strong> new vaults use <strong>Argon2id</strong> (memory-hard, GPU-resistant; 64&nbsp;MiB / 3 iterations / 1 lane). Older vaults remain on <strong>PBKDF2-SHA-256, 600,000 iterations</strong>; the legacy device-bound key uses PBKDF2-SHA-256, 100,000 iterations. Role subkeys are domain-separated with HKDF-SHA-256 so a leak in one context cannot be replayed against another.</li>
-                            <li><strong>Key lifetime:</strong> the unwrapped key exists only in tab memory for the session and is never written to disk.</li>
+                            <li><strong>Key lifetime:</strong> the unwrapped key is held in memory and mirrored only into the browser tab's session storage so a page refresh doesn't re-prompt. It is bound to the signed-in account, is never placed in persistent local storage, and is cleared when the browser tab or window closes.</li>
                         </ul>
 
-                        <h5>Data isolation &mdash; Row-Level Security</h5>
+                        <h5>Data isolation: Row-Level Security</h5>
                         <ul class="secinfo-list">
                             <li>All cloud data lives in <strong>PostgreSQL (Supabase)</strong> with <strong>Row-Level Security enabled on every user table</strong>; each row is scoped to the authenticated user id.</li>
                             <li>A <strong>self-checking database migration refuses to deploy</strong> if any expected table is missing RLS or has zero policies, or if a new public table was not explicitly inventoried.</li>
@@ -374,7 +374,7 @@
                         <ul class="secinfo-list">
                             <li>Per-identity <strong>rate limiting</strong> (anonymous by IP, authenticated by user), a <strong>CORS origin allow-list</strong>, and an <strong>X-Request-ID</strong> on every request for traceability.</li>
                             <li><strong>Strict-Transport-Security:</strong> <code>max-age=31536000; includeSubDomains</code> (HTTPS forced for 1 year, all subdomains).</li>
-                            <li><strong>Content-Security-Policy:</strong> <code>default-src 'self'</code> (blocks injected third-party code).</li>
+                            <li><strong>Content-Security-Policy:</strong> <code>default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'</code> (content restricted to the app's own origin).</li>
                             <li><strong>X-Frame-Options:</strong> <code>DENY</code> (no clickjacking / framing).</li>
                             <li><strong>X-Content-Type-Options:</strong> <code>nosniff</code>.</li>
                             <li><strong>Referrer-Policy:</strong> <code>strict-origin-when-cross-origin</code>.</li>
@@ -392,7 +392,7 @@
                 </details>
 
                 <div class="secinfo-footer-note">
-                    <p>Last reviewed: May&nbsp;2026. This describes how the Altech application is built; it is not an independent audit or certification.<br>Security questions? <a href="mailto:austin@altech.agency">austin@altech.agency</a></p>
+                    <p>Last reviewed: May&nbsp;2026. This describes how the Altech application is built; it is not an independent audit or certification.<br>Security questions? <a href="mailto:austin@altechinsurance.com">austin@altechinsurance.com</a></p>
                 </div>
             </div>
         </div>
