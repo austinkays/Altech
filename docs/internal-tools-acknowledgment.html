@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Internal Tools Acknowledgment — Altech Insurance Agency</title>
+    <meta name="description" content="Principal acknowledgment of the Altech Toolkit's use within Altech Insurance Agency.">
+    <style>
+        @page { size: letter portrait; margin: 0.75in; }
+
+        :root {
+            color-scheme: light;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #1a1a1a;
+            background: #fff;
+            font-size: 13pt;
+            line-height: 1.55;
+            max-width: 7.2in;
+            margin: 0 auto;
+            padding: 0.4in 0.2in 0.6in;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1 {
+            font-size: 20pt;
+            font-weight: 700;
+            margin: 0 0 4pt;
+            letter-spacing: -0.4pt;
+        }
+
+        .agency {
+            font-size: 10.5pt;
+            color: #666;
+            margin: 0 0 22pt;
+            letter-spacing: 1pt;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        hr {
+            border: 0;
+            border-top: 1pt solid #ccc;
+            margin: 14pt 0;
+        }
+
+        .field {
+            margin: 12pt 0;
+        }
+
+        .field-label {
+            font-weight: 700;
+            color: #1a1a1a;
+            display: inline-block;
+            min-width: 0;
+        }
+
+        .field-value {
+            margin-left: 2pt;
+        }
+
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+            font-size: 11.5pt;
+            background: #f3f3f3;
+            padding: 1pt 4pt;
+            border-radius: 3pt;
+        }
+
+        .statement {
+            margin: 28pt 0 40pt;
+            font-size: 13pt;
+            line-height: 1.6;
+        }
+
+        .sig-block {
+            margin-top: 36pt;
+            display: flex;
+            gap: 32pt;
+            align-items: flex-end;
+        }
+
+        .sig-col {
+            flex: 1;
+        }
+
+        .sig-col.date {
+            flex: 0 0 1.6in;
+        }
+
+        .sig-line {
+            border-bottom: 1pt solid #1a1a1a;
+            height: 38pt;
+            margin-bottom: 6pt;
+        }
+
+        .sig-label {
+            font-size: 10pt;
+            color: #555;
+        }
+
+        .footer {
+            margin-top: 50pt;
+            padding-top: 14pt;
+            border-top: 1pt solid #ccc;
+            font-size: 10pt;
+            color: #555;
+            text-align: center;
+        }
+
+        .footer a {
+            color: #555;
+        }
+
+        /* Tighten everything slightly when printed; the screen view can breathe. */
+        @media print {
+            body { padding: 0; }
+            .footer { margin-top: 36pt; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Internal Tools Acknowledgment</h1>
+    <p class="agency">Altech Insurance Agency</p>
+
+    <hr>
+
+    <div class="field">
+        <span class="field-label">Tool:</span>
+        <span class="field-value">Altech Toolkit (<code>altech.agency</code>)</span>
+    </div>
+
+    <div class="field">
+        <span class="field-label">Purpose:</span>
+        <span class="field-value">An internal insurance-agency workflow tool used by Altech Insurance Agency staff to capture client intake information, track CGL / General Liability renewal compliance, generate carrier-ready export files (EZLynx XML, HawkSoft CMSMTF, PDF), and assist with day-to-day client communication. Client data is encrypted with AES-256-GCM before it is synced to the cloud (Supabase). The full technical security model is documented on the in-app <strong>Security &amp; Data Protection</strong> page (padlock icon in the sidebar footer).</span>
+    </div>
+
+    <div class="field">
+        <span class="field-label">Developer of record:</span>
+        <span class="field-value">Austin Kays</span>
+    </div>
+
+    <div class="field">
+        <span class="field-label">In internal use since:</span>
+        <span class="field-value">March 2026</span>
+    </div>
+
+    <hr>
+
+    <p class="statement">
+        I acknowledge that I am aware of the Altech Toolkit's existence, purpose,
+        and use within Altech Insurance Agency, and I authorize its continued use
+        for the handling of agency client information.
+    </p>
+
+    <div class="sig-block">
+        <div class="sig-col">
+            <div class="sig-line"></div>
+            <div class="sig-label">Neil Worland &mdash; Owner, Altech Insurance Agency</div>
+        </div>
+        <div class="sig-col date">
+            <div class="sig-line"></div>
+            <div class="sig-label">Date</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Print, sign, and keep a copy with the agency's internal records.
+    </div>
+</body>
+</html>
