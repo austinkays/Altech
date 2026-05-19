@@ -131,22 +131,35 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         expect(overlay).toMatch(/onclick="SecurityInfo\.print\(\)"/);
     });
 
-    test('print isolation is visibility-based, scoped, and survives task-sheet', () => {
+    test('print isolation collapses siblings (no blank pages) + scoped + survives task-sheet', () => {
         expect(css).toMatch(/@media print/);
         const printBlock = css.slice(css.indexOf('@media print'));
-        // Robust "print only this subtree": blank everything via visibility
-        // (a foreign display:none can't collapse it away), re-show only the
-        // overlay subtree. This replaced the brittle display:none-siblings
-        // approach that lost the specificity/timing fight and printed blank.
-        expect(printBlock).toMatch(/body\.secinfo-printing \*\s*\{\s*visibility:\s*hidden\s*!important/);
+        // Isolate the sibling-hide rule (scoped to the print body class,
+        // overlay excluded).
+        const sib = printBlock.match(
+            /body\.secinfo-printing > \*:not\(#securityInfoOverlay\)[^{]*\{[^}]*\}/
+        );
+        expect(sib).not.toBeNull();
+        // REGRESSION: siblings must be display:none, NOT merely
+        // visibility:hidden. visibility:hidden keeps the layout box, so the
+        // whole app's height spilled ~6 blank trailing pages after the
+        // content. display:none collapses them → no blank pages.
+        expect(sib[0]).toMatch(/display:\s*none\s*!important/);
+        // The overlay must be shown AND position:static so multi-page
+        // content paginates (absolute/fixed mis-paginates or clips).
+        const ov = printBlock.match(
+            /body\.secinfo-printing #securityInfoOverlay \{[^}]*\}/
+        );
+        expect(ov).not.toBeNull();
+        expect(ov[0]).toMatch(/display:\s*block\s*!important/);
+        expect(ov[0]).toMatch(/position:\s*static\s*!important/);
+        expect(ov[0]).not.toMatch(/position:\s*(absolute|fixed)/);
+        // Overlay subtree stays visible (backstop against a foreign rule).
         expect(printBlock).toMatch(/body\.secinfo-printing #securityInfoOverlay \*[\s\S]{0,80}visibility:\s*visible\s*!important/);
-        // Must still force the overlay's own display (id-specificity beats
-        // task-sheet's `body > *:not(.app-shell){display:none!important}`).
-        expect(printBlock).toMatch(/body\.secinfo-printing #securityInfoOverlay \{[\s\S]*?display:\s*block\s*!important/);
-        // The brittle, unscoped-prone `body > *` sibling-hide must NOT come
-        // back as an actual rule — that's the pattern (in task-sheet.css)
-        // that caused the blank page. Strip comments first so the rationale
-        // comment (which quotes the anti-pattern) doesn't trip this.
+        // The brittle UNSCOPED `body > *` sibling-hide (task-sheet's
+        // anti-pattern) must never appear here. Strip comments first so the
+        // rationale comment quoting it doesn't trip this; our rule is
+        // `body.secinfo-printing > *` which is correctly scoped.
         const printRulesOnly = printBlock.replace(/\/\*[\s\S]*?\*\//g, '');
         expect(printRulesOnly).not.toMatch(/\bbody\s*>\s*\*/);
         expect(printBlock).toMatch(/body\.secinfo-printing \.secinfo-tech \.secinfo-tech-body \{ display: block/);
