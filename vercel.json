@@ -32,7 +32,7 @@
     },
     {
       "path": "/api/compliance?refresh=true",
-      "schedule": "0 15 * * *"
+      "schedule": "0 13 * * *"
     }
   ],
   "rewrites": [
