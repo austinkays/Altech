@@ -665,7 +665,7 @@ describe('IntakeV2 — EZLynx import safety', () => {
         return extra && extra();
     }
 
-    test('license-less driver exports as Not Rated; licensed driver stays Rated', () => {
+    test('EZAUTO matches the known-good V200 sample shape (no deserialize-breakers)', () => {
         freshAuto();
         const lic = w.IntakeV2.addItem('operators', { firstName: 'Licensed', lastName: 'Driver', gender: 'Nonbinary' });
         lic.dl.num = 'D1234567'; lic.dl.state = 'WA';
@@ -675,8 +675,18 @@ describe('IntakeV2 — EZLynx import safety', () => {
         auto.additionalOperatorIds = [nolic.id];
 
         const xml = w.IntakeV2EZLynxXML.buildIntakeV2EZAutoXML(w.IntakeV2.data).content;
-        expect(xml).toContain('<Rated>Rated</Rated>');       // licensed driver
-        expect(xml).toContain('<Rated>Not Rated</Rated>');   // license-less driver
+        // The HawkSoft→EZLynx V200 known-good sample never contains these —
+        // emitting any of them is what produced "Error in deserializing to
+        // V200 Ezauto". Lock them out.
+        expect(xml).not.toContain('Not Rated');                // <Rated> enum has no "Not Rated"
+        expect(xml).not.toContain('<PrincipalVehicle>');       // not a <Driver> child in V200
+        expect(xml).not.toContain('<PrincipalOperator>');      // not in <VehicleUse> in the sample
+        expect(xml).not.toMatch(/<DriverAssignment id=/);      // sample uses empty <DriverAssignment/>
+        expect(xml).toContain('<DriverAssignment/>');
+        // Every emitted driver is <Rated>Rated</Rated> (sample invariant);
+        // the license-less driver still deserializes (validator warns).
+        expect(xml).toContain('<Rated>Rated</Rated>');
+        expect((xml.match(/<Driver id=/g) || []).length).toBe(2);
         // Junk gender never passes through raw (would fail V200 deserialize)
         expect(xml).toContain('<Gender>Not Specified</Gender>');
         expect(xml).not.toContain('<Gender>Nonbinary</Gender>');

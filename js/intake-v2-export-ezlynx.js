@@ -312,11 +312,6 @@
         });
         const driverOps = operators.filter(op => op.isPrimaryApplicant || op.isCoApplicant || linkedOperatorIds.has(op.id));
 
-        // Build a map from operator id → 1-based driver index, used when
-        // wiring VehicleAssignments + PrincipalVehicle below.
-        const driverIdxById = new Map();
-        driverOps.forEach((op, i) => driverIdxById.set(op.id, i + 1));
-
         const driverXml = driverOps.length ? [
             '<Drivers>',
             ...driverOps.map((op, i) => {
@@ -332,14 +327,13 @@
                         dateLicensed = `${licYr}-${m[2]}-${m[3]}`;
                     }
                 }
-                // Pick a principal vehicle for this driver — find the first auto
-                // whose primaryOperatorId matches this operator. Falls back to
-                // "1" for the primary applicant when no explicit binding exists.
-                const principalVehicle = (() => {
-                    const idx = autos.findIndex(au => au.primaryOperatorId === op.id);
-                    if (idx >= 0) return idx + 1;
-                    return (op.isPrimaryApplicant && autos.length) ? '1' : '';
-                })();
+                // NOTE: <PrincipalVehicle> is intentionally NOT emitted. The
+                // known-good HawkSoft→EZLynx V200 sample
+                // (Resources/archive/HawkSoft Export to EZLynx SAMPLE.xml) has
+                // ZERO <PrincipalVehicle> elements — emitting it inside
+                // <Driver> is what produced "Error in deserializing to V200
+                // Ezauto". EZLynx infers the driver↔vehicle relationship from
+                // <VehiclesUse> / <VehicleAssignments>.
 
                 // Per-driver violations linked via history.violations
                 const violations = (hist.violations || [])
@@ -347,10 +341,13 @@
                     .map(V => `<Violation>${tagIf('Date', isoDate(V.date))}${tagIf('Description', V.type)}</Violation>`)
                     .join('');
 
-                // V200 EZAUTO <Driver> schema (per HawkSoft known-good sample):
+                // V200 EZAUTO <Driver> schema (per HawkSoft known-good sample
+                // Resources/archive/HawkSoft Export to EZLynx SAMPLE.xml):
                 //   Name / Gender / DOB / DLNumber / DLState / DateLicensed /
                 //   MaritalStatus / Relation / GoodStudent / MATDriver /
-                //   Rated / PrincipalVehicle / Violation*
+                //   Rated / Violation*
+                // <PrincipalVehicle> is NOT a <Driver> child in the sample
+                // (count 0) — emitting it broke the V200 deserializer.
                 // Industry/Occupation/Education, SR22, FR44,
                 // LicenseSuspendedRevoked, DriverTraining, DistantStudent are
                 // NOT in V200 EZAUTO and break deserialization — they flow via
@@ -375,8 +372,13 @@
                     // <Rated>Rated</Rated> driver missing <DLNumber> fails the
                     // import. Degrade to Not Rated so the file imports; the
                     // pre-export validator warns the agent to add the DL#.
-                    tag('Rated', (dl.num && String(dl.num).trim()) ? 'Rated' : 'Not Rated'),
-                    tagIf('PrincipalVehicle', principalVehicle),
+                    // V200 <Rated> only accepts "Rated" in the known-good
+                    // sample — "Not Rated" is NOT in the enum and fails the
+                    // deserializer ("Error in deserializing to V200 Ezauto").
+                    // A driver with no DL# still deserializes fine as Rated
+                    // (it just won't rate in EZLynx); the pre-export validator
+                    // warns the agent to add the DL#.
+                    tag('Rated', 'Rated'),
                     violations,
                     '</Driver>',
                 ].join('');
@@ -422,13 +424,16 @@
             ...autos.map((veh, i) => {
                 const id = i + 1;
                 const useage = veh.useType || 'Pleasure';
-                const principalOperator = driverIdxById.get(veh.primaryOperatorId) || (driverOps.length ? 1 : '');
+                // <PrincipalOperator> is NOT in the known-good sample's
+                // <VehicleUse> (it only carries Useage/miles) — the
+                // driver↔vehicle cross-reference there is a dangling id that
+                // the V200 deserializer rejects. Drop it; EZLynx assigns
+                // operators in the UI after import.
                 return [
                     `<VehicleUse id="${id}">`,
                     tag('Useage', useage),
                     tagIf('OneWayMiles', veh.oneWayMiles),
                     tagIf('AnnualMiles', veh.annualMiles),
-                    tagIf('PrincipalOperator', principalOperator),
                     '</VehicleUse>',
                 ].join('');
             }),
@@ -489,8 +494,11 @@
         const assignmentsXml = autos.length ? [
             '<VehicleAssignments>',
             ...autos.map((veh, i) => {
-                const driverId = driverIdxById.get(veh.primaryOperatorId) || 1;
-                return `<VehicleAssignment id="${i + 1}"><DriverAssignment id="${driverId}"/></VehicleAssignment>`;
+                // Known-good sample: <VehicleAssignment id="N"><DriverAssignment/>
+                // </VehicleAssignment> — <DriverAssignment> is EMPTY with NO
+                // id attribute. The id="N" we used to emit is an unexpected
+                // attribute the V200 deserializer rejects.
+                return `<VehicleAssignment id="${i + 1}"><DriverAssignment/></VehicleAssignment>`;
             }),
             '</VehicleAssignments>',
         ].join('') : '';
@@ -854,7 +862,7 @@
                 const nm = [op.firstName, op.lastName].filter(Boolean).join(' ') || 'A driver';
                 const dl = op.dl || {};
                 if (!(dl.num && String(dl.num).trim())) {
-                    warnings.push(`${nm}: no DL number — exported as "Not Rated" (EZLynx will not rate this driver until a license # is added).`);
+                    warnings.push(`${nm}: no DL number — EZLynx imports the driver but cannot rate them until a license # is added.`);
                 } else if (!(dl.state && String(dl.state).trim())) {
                     warnings.push(`${nm}: DL number present but no DL state — add the state so the driver rates.`);
                 }
