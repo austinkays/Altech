@@ -34,8 +34,12 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
     const overlay = (() => {
         const start = indexHtml.indexOf('id="securityInfoOverlay"');
         expect(start).toBeGreaterThan(-1);
-        // Grab a generous slice — the overlay is well under 12k chars.
-        return indexHtml.slice(start, start + 12000);
+        // Bound the slice precisely to the modal: the next box-drawing
+        // banner comment ("PLUGIN VIEWPORT") immediately follows the
+        // overlay, so cutting there keeps unrelated index.html copy (which
+        // legitimately uses em dashes) out of these assertions.
+        const end = indexHtml.indexOf('<!-- ╔', start);
+        return indexHtml.slice(start, end > start ? end : start + 12000);
     })();
 
     test('no stale Firebase / Firestore / TLS-version claims remain', () => {
@@ -128,5 +132,19 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         const printBlock = css.slice(css.indexOf('@media print'));
         expect(printBlock).toMatch(/body\.secinfo-printing > \*:not\(#securityInfoOverlay\)/);
         expect(printBlock).toMatch(/body\.secinfo-printing \.secinfo-tech \.secinfo-tech-body \{ display: block/);
+    });
+
+    test('correct contact email (altechinsurance.com), not the old domain', () => {
+        expect(overlay).toMatch(/mailto:austin@altechinsurance\.com/);
+        expect(overlay).toMatch(/>austin@altechinsurance\.com</);
+        // The old address must not linger anywhere in the page.
+        expect(overlay).not.toMatch(/austin@altech\.agency/);
+    });
+
+    test('no em dashes in the security page (style requirement)', () => {
+        // Auditor-facing copy must read clean — no — (U+2014) or its HTML
+        // entities. Hyphens in compounds (e.g. "AES-256-GCM") are fine.
+        expect(overlay).not.toMatch(/—/);          // em dash char
+        expect(overlay).not.toMatch(/&mdash;|&#8212;|&#x2014;/i); // entities
     });
 });
