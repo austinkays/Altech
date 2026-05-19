@@ -153,3 +153,84 @@ describe('CGL sync-reload — cold-open cache gate softened', () => {
         expect(cached.policies).toHaveLength(1);
     });
 });
+
+describe('CGL loading→table reveal (stuck on "Loading…" until Refresh)', () => {
+    // Reproduce the stuck state the bug report captured: data loaded
+    // (rows + correct footer) but #cglLoading still display:block and
+    // #cglTableContainer still display:none.
+    function mountStuckDom(window) {
+        window.document.body.innerHTML =
+            '<div id="cglLoading" style="display:block"></div>' +
+            '<div id="cglError" style="display:none"></div>' +
+            '<div id="cglTableContainer" style="display:none">' +
+            '<table><tbody id="cglTableBody"></tbody></table></div>' +
+            '<div id="cglLastFetch"></div>';
+    }
+    function stubRender(CD) {
+        CD._normalizePolicyKeys = () => {};
+        CD.renderLastSynced = () => {};
+        CD.renderTypeToggles = () => {};
+        CD.renderPolicies = () => {};
+        CD.updateStats = () => {};
+        CD.deduplicateRenewals = () => {};
+        CD.checkForRenewals = () => {};
+        CD.verifyAllClients = () => {};
+        CD.fetchPoliciesFromAPI = () => Promise.resolve();
+    }
+    const disp = (window, id) => window.document.getElementById(id).style.display;
+
+    test('_revealTable() hides loading, shows table, clears error — idempotent', () => {
+        const { CD, window } = loadDashboard();
+        mountStuckDom(window);
+        CD._revealTable();
+        expect(disp(window, 'cglLoading')).toBe('none');
+        expect(disp(window, 'cglTableContainer')).toBe('block');
+        expect(disp(window, 'cglError')).toBe('none');
+        CD._revealTable(); // idempotent
+        expect(disp(window, 'cglLoading')).toBe('none');
+        expect(disp(window, 'cglTableContainer')).toBe('block');
+    });
+
+    test('_showCachedData leaves the table visible on the cache-hit path', () => {
+        const { CD, window } = loadDashboard();
+        mountStuckDom(window);
+        stubRender(CD);
+        CD._showCachedData({
+            policies: [{ policyNumber: 'P1' }], allPolicies: [{}],
+            cachedAt: Date.now(), metadata: {}
+        });
+        expect(disp(window, 'cglLoading')).toBe('none');
+        expect(disp(window, 'cglTableContainer')).toBe('block');
+    });
+
+    test('_showCachedData still reveals the table even if a renewal step throws', () => {
+        const { CD, window } = loadDashboard();
+        mountStuckDom(window);
+        stubRender(CD);
+        CD.deduplicateRenewals = () => { throw new Error('boom'); };
+        expect(() => CD._showCachedData({
+            policies: [{ policyNumber: 'P1' }], allPolicies: [{}],
+            cachedAt: Date.now(), metadata: {}
+        })).not.toThrow();
+        expect(disp(window, 'cglLoading')).toBe('none');
+        expect(disp(window, 'cglTableContainer')).toBe('block');
+    });
+
+    test('boot-time sync event reveals the table (the actual reported bug)', async () => {
+        const { CD, window } = loadDashboard();
+        mountStuckDom(window);                  // loading up, table hidden
+        stubRender(CD);
+        CD._stateLoaded = true;
+        CD.policies = [{ policyNumber: 'P1' }]; // data already underneath
+        let apiCalls = 0;
+        CD.fetchPolicies = () => { apiCalls++; };
+
+        CD._wireSyncReload();
+        window.ActivityLog._emit({ type: 'sync', area: 'supabase', message: 'Restored' });
+        await new Promise((r) => setTimeout(r, 0));
+
+        expect(disp(window, 'cglLoading')).toBe('none');        // was 'block'
+        expect(disp(window, 'cglTableContainer')).toBe('block'); // was 'none'
+        expect(apiCalls).toBe(0); // pure repaint+reveal, no network
+    });
+});
