@@ -76,14 +76,23 @@ function _loadMapsScript() {
     return _scriptPromise;
 }
 
-// Build the formatted single-string address v2 stores per home.
+// Build the formatted single-string address v2 stores per home. Order
+// matches parseAddress in intake-v2-smart-fill.js:
+//   "Street, City, State Zip"                  → 3 segments, no county
+//   "Street, City, County, State Zip"          → 4 segments, county BEFORE state-zip
+// parseAddress walks BACKWARD to find state-zip (it's always the last
+// segment, modulo a ", USA" country tag) — appending county at the end
+// instead would make parseAddress treat "King County" as the state-zip
+// and mangle state to "KI" + drop the ZIP, which is what happened
+// before the May 2026 ordering fix (Smart Scan got `{ state: 'KI',
+// zip: '' }` and the property-intelligence API returned nothing).
 function _formatAddressLine(p) {
     const parts = [];
     if (p.street) parts.push(p.street);
     if (p.city)   parts.push(p.city);
+    if (p.county) parts.push(p.county);
     const stateZip = [p.state, p.zip].filter(Boolean).join(' ').trim();
     if (stateZip) parts.push(stateZip);
-    if (p.county) parts.push(p.county);
     return parts.join(', ');
 }
 
