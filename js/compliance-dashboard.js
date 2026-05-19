@@ -790,7 +790,15 @@ const ComplianceDashboard = {
         const loading = document.getElementById('cglLoading');
         const error = document.getElementById('cglError');
         const tableContainer = document.getElementById('cglTableContainer');
-        const API_TIMEOUT_MS = 65000; // 65 seconds max (Vercel function limit is 60s)
+        // api/compliance.js has maxDuration 300s (vercel.json). A cold
+        // full-agency HawkSoft pull legitimately exceeds 65s; the old 65s
+        // abort (stale "Vercel limit is 60s" assumption) dropped the user on
+        // the "No Data" screen AND threw away the in-flight server fetch — so
+        // the next open was cold too. 120s lets the server finish and warm the
+        // shared cgl_cache so the next open (and every other device) is
+        // instant, while still bounding the worst-case spinner. With the daily
+        // cron now warming the shared key, this cold path is rare.
+        const API_TIMEOUT_MS = 120000; // 120s (server budget is 300s)
 
         if (isBackground) {
             const lastFetchEl = document.getElementById('cglLastFetch');

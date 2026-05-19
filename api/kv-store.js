@@ -65,9 +65,22 @@ async function handler(req, res) {
         });
     }
 
-    // Prefix all Redis keys with the authenticated user's UID for per-user isolation
+    // Key isolation:
+    //   • Per-user keys are UID-prefixed so one user can never read another's
+    //     private data (cgl_state annotations, email drafts, export history).
+    //   • cgl_cache is the EXCEPTION — it's whole-agency HawkSoft policy data,
+    //     identical for every user (the agency is keyed by HAWKSOFT_AGENCY_ID
+    //     server-side) and warmed once a day by the /api/compliance cron. The
+    //     cron + server write the BARE `cgl_cache` key (api/compliance.js
+    //     KV_CACHE_KEY). If this endpoint per-user-prefixed it, the cron-warmed
+    //     entry would be invisible to every client and the dashboard would
+    //     cold-fetch HawkSoft on every morning open. Sharing the key is safe:
+    //     the endpoint stays auth-gated (requireAuth) and the payload holds no
+    //     per-user secrets — it's the same policy list every agency user
+    //     already sees in the dashboard.
     const uid = req.uid;
-    const keyPrefix = `uid:${uid}:`;
+    const SHARED_KEYS = ['cgl_cache'];
+    const redisKey = (k) => (SHARED_KEYS.includes(k) ? k : `uid:${uid}:${k}`);
 
     // Allowed keys (prevent arbitrary key access)
     const ALLOWED_KEYS = ['cgl_state', 'cgl_cache', 'email_drafts', 'export_history'];
@@ -83,7 +96,7 @@ async function handler(req, res) {
             if (!key || !ALLOWED_KEYS.includes(key)) {
                 return res.status(400).json({ error: 'Invalid key. Allowed: ' + ALLOWED_KEYS.join(', ') });
             }
-            const result = await redis.get(keyPrefix + key);
+            const result = await redis.get(redisKey(key));
             if (result === null || result === undefined) {
                 // Cache miss is a normal, expected state — return 200 with a
                 // null body instead of 404. The previous 404 response was
@@ -115,7 +128,7 @@ async function handler(req, res) {
                 return res.status(413).json({ error: `Value too large: ${(serialized.length / 1024).toFixed(0)}KB (max 1MB)` });
             }
 
-            await redis.set(keyPrefix + key, serialized);
+            await redis.set(redisKey(key), serialized);
             return res.status(200).json({ ok: true, key, size: serialized.length });
         }
 
@@ -124,7 +137,7 @@ async function handler(req, res) {
             if (!key || !ALLOWED_KEYS.includes(key)) {
                 return res.status(400).json({ error: 'Invalid key. Allowed: ' + ALLOWED_KEYS.join(', ') });
             }
-            await redis.del(keyPrefix + key);
+            await redis.del(redisKey(key));
             return res.status(200).json({ ok: true, key });
         }
 

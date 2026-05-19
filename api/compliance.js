@@ -49,7 +49,16 @@ async function handler(req, res) {
     // On Vercel, the HawkSoft API can take 30-60s. Check Redis cache first
     // and return immediately if the data is fresh (< 15 minutes old).
     const KV_CACHE_KEY = 'cgl_cache';
-    const KV_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+    // The daily /api/compliance?refresh=true cron (vercel.json) force-fetches
+    // from HawkSoft and rewrites this cache every morning — forceRefresh
+    // bypasses the read below entirely, so the cron always gets fresh data.
+    // Normal user requests should then be served the warmed cache for the
+    // WHOLE workday: the client (compliance-dashboard.js _showCachedData) does
+    // its own 15-min staleness check + silent background refresh, so handing
+    // back an hours-old payload is instant-paint by design. A 15-minute server
+    // TTL made the once-daily warm useless after 08:15 — every later open
+    // triggered a full cold HawkSoft refetch ("spins every morning").
+    const KV_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
     const forceRefresh = req.query?.refresh === 'true';
     let redisClient = null;
 
@@ -574,6 +583,12 @@ async function handler(req, res) {
         if (serialized.length < 1_000_000) {
           await kvClient.set(KV_CACHE_KEY, serialized);
           console.log(`[Compliance] ☁️ KV cache updated — ${compliancePolicies.length} policies (${(serialized.length / 1024).toFixed(0)}KB)`);
+        } else {
+          // Cache NOT warmed: every client now falls back to a cold HawkSoft
+          // fetch — the exact "dashboard spins every morning" failure. Surface
+          // it loudly in Vercel logs so a recurrence is diagnosable instead of
+          // silently swallowed (this used to be a no-op `else`).
+          console.warn(`[Compliance] ⚠️ KV cache SKIPPED — payload ${(serialized.length / 1024).toFixed(0)}KB exceeds the 1MB ceiling; the morning warm will not reach clients until the payload shrinks`);
         }
         try { kvClient.disconnect(); } catch {}
       }
