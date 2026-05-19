@@ -134,12 +134,17 @@
                 <div id="clPreview" class="cl-preview" style="display: none;">
                     <div class="cl-preview-header">
                         <span class="cl-preview-label">Formatted Log</span>
+                        <div class="cl-pv-toggle" id="clPvToggle" role="tablist" aria-label="Preview view">
+                            <button type="button" class="cl-pv-tab cl-pv-active" data-pv="plain" aria-pressed="true">Plain</button>
+                            <button type="button" class="cl-pv-tab" data-pv="rich" aria-pressed="false">Formatted</button>
+                        </div>
                         <button id="clCopyBtn" class="cl-copy-btn" title="Copy to clipboard">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                             Copy
                         </button>
                     </div>
                     <pre id="clPreviewText" class="cl-preview-text"></pre>
+                    <div id="clPreviewRender" class="cl-preview-render" style="display: none;" aria-live="polite"></div>
                 </div>
 
                 <!-- Confirm Card -->

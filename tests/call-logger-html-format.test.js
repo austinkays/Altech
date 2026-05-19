@@ -56,7 +56,7 @@ describe('CallLogger plain→HTML — wiring (source analysis)', () => {
         expect(source).toContain('window.HawkSoftNote.buildHawkSoftNote(_plainToNoteContent(text))');
     });
     test('converters exposed for testing', () => {
-        expect(source).toMatch(/_plainToNoteContent,\s*_plainToHawkSoftHtml\s*}/);
+        expect(source).toMatch(/return\s*\{[^}]*_plainToNoteContent[^}]*_plainToHawkSoftHtml/);
     });
 });
 
@@ -166,5 +166,107 @@ describe('_plainToHawkSoftHtml — output + safety', () => {
     test('deterministic — same input, same output', () => {
         const t = 'RE: a\n1. x\n2. y\nAction: z';
         expect(C._plainToHawkSoftHtml(t)).toBe(C._plainToHawkSoftHtml(t));
+    });
+});
+
+describe('_parseEmphasis — markdown ** → bold runs', () => {
+    let C;
+    beforeAll(() => { C = createDOM().CallLogger; });
+
+    test('paired ** becomes a bold run', () => {
+        expect(C._parseEmphasis('a **b** c')).toEqual([
+            { type: 'text', text: 'a ' },
+            { type: 'text', text: 'b', bold: true },
+            { type: 'text', text: ' c' },
+        ]);
+    });
+    test('no markers → single plain run', () => {
+        expect(C._parseEmphasis('plain text')).toEqual([{ type: 'text', text: 'plain text' }]);
+    });
+    test('adjacent emphasis', () => {
+        expect(C._parseEmphasis('**a** **b**')).toEqual([
+            { type: 'text', text: 'a', bold: true },
+            { type: 'text', text: ' ' },
+            { type: 'text', text: 'b', bold: true },
+        ]);
+    });
+    test('stray/unpaired ** is stripped (never reaches HawkSoft)', () => {
+        expect(C._parseEmphasis('a ** b')).toEqual([{ type: 'text', text: 'a  b' }]);
+    });
+});
+
+describe('emphasis end-to-end through the builder', () => {
+    let C;
+    beforeAll(() => { C = createDOM().CallLogger; });
+
+    test('RE: line strips ** and stays a plain span-free <div>', () => {
+        const html = C._plainToHawkSoftHtml('RE: **AJK** — payment **$500**\nbody');
+        const firstDiv = html.slice(0, html.indexOf('</div>') + 6);
+        expect(firstDiv).toBe('<div>RE: AJK — payment $500</div>');
+        expect(firstDiv).not.toContain('<span');
+        expect(firstDiv).not.toContain('*');
+    });
+    test('body **term** → bold span', () => {
+        const html = C._plainToHawkSoftHtml('RE: x\nQuoted **$500** to **Progressive** today');
+        expect(html).toContain('<div>Quoted <span style="font-weight: bold;">$500</span> to <span style="font-weight: bold;">Progressive</span> today</div>');
+    });
+    test('AI-marked **Action:** is honored (not double-processed)', () => {
+        const html = C._plainToHawkSoftHtml('RE: x\n**Action:** call back Fri');
+        expect(html).toBe('<div>RE: x</div><div><span style="font-weight: bold;">Action:</span> call back Fri</div>');
+    });
+    test('legacy plain "Action:" still auto-bolds when AI did not mark it', () => {
+        const html = C._plainToHawkSoftHtml('RE: x\nAction: call back Fri');
+        expect(html).toContain('<div><span style="font-weight: bold;">Action: </span>call back Fri</div>');
+    });
+    test('emphasis inside a list item', () => {
+        const html = C._plainToHawkSoftHtml('RE: x\n- raise **comp** ded');
+        expect(html).toBe('<div>RE: x</div><ul><li>raise <span style="font-weight: bold;">comp</span> ded</li></ul>');
+    });
+    test('emphasized text is still HTML-escaped (XSS boundary holds)', () => {
+        const html = C._plainToHawkSoftHtml('RE: x\n**<b>&</b>** done');
+        expect(html).not.toContain('<b>&</b>');
+        expect(html).toContain('<span style="font-weight: bold;">&lt;b&gt;&amp;&lt;/b&gt;</span>');
+    });
+});
+
+describe('_setPreviewView — in-flow rendered preview', () => {
+    function dom() {
+        const { JSDOM } = require('jsdom');
+        const fs = require('fs'), path = require('path');
+        const R = path.resolve(__dirname, '..');
+        const html = `<!DOCTYPE html><html><body>
+          <script>window.App={toast:function(){}};window.Auth={apiFetch:null};window.Sync={schedulePush:function(){}};</script>
+          <script>${fs.readFileSync(path.join(R,'js','storage-keys.js'),'utf8')}</script>
+          <script>${fs.readFileSync(path.join(R,'js','utils.js'),'utf8')}</script>
+          <script>${fs.readFileSync(path.join(R,'js','hawksoft-note.js'),'utf8')}</script>
+          <script>${fs.readFileSync(path.join(R,'js','call-logger.js'),'utf8')}</script>
+          <div id="clPvToggle"><button class="cl-pv-tab cl-pv-active" data-pv="plain">Plain</button><button class="cl-pv-tab" data-pv="rich">Formatted</button></div>
+          <pre id="clPreviewText"></pre>
+          <div id="clPreviewRender" style="display:none"></div>
+        </body></html>`;
+        const d = new JSDOM(html, { url: 'http://localhost', runScripts: 'dangerously' });
+        return d.window;
+    }
+    test('rich renders builder HTML; plain restores the <pre>', () => {
+        const w = dom(), doc = w.document;
+        doc.getElementById('clPreviewText').textContent = 'RE: x\nQuoted **$500**';
+        w.CallLogger._setPreviewView('rich');
+        const r = doc.getElementById('clPreviewRender');
+        expect(r.style.display).toBe('');
+        expect(doc.getElementById('clPreviewText').style.display).toBe('none');
+        expect(r.innerHTML).toContain('<span style="font-weight: bold;">$500</span>');
+        expect(doc.querySelector('.cl-pv-tab[data-pv="rich"]').classList.contains('cl-pv-active')).toBe(true);
+        w.CallLogger._setPreviewView('plain');
+        expect(r.style.display).toBe('none');
+        expect(doc.getElementById('clPreviewText').style.display).toBe('');
+    });
+    test('rich is forced to plain while the edit textarea is open', () => {
+        const w = dom(), doc = w.document;
+        doc.getElementById('clPreviewText').textContent = 'RE: x\nbody';
+        const ta = doc.createElement('textarea'); ta.className = 'cl-edit-textarea';
+        doc.body.appendChild(ta);
+        w.CallLogger._setPreviewView('rich');
+        expect(doc.getElementById('clPreviewRender').style.display).toBe('none');
+        expect(doc.getElementById('clPreviewText').style.display).toBe('');
     });
 });
