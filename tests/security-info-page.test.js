@@ -112,26 +112,52 @@ describe('Security & Data Protection page — accurate, reachable, printable', (
         expect(iUser).toBeGreaterThan(iLock);
     });
 
-    test('SecurityInfo exposes open/close/print; print scopes + forces detail open', () => {
+    test('SecurityInfo print cleanup is afterprint-driven, NOT a premature timer', () => {
         const mod = bootJs.match(/window\.SecurityInfo = \(\(\) => \{[\s\S]*?\}\)\(\);/);
         expect(mod).not.toBeNull();
         const m = mod[0];
         expect(m).toMatch(/return \{ open, close, print \};/);
         expect(m).toMatch(/secinfo-printing/);
-        expect(m).toMatch(/\.secinfo-tech/);
         expect(m).toMatch(/tech\.open = true/);
         expect(m).toMatch(/addEventListener\('afterprint'/);
+        // Regression: the old setTimeout(…, 2000) fallback stripped the print
+        // class while a "Save as PDF" dialog was still open (those take
+        // >2 s) → blank page. There must be no short timer racing the dialog.
+        expect(m).not.toMatch(/setTimeout\([^)]*,\s*\d{3,4}\s*\)/);
+        // A window-focus backstop is allowed (only fires once the dialog
+        // closes, never while it is open).
+        expect(m).toMatch(/addEventListener\('focus'/);
         // The print button must call it.
         expect(overlay).toMatch(/onclick="SecurityInfo\.print\(\)"/);
     });
 
-    test('print stylesheet is scoped so it never leaks into normal viewing', () => {
+    test('print isolation is visibility-based, scoped, and survives task-sheet', () => {
         expect(css).toMatch(/@media print/);
-        // Every print rule must be gated on body.secinfo-printing — otherwise
-        // it would hide the whole app on any unrelated window.print().
         const printBlock = css.slice(css.indexOf('@media print'));
-        expect(printBlock).toMatch(/body\.secinfo-printing > \*:not\(#securityInfoOverlay\)/);
+        // Robust "print only this subtree": blank everything via visibility
+        // (a foreign display:none can't collapse it away), re-show only the
+        // overlay subtree. This replaced the brittle display:none-siblings
+        // approach that lost the specificity/timing fight and printed blank.
+        expect(printBlock).toMatch(/body\.secinfo-printing \*\s*\{\s*visibility:\s*hidden\s*!important/);
+        expect(printBlock).toMatch(/body\.secinfo-printing #securityInfoOverlay \*[\s\S]{0,80}visibility:\s*visible\s*!important/);
+        // Must still force the overlay's own display (id-specificity beats
+        // task-sheet's `body > *:not(.app-shell){display:none!important}`).
+        expect(printBlock).toMatch(/body\.secinfo-printing #securityInfoOverlay \{[\s\S]*?display:\s*block\s*!important/);
+        // The brittle, unscoped-prone `body > *` sibling-hide must NOT come
+        // back as an actual rule — that's the pattern (in task-sheet.css)
+        // that caused the blank page. Strip comments first so the rationale
+        // comment (which quotes the anti-pattern) doesn't trip this.
+        const printRulesOnly = printBlock.replace(/\/\*[\s\S]*?\*\//g, '');
+        expect(printRulesOnly).not.toMatch(/\bbody\s*>\s*\*/);
         expect(printBlock).toMatch(/body\.secinfo-printing \.secinfo-tech \.secinfo-tech-body \{ display: block/);
+    });
+
+    test('task-sheet global print rule no longer blanks the security page', () => {
+        // task-sheet.css ships an UNSCOPED @media print rule. It must
+        // exclude #securityInfoOverlay or it hides the page on every print.
+        const ts = readSrc('css/task-sheet.css');
+        const tsPrint = ts.slice(ts.indexOf('@media print'));
+        expect(tsPrint).toMatch(/body > \*:not\(\.app-shell\):not\(#securityInfoOverlay\)/);
     });
 
     test('correct contact email (altechinsurance.com), not the old domain', () => {

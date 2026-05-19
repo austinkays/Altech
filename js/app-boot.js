@@ -398,8 +398,11 @@ window.SecurityInfo = (() => {
     const close = () => { const o = el(); if (o) o.style.display = 'none'; };
     // Print / Save as PDF — open the page if needed, scope the print to it
     // via body.secinfo-printing (see @media print in css/security-info.css),
-    // then restore. afterprint is the primary restore path; the timeout is a
-    // fallback for browsers that don't fire it reliably.
+    // then restore. Cleanup runs on `afterprint` (reliable across modern
+    // browsers) with a window-`focus` backstop. There is deliberately NO
+    // setTimeout fallback: the old 2 s timer stripped body.secinfo-printing
+    // while a "Save as PDF" dialog was still open (those routinely take
+    // >2 s), so the print CSS stopped applying and the page came out blank.
     const print = () => {
         const o = el();
         if (!o) return;
@@ -411,16 +414,21 @@ window.SecurityInfo = (() => {
         const techWasClosed = tech && !tech.open;
         if (tech) tech.open = true;
         document.body.classList.add('secinfo-printing');
+        let done = false;
         const cleanup = () => {
+            if (done) return;
+            done = true;
             document.body.classList.remove('secinfo-printing');
             if (wasHidden) o.style.display = 'none';
             if (tech && techWasClosed) tech.open = false;
             window.removeEventListener('afterprint', cleanup);
+            window.removeEventListener('focus', onFocus);
         };
+        // focus returns to the window only when the print dialog/preview
+        // closes — never while it is open — so this can't fire early.
+        const onFocus = () => setTimeout(cleanup, 0);
         window.addEventListener('afterprint', cleanup);
-        setTimeout(() => {
-            if (document.body.classList.contains('secinfo-printing')) cleanup();
-        }, 2000);
+        window.addEventListener('focus', onFocus);
         window.print();
     };
     document.addEventListener('keydown', e => {

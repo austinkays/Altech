@@ -355,22 +355,46 @@ body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); 
    ═══════════════════════════════════════════════════════ */
 
 @media print {
-    body.secinfo-printing > *:not(#securityInfoOverlay):not(script):not(noscript) {
-        display: none !important;
+    /* Robust "print only this subtree" isolation.
+       display:none on siblings is NOT enough here: css/task-sheet.css
+       ships an UNSCOPED @media print rule
+       `body > *:not(.app-shell){display:none!important}` that loads
+       after this file and hides #securityInfoOverlay on EVERY print.
+       visibility (unlike display) can't be collapsed away by a foreign
+       rule, so we blank everything with visibility:hidden and re-show
+       only the overlay subtree. We still must beat task-sheet's
+       display:none on the overlay element itself —
+       `body.secinfo-printing #securityInfoOverlay` carries an id, so it
+       out-specifies `body > *:not(.app-shell)` and the overlay stays
+       rendered. */
+    body.secinfo-printing * { visibility: hidden !important; }
+
+    body.secinfo-printing #securityInfoOverlay,
+    body.secinfo-printing #securityInfoOverlay * {
+        visibility: visible !important;
     }
 
     body.secinfo-printing #securityInfoOverlay {
-        position: static !important;
         display: block !important;
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        right: auto !important;
+        bottom: auto !important;
         inset: auto !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
         background: #fff !important;
         backdrop-filter: none !important;
         -webkit-backdrop-filter: none !important;
-        padding: 0 !important;
         animation: none !important;
+        overflow: visible !important;
     }
 
     body.secinfo-printing .secinfo-modal {
+        display: block !important;
         max-width: 100% !important;
         max-height: none !important;
         width: 100% !important;
@@ -387,7 +411,7 @@ body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); 
         max-height: none !important;
     }
 
-    /* Hide interactive chrome that makes no sense on paper */
+    /* Chrome that makes no sense on paper */
     body.secinfo-printing .secinfo-toolbar,
     body.secinfo-printing .secinfo-tech-chevron {
         display: none !important;
@@ -402,6 +426,8 @@ body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); 
     body.secinfo-printing #securityInfoOverlay li,
     body.secinfo-printing #securityInfoOverlay strong,
     body.secinfo-printing #securityInfoOverlay em,
+    body.secinfo-printing #securityInfoOverlay a,
+    body.secinfo-printing #securityInfoOverlay code,
     body.secinfo-printing #securityInfoOverlay summary {
         color: #000 !important;
     }
@@ -421,7 +447,7 @@ body.dark-mode .secinfo-tech-body code { background: rgba(255, 255, 255, 0.10); 
         print-color-adjust: exact;
     }
 
-    /* Ensure the technical section prints even if the UA collapses it */
+    /* Print the technical section even if the UA collapses a closed <details> */
     body.secinfo-printing .secinfo-tech .secinfo-tech-body { display: block !important; }
 
     body.secinfo-printing .secinfo-section { break-inside: avoid; }
