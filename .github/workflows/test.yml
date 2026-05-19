@@ -27,8 +27,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
 
+      # `npm ci` (not the setup-node npm cache — that cache step is a common
+      # fast-fail on a fresh workflow and only saves install time). `npm ci`
+      # is clean+deterministic from the committed lockfile (~15s locally).
       - name: Install dependencies
         run: npm ci
 
