@@ -27,30 +27,71 @@ const FETCH_TIMEOUT_MS = 12000; // matches v1's smartAutoFill budget
 
 // ── Address parsing ────────────────────────────────────────────────────────
 
-// v2 stores property address as a single string ("123 Main St, City, ST
-// 98101 [, County]"). The four backend modes all expect address parts
-// separated. Parser is forgiving — returns null only when the input lacks
-// enough commas to be a plausible street address.
+// v2 stores property address as a single string. Two variants exist in the
+// wild because `_formatAddressLine` in intake-v2-places.js was reordered
+// in May 2026:
+//   pre-fix:  "Street, City, State Zip, County"   ← legacy Places output
+//   post-fix: "Street, City, County, State Zip"   ← current output
+// Any home saved before the fix still has the legacy layout, and a
+// position-based parser would mis-read it: the LAST segment is "Lewis
+// County", not state-zip, so the old parser returned state="LE", zip=""
+// and Smart Scan sent garbage to every backend source.
+//
+// Robust parse: find state-zip by PATTERN (two-letter state code + ZIP),
+// not by position. Country tags ("USA" / "United States") are filtered
+// out before the search. Everything left over that wasn't street/city/
+// state-zip is treated as a county candidate; the segment ending in
+// " County" wins when present.
 function parseAddress(str) {
     if (!str || typeof str !== 'string') return null;
-    const parts = str.split(',').map(s => s.trim()).filter(Boolean);
-    if (parts.length < 3) return null; // need at least street, city, state-zip
+    const raw = str.split(',').map(s => s.trim()).filter(Boolean);
+    if (raw.length < 3) return null;
+    const parts = raw.filter(p => !/^(USA|United States)$/i.test(p));
+    if (parts.length < 3) return null;
+
+    // State-zip pattern: 2-letter state code, optional whitespace,
+    // optional 5-digit ZIP (or ZIP+4). Anchored end-to-end so a
+    // street-name token like "WA 12345 Apt 5" can't false-match.
+    const STATE_ZIP = /^([A-Za-z]{2})\s*(\d{5}(?:-\d{4})?)?\s*$/;
+
+    // Scan right-to-left, preferring a segment that matches BOTH state
+    // code AND ZIP. Searching back-to-front means a trailing state-zip
+    // wins over any earlier accidental match.
+    let stateZipIdx = -1;
+    let stateZipMatch = null;
+    for (let i = parts.length - 1; i >= 2; i--) {
+        const m = parts[i].match(STATE_ZIP);
+        if (m && m[2]) { stateZipIdx = i; stateZipMatch = m; break; }
+    }
+    // Fallback 1: state-only token (some saved addresses just have "WA"
+    // with no ZIP captured).
+    if (stateZipIdx === -1) {
+        for (let i = parts.length - 1; i >= 2; i--) {
+            const m = parts[i].match(STATE_ZIP);
+            if (m) { stateZipIdx = i; stateZipMatch = m; break; }
+        }
+    }
+    // Fallback 2: original positional behavior. Keeps the 3-part
+    // "Street, City, State Zip" shape working even if neither pattern
+    // search hits (defensive — shouldn't trigger for any real input).
+    if (stateZipIdx === -1) {
+        stateZipIdx = parts.length - 1;
+        stateZipMatch = (parts[stateZipIdx] || '').match(STATE_ZIP);
+    }
+
     const street = parts[0];
-    // Walk backwards: the LAST segment is state-zip — unless it's a
-    // country tag (Google Places appends ", USA" / "United States"),
-    // in which case the segment before it is state-zip.
-    let stateZipIdx = parts.length - 1;
-    if (/USA|United States/i.test(parts[stateZipIdx]) && parts.length > 3) stateZipIdx--;
-    const stateZip = parts[stateZipIdx];
-    // City is always at index 1 (right after street). County is the
-    // optional fourth segment that sits between city and state-zip:
-    //   "Street, City, County, State Zip"  → 4 segments, county at 2
-    //   "Street, City, State Zip"          → 3 segments, no county
     const city   = parts[1] || '';
-    const county = (stateZipIdx >= 3) ? (parts[stateZipIdx - 1] || '') : '';
-    const m = stateZip.match(/^([A-Za-z]{2})\s*(\d{5}(?:-\d{4})?)?/);
-    const state = m ? m[1].toUpperCase() : '';
-    const zip   = (m && m[2]) ? m[2] : '';
+    const state  = stateZipMatch ? stateZipMatch[1].toUpperCase() : '';
+    const zip    = (stateZipMatch && stateZipMatch[2]) ? stateZipMatch[2] : '';
+
+    // County = any segment that isn't street, city, or state-zip.
+    // Prefer the segment with the literal " County" suffix (Google
+    // Places' admin_area_level_2 always carries it). Falls back to the
+    // first leftover segment for inputs that drop the suffix.
+    const remaining = parts.slice(2).filter((_, i) => (i + 2) !== stateZipIdx);
+    const withSuffix = remaining.find(p => /county$/i.test(p));
+    const county = withSuffix || remaining[0] || '';
+
     return { street, city, state, zip, county };
 }
 
