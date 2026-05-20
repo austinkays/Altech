@@ -17,7 +17,7 @@
 | **Stack** | Vanilla HTML/CSS/JS SPA — no build step, no framework |
 | **Entry point** | `index.html` (~742 lines) |
 | **CSS** | 51 files in `css/` (~26,800 lines total) |
-| **JS** | 110 modules in `js/` (~64,855 lines total) |
+| **JS** | 110 modules in `js/` (~65,116 lines total) |
 | **Plugins** | 19 HTML templates in `plugins/` (~6,785 lines total, + `tools/broadform.html`) |
 | **APIs** | 13 routable serverless functions + ~22 `_`-prefixed helpers in `api/` (~8,600 lines total) |
 | **Auth** | **Supabase Auth** (email/password + MFA, Supabase JS v2) — Firebase fully removed in the Phase D cleanup, May 2026 |
@@ -80,7 +80,7 @@ npm run audit-docs      # Check this doc for drift (run after every session)
 │   ├── dashboard.css           # Bento grid + Today widget (~1,373 lines)
 │   ├── reminders.css           # Task reminders (~1,422 lines)
 │   ├── auth.css                # Auth modal + tabbed settings + Agency Glossary textarea (~1,153 lines)
-│   ├── intake-v2.css           # Intake v2 wizard (~1,913 lines)
+│   ├── intake-v2.css           # Intake v2 wizard (~1,947 lines)
 │   ├── vault.css / broadform.css  # Vault UI; Carrier Match (in-dev)
 │   └── (plugin-scoped CSS)     # call-logger, task-sheet, returned-mail, accounting, ezlynx,
 │                               #   vin-decoder, quickref, commercial-quoter, etc. — standalone

@@ -69,6 +69,41 @@ describe('IntakeV2SmartFill — parseAddress', () => {
     test('uppercases the state code', () => {
         expect(SF.parseAddress('1 A, B, ca 90210').state).toBe('CA');
     });
+
+    // Regression: js/intake-v2-places.js `_formatAddressLine` builds the
+    // home.address string. Earlier versions appended county AFTER
+    // state-zip ("Street, City, State Zip, County"), which made
+    // parseAddress (walks backward to find state-zip) treat
+    // "King County" as the state-zip — mangling state to "KI" and
+    // emptying ZIP. Smart Scan then sent garbage to the
+    // property-intelligence API and returned nothing useful. The
+    // contract for round-tripping a Places result is:
+    //   _formatAddressLine → "Street, City, County, State Zip"
+    //   parseAddress       → { state: 'WA', zip: '98101', county: 'King County' }
+    test('round-trips a 4-part Places address with county BEFORE state-zip', () => {
+        // Inline-extract _formatAddressLine from intake-v2-places.js so
+        // the contract is locked at the test layer (no IIFE-load needed —
+        // it's a pure function).
+        const placesSrc = fs.readFileSync(path.join(__dirname, '..', 'js', 'intake-v2-places.js'), 'utf8');
+        const fnSrc = placesSrc.match(/function _formatAddressLine\(p\) \{[\s\S]*?\n\}/)[0];
+        // eslint-disable-next-line no-new-func
+        const _formatAddressLine = new Function(`${fnSrc}; return _formatAddressLine;`)();
+
+        const line = _formatAddressLine({
+            street: '123 Main St', city: 'Seattle',
+            state: 'WA', zip: '98101', county: 'King County',
+        });
+        // Order matters: county must precede state-zip so parseAddress
+        // can identify the trailing state-zip correctly.
+        expect(line).toBe('123 Main St, Seattle, King County, WA 98101');
+
+        const parsed = SF.parseAddress(line);
+        expect(parsed.street).toBe('123 Main St');
+        expect(parsed.city).toBe('Seattle');
+        expect(parsed.state).toBe('WA');     // NOT 'KI'
+        expect(parsed.zip).toBe('98101');    // NOT ''
+        expect(parsed.county).toBe('King County');
+    });
 });
 
 describe('IntakeV2SmartFill — mergeResults priority', () => {
