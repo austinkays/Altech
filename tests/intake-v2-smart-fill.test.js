@@ -66,6 +66,39 @@ describe('IntakeV2SmartFill — parseAddress', () => {
         expect(out.state).toBe('WA');
     });
 
+    // Regression: a real user report. The home address came from the
+    // legacy _formatAddressLine ordering ("Street, City, State Zip, County"
+    // — county AT END) which the previous parser mis-read as
+    // state="LE", zip="" (treating "Lewis County" as the state-zip
+    // slot). Smart Scan then sent garbage to Rentcast/Redfin/Zillow and
+    // those sources returned nothing — only Fire/Protection Class came
+    // back, surfacing as the "Smart Scan didn't find much" report.
+    //
+    // The pattern-based parser must extract state="WA", zip="98591",
+    // county="Lewis County" regardless of the county's position.
+    test('parses county-AT-END layout (legacy Places format) correctly', () => {
+        const out = SF.parseAddress('180 Drews Prairie Rd, Toledo, WA 98591, Lewis County');
+        expect(out.street).toBe('180 Drews Prairie Rd');
+        expect(out.city).toBe('Toledo');
+        expect(out.state).toBe('WA');     // not 'LE'
+        expect(out.zip).toBe('98591');    // not ''
+        expect(out.county).toBe('Lewis County');
+    });
+
+    test('parses county-AT-END plus trailing USA tag', () => {
+        const out = SF.parseAddress('180 Drews Prairie Rd, Toledo, WA 98591, Lewis County, USA');
+        expect(out.state).toBe('WA');
+        expect(out.zip).toBe('98591');
+        expect(out.county).toBe('Lewis County');
+    });
+
+    test('parses county-BEFORE-state plus trailing USA tag', () => {
+        const out = SF.parseAddress('180 Drews Prairie Rd, Toledo, Lewis County, WA 98591, USA');
+        expect(out.state).toBe('WA');
+        expect(out.zip).toBe('98591');
+        expect(out.county).toBe('Lewis County');
+    });
+
     test('uppercases the state code', () => {
         expect(SF.parseAddress('1 A, B, ca 90210').state).toBe('CA');
     });
