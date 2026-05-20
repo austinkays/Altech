@@ -625,7 +625,7 @@
                 construction:'', exterior:'', foundation:'',
                 garage:{ type:'', spaces:'' },
                 roof:{ type:'', shape:'', yr:'', update:'' },
-                systems:{ heatingType:'', coolingType:'', plumbingYr:'', electricalYr:'', water:'', sewer:'' },
+                systems:{ heatingType:'', coolingType:'', plumbingYr:'', electricalYr:'', water:'', sewer:'', flooring:'', fireplaces:'' },
                 hazards:{ alarms:'', pool:false, trampoline:false, dogs:'', woodStove:false, businessOnPremises:false,
                           fireStationDist:'', fireHydrantFeet:'', protectionClass:'', tidalWaterDist:'' },
                 purchaseDate:'',

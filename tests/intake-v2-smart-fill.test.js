@@ -164,6 +164,28 @@ describe('IntakeV2SmartFill — mergeResults priority', () => {
         expect(out.sources.sqFt).toBe('Rentcast');
     });
 
+    // Regression: v1's Property Data Found popup captured Sewer / Water /
+    // Flooring / Fireplaces from the Rentcast + Apify Redfin/Zillow scrape
+    // but v2's _readZillow had no slots for them so the fields silently
+    // disappeared from the modal. Added in May 2026 — see
+    // intake-v2-fields.js home schema for the matching `systems.*` paths.
+    test('Sewer / Water / Flooring / Fireplaces from Zillow surface in merged', () => {
+        const out = SF.mergeResults({
+            arcgis: null,
+            zillow: { data: {
+                sewer: 'Septic',
+                waterSource: 'Well',
+                flooring: 'Laminate',
+                fireplaces: 1,
+            }, source: 'Rentcast (assessor/MLS records)' },
+            fire: null, vision: null,
+        });
+        expect(out.merged['systems.sewer']).toBe('Septic');
+        expect(out.merged['systems.water']).toBe('Well');
+        expect(out.merged['systems.flooring']).toBe('Laminate');
+        expect(out.merged['systems.fireplaces']).toBe(1);
+    });
+
     test('Vision only contributes medium/high confidence values', () => {
         const out = SF.mergeResults({
             arcgis: null, zillow: null, fire: null,
