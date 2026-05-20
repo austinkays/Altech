@@ -275,6 +275,15 @@ function _readZillow(data) {
         'roof.yr':       _num(pick('roofYr', 'roofYearUpdated', 'roof_year')),
         'systems.heatingType': pick('heatingType', 'heating'),
         'systems.coolingType': pick('cooling', 'coolingType'),
+        // Utility / interior fields surfaced by the Rentcast + Apify
+        // Redfin/Zillow scrape on the server side. The home schema gained
+        // matching slots (intake-v2-fields.js — systems.sewer/water/
+        // flooring/fireplaces) so smart-fill applies them directly into
+        // the form instead of dropping them silently.
+        'systems.sewer':     pick('sewer', 'sewerType', 'sewer_system'),
+        'systems.water':     pick('water', 'waterSource', 'water_source'),
+        'systems.flooring':  pick('flooring', 'floor_type', 'flooringType'),
+        'systems.fireplaces': _num(pick('fireplaces', 'fireplace_count', 'numFireplaces')),
         county:    pick('county'),
     };
 }
@@ -503,6 +512,18 @@ const NORMALIZE = Object.freeze({
         'central air': 'Central', 'central ac': 'Central', 'a/c': 'Central',
         'window units': 'Window', 'window unit': 'Window',
         'commercial': '', // Rentcast quirk — bogus value, leave blank for agent
+    },
+    // Utility normalization — Rentcast/Redfin variants → v2 dropdown values.
+    // Sewer + Water dropdowns are Public/Septic/None and Public/Well/Cistern/None
+    // respectively; map the common upstream phrasings here so values stick.
+    'systems.sewer': {
+        'public sewer': 'Public', 'municipal': 'Public', 'city sewer': 'Public',
+        'septic tank': 'Septic', 'private septic': 'Septic', 'septic system': 'Septic',
+    },
+    'systems.water': {
+        'public water': 'Public', 'municipal water': 'Public', 'city water': 'Public',
+        'private well': 'Well', 'well water': 'Well',
+        'cistern water': 'Cistern',
     },
     'numStories': {
         '1.0': '1', '2.0': '2', '3.0': '3',

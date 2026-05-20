@@ -37,7 +37,6 @@ const App = {
     toolConfig: [
         // ── Intake & Quoting ──
         { key: 'quoting',      icon: '✏️', color: 'icon-blue',    title: 'Personal Intake',   name: 'Personal Intake',    containerId: 'quotingTool',           htmlFile: 'plugins/quoting.html',           category: 'intake' },
-        { key: 'intakev2',     icon: '🧭', color: 'icon-violet',  title: 'Personal Intake v2',name: 'Personal Intake v2', containerId: 'intakeV2Tool',          initModule: 'IntakeV2',             htmlFile: 'plugins/intake-v2.html',         category: 'intake', beta: true },
         { key: 'commercial',   icon: '🏢', color: 'icon-amber',   title: 'Commercial Intake', name: 'Commercial Intake',  containerId: 'commercialQuoterTool',  initModule: 'CommercialQuoter',     htmlFile: 'plugins/commercial-quoter.html', category: 'intake' },
         { key: 'quotecompare', icon: '⚖️', color: 'icon-emerald', title: 'Quote Compare',     name: 'Quote Compare',      containerId: 'quoteCompareTool',      initModule: 'QuoteCompare',         htmlFile: 'plugins/quotecompare.html',      category: 'beta', beta: true },
         // ── Export ──
@@ -58,6 +57,7 @@ const App = {
         { key: 'accounting',   icon: '🧾', color: 'icon-amber',   title: 'Accounting',        name: 'Accounting',         containerId: 'accountingTool',        initModule: 'AccountingExport',     htmlFile: 'plugins/accounting.html',        category: 'workflow' },
         { key: 'vindecoder',   icon: '🚗', color: 'icon-emerald', title: 'VIN Decoder',       name: 'VIN Decoder',        containerId: 'vinDecoderTool',        initModule: 'VinDecoder',           htmlFile: 'plugins/vin-decoder.html',       category: 'workflow' },
         // ── In Development (Beta) ──
+        { key: 'intakev2',     icon: '🧭', color: 'icon-violet',  title: 'Personal Intake v2',name: 'Personal Intake v2', containerId: 'intakeV2Tool',          initModule: 'IntakeV2',             htmlFile: 'plugins/intake-v2.html',         category: 'beta', beta: true },
         { key: 'broadform',    icon: '🎯', color: 'icon-amber',   title: 'Carrier Match',     name: 'Carrier Match',      containerId: 'broadformTool',         initModule: 'Broadform',            htmlFile: 'plugins/tools/broadform.html',   category: 'beta', beta: true },
         { key: 'intake',       icon: '✨', color: 'icon-violet',  title: 'Quote Bot',         name: 'Quote Bot',          containerId: 'intakeTool',            initModule: 'IntakeAssist',         htmlFile: 'plugins/intake-assist.html',     category: 'beta', beta: true },
     ],

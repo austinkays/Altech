@@ -118,6 +118,132 @@
 
 'use strict';
 
+// ─── EZLynx-aligned option lists ──────────────────────────────────────────
+//
+// These lists are deliberately the SAME strings EZLynx uses on its
+// Personal Lines application screens. v2 originally shipped with short
+// labels ("No HS" / "M" / "Mrs.") that looked friendlier in the UI but
+// broke round-tripping into EZLynx because the exporter passes the
+// stored value through verbatim — `<Education>No HS</Education>` is not
+// a value EZLynx's deserializer accepts, so the import either rejected
+// the record or silently lost the field. Matching exactly lets the
+// EZLynx Exporter (js/ezlynx-tool.js + js/intake-v2-export-ezlynx.js)
+// reuse the raw value with no translation layer.
+//
+// Mirror of js/app-core.js `_OCCUPATIONS_BY_INDUSTRY` (and the
+// hardcoded option blocks in plugins/quoting.html). Kept in this file
+// rather than shared from app-core because the v2 module set is loaded
+// in a way that may eventually outlive v1's plugins.
+
+// Prefix / Suffix: stored as the EZLynx code (MR / JR / etc.) — the
+// renderer uses [value, label] tuples so the agent sees "Mr." while the
+// XML carries "MR".
+const PREFIX_OPTIONS_EZ = [
+    '',
+    ['MR',  'Mr.'],
+    ['MRS', 'Mrs.'],
+    ['MS',  'Ms.'],
+    ['DR',  'Dr.'],
+];
+const SUFFIX_OPTIONS_EZ = [
+    '',
+    ['JR',  'Jr.'],
+    ['SR',  'Sr.'],
+    ['I',   'I'],
+    ['II',  'II'],
+    ['III', 'III'],
+];
+// Gender — same M / F / X codes v1 stores, which expandGender() in the
+// EZLynx exporter already understood. "Not Specified" is the EZLynx-
+// safe value for anything other than M / F.
+const GENDER_OPTIONS_EZ = [
+    '',
+    ['M', 'Male'],
+    ['F', 'Female'],
+    ['X', 'Not Specified'],
+];
+// Marital status — v1's full set; v2 was missing 'Separated' which is
+// a distinct EZLynx enum value.
+const MARITAL_OPTIONS_EZ = [
+    '', 'Single', 'Married', 'Domestic Partner', 'Widowed', 'Separated', 'Divorced',
+];
+// Education — exact EZLynx Personal Lines strings (not the short
+// labels v2 shipped with).
+const EDUCATION_OPTIONS_EZ = [
+    '',
+    'No High School Diploma',
+    'High School Diploma',
+    'Some College - No Degree',
+    'Vocational/Technical Degree',
+    'Associates Degree',
+    'Bachelors',
+    'Masters',
+    'Phd',
+    'Medical Degree',
+    'Law Degree',
+];
+// Industry — the 24 EZLynx categories. `OCCUPATIONS_BY_INDUSTRY` keys
+// MUST match this list exactly (the cascade in intake-v2-layout.js
+// looks up by industry value).
+const INDUSTRY_OPTIONS_EZ = [
+    '',
+    'Homemaker/House person',
+    'Retired',
+    'Disabled',
+    'Unemployed',
+    'Student',
+    'Agriculture/Forestry/Fishing',
+    'Art/Design/Media',
+    'Banking/Finance/Real Estate',
+    'Business/Sales/Office',
+    'Construction/Energy Trades',
+    'Education/Library',
+    'Engineer/Architect/Science/Math',
+    'Government/Military',
+    'Information Technology',
+    'Insurance',
+    'Legal/Law Enforcement/Security',
+    'Maintenance/Repair/Housekeeping',
+    'Manufacturing/Production',
+    'Medical/Social Services/Religion',
+    'Personal Care/Service',
+    'Restaurant/Hotel Services',
+    'Sports/Recreation',
+    'Travel/Transportation/Warehousing',
+    'Other',
+];
+// Per-industry occupation lists. Mirror of v1's
+// App._OCCUPATIONS_BY_INDUSTRY (js/app-core.js). When industry changes,
+// the cascade wires (intake-v2-layout.js) repopulate the Occupation
+// dropdown from this map; if the previously-selected occupation isn't
+// in the new list it's cleared.
+const OCCUPATIONS_BY_INDUSTRY_EZ = Object.freeze({
+    'Homemaker/House person': ['Homemaker'],
+    'Retired': ['Retired'],
+    'Disabled': ['Disabled'],
+    'Unemployed': ['Unemployed'],
+    'Student': ['Student'],
+    'Agriculture/Forestry/Fishing': ['Farm/Ranch Owner', 'Farm/Ranch Worker', 'Fisherman', 'Forester', 'Laborer', 'Landscaper/Groundskeeper', 'Logger', 'Nursery Worker', 'Rancher', 'Supervisor', 'Other'],
+    'Art/Design/Media': ['Actor', 'Announcer/Broadcaster', 'Artist', 'Author/Writer', 'Dancer', 'Designer', 'Director', 'Editor', 'Journalist/Reporter', 'Musician', 'Photographer', 'Printer', 'Producer', 'Other'],
+    'Banking/Finance/Real Estate': ['Accountant/Auditor', 'Analyst', 'Appraiser', 'Bank Teller', 'Banker', 'Branch Manager', 'Broker', 'Clerk', 'Controller', 'Financial Planner', 'Investment Banker', 'Loan Officer', 'Real Estate Agent/Broker', 'Tax Preparer', 'Trader', 'Underwriter', 'Other'],
+    'Business/Sales/Office': ['Account Executive', 'Administrative Assistant', 'Buyer', 'Cashier/Checker', 'Clerk', 'Customer Service Representative', 'Director/Administrator', 'Executive', 'Human Resources', 'Manager', 'Marketing', 'Office Manager', 'Receptionist/Secretary', 'Sales Representative', 'Supervisor', 'Other'],
+    'Construction/Energy Trades': ['Carpenter', 'Contractor', 'Electrician', 'Foreman/Supervisor', 'Handyman', 'HVAC Technician', 'Laborer', 'Painter', 'Plumber', 'Project Manager', 'Roofer', 'Utility Worker', 'Welder', 'Other'],
+    'Education/Library': ['College Professor', 'Counselor', 'Instructor', 'Librarian', 'Principal', 'School Administrator', 'Teacher', 'Teacher Aide', 'Tutor', 'Other'],
+    'Engineer/Architect/Science/Math': ['Actuary', 'Architect', 'Chemist', 'Drafter', 'Engineer', 'Lab Technician', 'Mathematician', 'Research Analyst', 'Scientist', 'Surveyor', 'Technician', 'Other'],
+    'Government/Military': ['Commissioned Officer', 'Enlisted', 'Federal Worker', 'Fire Fighter', 'Letter Carrier/Mail', 'Military - Enlisted', 'Military - Officer', 'Postal Worker', 'State/Local Worker', 'Other'],
+    'Information Technology': ['Analyst', 'Computer Programmer', 'Database Administrator', 'Help Desk', 'IT Manager', 'Network Administrator', 'Software Developer', 'Systems Administrator', 'Technical Support', 'Web Developer', 'Other'],
+    'Insurance': ['Accountant/Auditor', 'Actuarial Clerk', 'Actuary', 'Administrative Assistant', 'Agent/Broker', 'Analyst', 'Attorney', 'Claims Adjuster', 'Clerk', 'Commissioner', 'Customer Service Representative', 'Director/Administrator', 'Executive', 'Product Manager', 'Receptionist/Secretary', 'Sales Representative', 'Underwriter', 'Other'],
+    'Legal/Law Enforcement/Security': ['Attorney', 'Bailiff', 'Corrections Officer', 'Court Clerk', 'Detective', 'Guard', 'Judge', 'Legal Assistant/Paralegal', 'Police Officer', 'Security Guard', 'Sheriff', 'Other'],
+    'Maintenance/Repair/Housekeeping': ['Custodian/Janitor', 'Housekeeper', 'Maintenance Worker', 'Mechanic', 'Other'],
+    'Manufacturing/Production': ['Assembler', 'Factory Worker', 'Foreman/Supervisor', 'Inspector', 'Machine Operator', 'Packer', 'Plant Manager', 'Quality Control', 'Technician', 'Warehouse Worker', 'Other'],
+    'Medical/Social Services/Religion': ['Chiropractor', 'Clergy', 'Counselor', 'Dental Hygienist', 'Dentist', 'EMT/Paramedic', 'Lab Technician', 'Nurse - Licensed', 'Nurse - Registered', 'Optometrist', 'Pharmacist', 'Physician/Surgeon', 'Social Worker', 'Therapist', 'Veterinarian', 'Other'],
+    'Personal Care/Service': ['Barber/Hairstylist', 'Child/Day Care Worker', 'Cosmetologist', 'Fitness Trainer', 'Funeral Director', 'Pet Groomer', 'Other'],
+    'Restaurant/Hotel Services': ['Baker', 'Bartender', 'Bus Person', 'Chef/Cook', 'Desk Clerk', 'Host/Hostess', 'Hotel Manager', 'Restaurant Manager', 'Server', 'Wait Staff', 'Other'],
+    'Sports/Recreation': ['Athlete', 'Coach', 'Fitness Instructor', 'Lifeguard', 'Official/Referee', 'Recreation Worker', 'Other'],
+    'Travel/Transportation/Warehousing': ['Air Traffic Controller', 'Bus Driver', 'Dispatcher', 'Driver/Trucker', 'Flight Attendant', 'Forklift Operator', 'Messenger/Courier', 'Mover', 'Pilot', 'Ship Captain/Officer', 'Taxi/Limo Driver', 'Travel Agent', 'Warehouse Worker', 'Other'],
+    'Other': ['Accountant/Auditor', 'Administrative Assistant', 'Agent/Broker', 'Analyst', 'Clerk', 'Contractor', 'Customer Service Representative', 'Director/Administrator', 'Engineer', 'Executive', 'Laborer', 'Manager', 'Nurse - Registered', 'Sales Representative', 'Teacher', 'Other'],
+});
+
 /* eslint-disable */
 (function () {
 
@@ -135,20 +261,25 @@ const requiredBy = (...carriers) => carriers.reduce((m, c) => (m[c] = true, m), 
 
 const SCALAR = [
     // ── Applicant ─────────────────────────────────────────────────────────
-    { id: 'iv2-prefix',         path: 'applicant.prefix',         label: 'Prefix',           type: 'select', options: ['', 'Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Mx.'], section: 'quick', mode: 'full' },
+    { id: 'iv2-prefix',         path: 'applicant.prefix',         label: 'Prefix',           type: 'select', options: PREFIX_OPTIONS_EZ, section: 'quick', mode: 'full' },
     { id: 'iv2-firstName',      path: 'applicant.firstName',      label: 'First Name',       type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
     { id: 'iv2-middleName',     path: 'applicant.middleName',     label: 'Middle',           type: 'text',   section: 'quick', mode: 'full',  speller: 'general' },
     { id: 'iv2-lastName',       path: 'applicant.lastName',       label: 'Last Name',        type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
-    { id: 'iv2-suffix',         path: 'applicant.suffix',         label: 'Suffix',           type: 'select', options: ['', 'Jr.', 'Sr.', 'II', 'III', 'IV'], section: 'quick', mode: 'full' },
+    { id: 'iv2-suffix',         path: 'applicant.suffix',         label: 'Suffix',           type: 'select', options: SUFFIX_OPTIONS_EZ, section: 'quick', mode: 'full' },
     { id: 'iv2-dob',            path: 'applicant.dob',            label: 'Date of Birth',    type: 'date',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
     { id: 'iv2-ssn',            path: 'applicant.ssn',            label: 'SSN (optional, for credit pull)', type: 'text', section: 'quick', mode: 'full' },
-    { id: 'iv2-gender',         path: 'applicant.gender',         label: 'Gender',           type: 'select', options: ['', 'Male', 'Female', 'Nonbinary', 'Prefer not to say'], section: 'quick', mode: 'full' },
-    { id: 'iv2-maritalStatus',  path: 'applicant.maritalStatus',  label: 'Marital Status',   type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], section: 'quick', mode: 'quick' },
+    { id: 'iv2-gender',         path: 'applicant.gender',         label: 'Gender',           type: 'select', options: GENDER_OPTIONS_EZ, section: 'quick', mode: 'full' },
+    { id: 'iv2-maritalStatus',  path: 'applicant.maritalStatus',  label: 'Marital Status',   type: 'select', options: MARITAL_OPTIONS_EZ, section: 'quick', mode: 'quick' },
     { id: 'iv2-phone',          path: 'applicant.phone',          label: 'Phone',            type: 'tel',    section: 'quick', mode: 'quick', placeholder: '(555) 123-4567', inputmode: 'tel', format: 'phone', bindable: requiredBy('progressive','foremost','travelers','safeco') },
     { id: 'iv2-email',          path: 'applicant.email',          label: 'Email',            type: 'email',  section: 'quick', mode: 'quick', placeholder: 'name@example.com', inputmode: 'email', speller: 'email' },
-    { id: 'iv2-occupation',     path: 'applicant.occupation',     label: 'Occupation',       type: 'text',   section: 'quick', mode: 'full' },
-    { id: 'iv2-industry',       path: 'applicant.industry',       label: 'Industry',         type: 'text',   section: 'quick', mode: 'full' },
-    { id: 'iv2-education',      path: 'applicant.education',      label: 'Education',        type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], section: 'quick', mode: 'full' },
+    // Industry → Occupation cascade. The Industry dropdown is the source
+    // of truth; selecting it repopulates Occupation with the per-industry
+    // list from OCCUPATIONS_BY_INDUSTRY_EZ (wired in intake-v2-layout.js).
+    // Occupation ships with an empty options list because the real list
+    // is filled at runtime once the industry is known.
+    { id: 'iv2-industry',       path: 'applicant.industry',       label: 'Industry',         type: 'select', options: INDUSTRY_OPTIONS_EZ, section: 'quick', mode: 'full' },
+    { id: 'iv2-occupation',     path: 'applicant.occupation',     label: 'Occupation',       type: 'select', options: [''], section: 'quick', mode: 'full', cascadeFrom: 'applicant.industry' },
+    { id: 'iv2-education',      path: 'applicant.education',      label: 'Education',        type: 'select', options: EDUCATION_OPTIONS_EZ, section: 'quick', mode: 'full' },
     // Employer name + years employed fill the row that used to leave
     // four empty grid columns next to Industry/Education. Both fields
     // are first-class on the EZLynx Personal Lines application — the
@@ -167,13 +298,14 @@ const SCALAR = [
     { id: 'iv2-coFirstName',     path: 'coApplicant.firstName',    label: 'Co-App First',    type: 'text',   section: 'quick', mode: 'quick', speller: 'general' },
     { id: 'iv2-coLastName',      path: 'coApplicant.lastName',     label: 'Co-App Last',     type: 'text',   section: 'quick', mode: 'quick', speller: 'general' },
     { id: 'iv2-coDob',           path: 'coApplicant.dob',          label: 'Co-App DOB',      type: 'date',   section: 'quick', mode: 'quick' },
-    { id: 'iv2-coGender',        path: 'coApplicant.gender',       label: 'Co-App Gender',   type: 'select', options: ['', 'Male', 'Female', 'Nonbinary', 'Prefer not to say'], section: 'quick', mode: 'full' },
-    { id: 'iv2-coMaritalStatus', path: 'coApplicant.maritalStatus',label: 'Co-App Marital',  type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], section: 'quick', mode: 'full' },
+    { id: 'iv2-coGender',        path: 'coApplicant.gender',       label: 'Co-App Gender',   type: 'select', options: GENDER_OPTIONS_EZ, section: 'quick', mode: 'full' },
+    { id: 'iv2-coMaritalStatus', path: 'coApplicant.maritalStatus',label: 'Co-App Marital',  type: 'select', options: MARITAL_OPTIONS_EZ, section: 'quick', mode: 'full' },
     { id: 'iv2-coPhone',         path: 'coApplicant.phone',        label: 'Co-App Phone',    type: 'tel',    section: 'quick', mode: 'full' },
     { id: 'iv2-coEmail',         path: 'coApplicant.email',        label: 'Co-App Email',    type: 'email',  section: 'quick', mode: 'full',  speller: 'email' },
-    { id: 'iv2-coOccupation',    path: 'coApplicant.occupation',   label: 'Co-App Occupation', type: 'text', section: 'quick', mode: 'full' },
-    { id: 'iv2-coIndustry',      path: 'coApplicant.industry',     label: 'Co-App Industry', type: 'text',   section: 'quick', mode: 'full' },
-    { id: 'iv2-coEducation',     path: 'coApplicant.education',    label: 'Co-App Education',type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], section: 'quick', mode: 'full' },
+    // Co-applicant industry → occupation cascade (mirrors applicant).
+    { id: 'iv2-coIndustry',      path: 'coApplicant.industry',     label: 'Co-App Industry', type: 'select', options: INDUSTRY_OPTIONS_EZ, section: 'quick', mode: 'full' },
+    { id: 'iv2-coOccupation',    path: 'coApplicant.occupation',   label: 'Co-App Occupation', type: 'select', options: [''], section: 'quick', mode: 'full', cascadeFrom: 'coApplicant.industry' },
+    { id: 'iv2-coEducation',     path: 'coApplicant.education',    label: 'Co-App Education',type: 'select', options: EDUCATION_OPTIONS_EZ, section: 'quick', mode: 'full' },
 
     // ── Mailing Address ───────────────────────────────────────────────────
     { id: 'iv2-addrStreet', path: 'address.street', label: 'Street Address', type: 'text',   section: 'quick', mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
@@ -260,8 +392,8 @@ const COLLECTIONS = {
             { idStem: 'op-lastName',       path: 'lastName',        label: 'Last Name',  type: 'text',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco'), speller: 'general' },
             { idStem: 'op-dob',            path: 'dob',             label: 'DOB',        type: 'date',   mode: 'quick', bindable: requiredBy('progressive','foremost','travelers','safeco') },
             { idStem: 'op-relationship',   path: 'relationship',    label: 'Relationship', type: 'select', options: ['', 'Self', 'Spouse', 'Domestic Partner', 'Child', 'Parent', 'Sibling', 'Other'], mode: 'quick' },
-            { idStem: 'op-gender',         path: 'gender',          label: 'Gender',     type: 'select', options: ['', 'Male', 'Female', 'Nonbinary'], mode: 'full' },
-            { idStem: 'op-maritalStatus',  path: 'maritalStatus',   label: 'Marital',    type: 'select', options: ['', 'Single', 'Married', 'Divorced', 'Widowed', 'Domestic Partner'], mode: 'full' },
+            { idStem: 'op-gender',         path: 'gender',          label: 'Gender',     type: 'select', options: GENDER_OPTIONS_EZ, mode: 'full' },
+            { idStem: 'op-maritalStatus',  path: 'maritalStatus',   label: 'Marital',    type: 'select', options: MARITAL_OPTIONS_EZ, mode: 'full' },
             // DL Number + State are required to bind any auto policy across
             // all four carriers — promoted to Quick mode + flagged bindable
             // so they show up in Quick by default AND surface in the missing-
@@ -280,8 +412,13 @@ const COLLECTIONS = {
             { idStem: 'op-yearsAuto',      path: 'dl.yearsAuto',    label: 'Yrs Driving',type: 'number', mode: 'full' },
             { idStem: 'op-yearsBoat',      path: 'dl.yearsBoat',    label: 'Yrs Boating',type: 'number', mode: 'full' },
             { idStem: 'op-yearsRV',        path: 'dl.yearsRV',      label: 'Yrs RV',     type: 'number', mode: 'full' },
-            { idStem: 'op-occupation',     path: 'occupation',      label: 'Occupation', type: 'text',   mode: 'full' },
-            { idStem: 'op-education',      path: 'education',       label: 'Education',  type: 'select', options: ['', 'No HS', 'High School', 'Some College', 'Associates', 'Bachelors', 'Masters', 'Doctorate'], mode: 'full' },
+            // Driver-card "Occupation" stores the EZLynx industry CATEGORY
+            // (not a specific job title) — matches v1's Step-4 driver row
+            // and the per-driver Occupation/Industry EZLynx exporter
+            // expects. The applicant-level industry+occupation pair on
+            // the Quick Start cluster captures the specific title.
+            { idStem: 'op-occupation',     path: 'occupation',      label: 'Occupation Industry', type: 'select', options: INDUSTRY_OPTIONS_EZ, mode: 'full' },
+            { idStem: 'op-education',      path: 'education',       label: 'Education',  type: 'select', options: EDUCATION_OPTIONS_EZ, mode: 'full' },
             { idStem: 'op-ssn',            path: 'ssn',             label: 'SSN (optional)', type: 'text', mode: 'full' },
             // ── Underwriting flags ────────────────────────────────────────
             // Subheader spans the full grid; the rest are checkboxes the
@@ -333,6 +470,14 @@ const COLLECTIONS = {
             { idStem: 'home-coolingType',  path: 'systems.coolingType',  label: 'Cooling',        type: 'select', options: ['', 'Central', 'Window', 'None'], mode: 'full' },
             { idStem: 'home-plumbingYr',   path: 'systems.plumbingYr',   label: 'Plumbing Year',  type: 'number', mode: 'full' },
             { idStem: 'home-electricalYr', path: 'systems.electricalYr', label: 'Electrical Year',type: 'number', mode: 'full' },
+            // Utility / interior fields that v1's Smart Scan was capturing
+            // from the Rentcast/Redfin/Zillow scrape but v2 had no slots
+            // for. Adding them unlocks the corresponding Smart-Scan keys
+            // in intake-v2-smart-fill.js `_readZillow`.
+            { idStem: 'home-sewer',        path: 'systems.sewer',        label: 'Sewer',          type: 'select', options: ['', 'Public', 'Septic', 'None'], mode: 'full' },
+            { idStem: 'home-water',        path: 'systems.water',        label: 'Water',          type: 'select', options: ['', 'Public', 'Well', 'Cistern', 'None'], mode: 'full' },
+            { idStem: 'home-flooring',     path: 'systems.flooring',     label: 'Flooring',       type: 'text',   mode: 'full' },
+            { idStem: 'home-fireplaces',   path: 'systems.fireplaces',   label: 'Fireplaces',     type: 'number', mode: 'full' },
             { idStem: 'home-protectionClass', path: 'hazards.protectionClass', label: 'Protection Class', type: 'number', mode: 'full' },
             { idStem: 'home-fireStationDist', path: 'hazards.fireStationDist', label: 'Fire Station (miles)', type: 'number', mode: 'full' },
             { idStem: 'home-fireHydrantFeet', path: 'hazards.fireHydrantFeet', label: 'Hydrant (feet)',       type: 'number', mode: 'full' },
@@ -632,7 +777,13 @@ const FieldMapV2 = (function () {
     return { pathForElement, idForPath, getField, byId };
 })();
 
-window.IntakeV2Fields = { scalar: SCALAR, collections: COLLECTIONS };
+window.IntakeV2Fields = {
+    scalar: SCALAR,
+    collections: COLLECTIONS,
+    // Cascade map exposed for intake-v2-layout.js's industry → occupation
+    // wiring. Frozen so callers can't accidentally mutate it.
+    OCCUPATIONS_BY_INDUSTRY: OCCUPATIONS_BY_INDUSTRY_EZ,
+};
 window.FieldMapV2 = FieldMapV2;
 
 })();

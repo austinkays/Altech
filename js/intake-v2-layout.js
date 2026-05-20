@@ -698,6 +698,83 @@ function wireInputFormatters() {
     }, true); // capture phase — must beat core's bubble-phase save listener
 }
 
+// Industry → Occupation cascade. Every scalar field with a
+// `cascadeFrom: '<sourcePath>'` schema property treats that source
+// dropdown as the parent; when the source changes, the dependent
+// dropdown's <option> list is repopulated from
+// IntakeV2Fields.OCCUPATIONS_BY_INDUSTRY[sourceValue]. If the
+// previously-saved value no longer appears in the new list it's
+// cleared (defensive: keeps the form from carrying a stale "Engineer"
+// after the user switches industry to "Restaurant").
+//
+// Repaint is the operation used at boot + after every layout
+// re-render — see repaintOccupationOptions below — so the dropdown
+// always reflects the current industry without a re-render of the
+// whole quick section.
+function _cascadeFields() {
+    if (!window.IntakeV2Fields || !Array.isArray(window.IntakeV2Fields.scalar)) return [];
+    return window.IntakeV2Fields.scalar.filter(f => f && f.cascadeFrom);
+}
+function _populateOccupationSelect(selectEl, industry, currentValue) {
+    if (!selectEl) return;
+    const map = (window.IntakeV2Fields && window.IntakeV2Fields.OCCUPATIONS_BY_INDUSTRY) || {};
+    const titles = map[industry] || [];
+    const opts = [`<option value="">${titles.length ? 'Select…' : '— pick an industry first —'}</option>`];
+    for (const t of titles) {
+        const sel = (t === currentValue) ? ' selected' : '';
+        opts.push(`<option value="${escAttr(t)}"${sel}>${esc(t)}</option>`);
+    }
+    selectEl.innerHTML = opts.join('');
+    // If the previously-saved value isn't in the new list, the <select>
+    // ends up showing the empty placeholder — also clear the data field
+    // so the stored value matches what the user sees on screen.
+    const fieldPath = selectEl.getAttribute('data-iv2-path');
+    if (fieldPath && currentValue && !titles.includes(currentValue)) {
+        if (window.IntakeV2 && typeof window.IntakeV2.setField === 'function') {
+            window.IntakeV2.setField(fieldPath, '');
+        }
+    }
+}
+function repaintOccupationOptions() {
+    const data = (window.IntakeV2 && window.IntakeV2.data) || {};
+    for (const f of _cascadeFields()) {
+        const selectEl = document.getElementById(f.id);
+        if (!selectEl) continue;
+        const industry = (window.IntakeV2 && typeof window.IntakeV2._getByPath === 'function')
+            ? (window.IntakeV2._getByPath(data, f.cascadeFrom) || '')
+            : '';
+        const current  = (window.IntakeV2 && typeof window.IntakeV2._getByPath === 'function')
+            ? (window.IntakeV2._getByPath(data, f.path) || '')
+            : '';
+        _populateOccupationSelect(selectEl, industry, current);
+    }
+}
+function wireIndustryOccupationCascade() {
+    if (wireIndustryOccupationCascade._wired) return;
+    wireIndustryOccupationCascade._wired = true;
+    // Delegate on the container so we catch industry-select changes
+    // even after layout re-renders (the <select> elements get
+    // replaced; the parent stays).
+    const container = document.getElementById('intakeV2Tool') || document;
+    container.addEventListener('change', (e) => {
+        const el = e.target;
+        if (!el || !el.matches || !el.matches('select[data-iv2-path]')) return;
+        const sourcePath = el.getAttribute('data-iv2-path');
+        // Only fire when one of the registered cascade SOURCES changes.
+        const dependents = _cascadeFields().filter(f => f.cascadeFrom === sourcePath);
+        if (!dependents.length) return;
+        const data = (window.IntakeV2 && window.IntakeV2.data) || {};
+        for (const dep of dependents) {
+            const depSel = document.getElementById(dep.id);
+            if (!depSel) continue;
+            const current = (window.IntakeV2 && typeof window.IntakeV2._getByPath === 'function')
+                ? (window.IntakeV2._getByPath(data, dep.path) || '')
+                : '';
+            _populateOccupationSelect(depSel, el.value || '', current);
+        }
+    });
+}
+
 function wireBindableUnderlines() {
     if (wireBindableUnderlines._wired) return;
     wireBindableUnderlines._wired = true;
@@ -899,6 +976,7 @@ window.IntakeV2.onBoot(function () {
     wireSpellerDelegation();
     wireBindableUnderlines();
     wireInputFormatters();
+    wireIndustryOccupationCascade();
     wireTalkTrackFocusReprioritize();
     renderJumpBadges();
     renderTopbarStatus();
@@ -907,6 +985,12 @@ window.IntakeV2.onBoot(function () {
 
     // Apply DOM values after the quick section is rendered
     this.applyData();
+
+    // Paint occupation dropdowns from the current industry value once
+    // applyData has restored both fields from storage. Otherwise the
+    // <select> would have only the empty placeholder option and the
+    // restored value wouldn't have anything to select against.
+    repaintOccupationOptions();
 
     // Register so requestRerender('layout') refreshes the section
     this.registerRenderer('layout', () => {
@@ -919,6 +1003,11 @@ window.IntakeV2.onBoot(function () {
             if (el.type === 'checkbox') el.checked = !!v;
             else el.value = v == null ? '' : String(v);
         }
+        // Re-paint occupation options after re-render (the new <select>
+        // shipped with only the placeholder; without this the agent
+        // would see an empty occupation dropdown until they re-pick
+        // an industry).
+        repaintOccupationOptions();
         renderJumpBadges();
         // Re-apply deferred-field styling — innerHTML replacement above wipes
         // any data-deferred attrs / badge visibility. Without this, expanding
